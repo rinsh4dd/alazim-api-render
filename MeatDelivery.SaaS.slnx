@@ -1,0 +1,10 @@
+<Solution>
+  <Project Path="MeatDelivery.Api/MeatDelivery.Api.csproj" />
+  <Project Path="MeatDelivery.Application/MeatDelivery.Application.csproj" />
+  <Project Path="MeatDelivery.Domain/MeatDelivery.Domain.csproj" />
+  <Project Path="MeatDelivery.Infrastructure/MeatDelivery.Infrastructure.csproj" />
+  <Project Path="MeatDelivery.Migrations/MeatDelivery.Migrations.csproj" />
+  <Project Path="MeatDelivery.Plugins/MeatDelivery.Plugins.csproj" />
+  <Project Path="MeatDelivery.Shared/MeatDelivery.Shared.csproj" />
+  <Project Path="MeatDelivery.Worker/MeatDelivery.Worker.csproj" />
+</Solution>

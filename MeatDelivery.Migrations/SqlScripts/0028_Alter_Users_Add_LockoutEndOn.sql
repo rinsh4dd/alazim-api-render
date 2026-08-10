@@ -1,0 +1,2 @@
+ALTER TABLE dbo.Users
+ADD LockoutEndOn DATETIME2 NULL;
