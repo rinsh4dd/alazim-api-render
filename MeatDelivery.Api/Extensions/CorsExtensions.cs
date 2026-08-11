@@ -32,7 +32,8 @@ namespace MeatDelivery.Api.Extensions
                     policy
                         .WithOrigins(allowedOrigins)
                         .AllowAnyHeader()
-                        .AllowAnyMethod();
+                        .AllowAnyMethod()
+                        .AllowCredentials();
                 });
             });
 

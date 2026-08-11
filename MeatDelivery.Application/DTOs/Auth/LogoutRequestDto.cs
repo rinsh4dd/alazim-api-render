@@ -1,9 +1,9 @@
-using System;
-
 namespace MeatDelivery.Application.DTOs.Auth
 {
-    public sealed class LogoutRequestDto
+    public class LogoutRequestDto
     {
+        public string CountryCode { get; set; } = string.Empty;
+        public string MobileNumber { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
     }
 }

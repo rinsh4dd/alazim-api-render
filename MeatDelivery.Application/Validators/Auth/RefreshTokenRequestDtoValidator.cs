@@ -3,15 +3,20 @@ using MeatDelivery.Application.DTOs.Auth;
 
 namespace MeatDelivery.Application.Validators.Auth
 {
-    public sealed class RefreshTokenRequestDtoValidator : AbstractValidator<RefreshTokenRequestDto>
+    public class RefreshTokenRequestDtoValidator : AbstractValidator<RefreshTokenRequestDto>
     {
         public RefreshTokenRequestDtoValidator()
         {
-            RuleFor(x => x.AccessToken)
-                .NotEmpty().WithMessage("Access Token is required.");
+            RuleFor(x => x.CountryCode)
+                .NotEmpty().WithMessage("Country code is required.")
+                .Matches(@"^\+[1-9]\d{0,3}$").WithMessage("Country code must start with '+' followed by 1 to 3 digits.");
+
+            RuleFor(x => x.MobileNumber)
+                .NotEmpty().WithMessage("Mobile number is required.")
+                .Matches(@"^\d{7,15}$").WithMessage("Mobile number must contain between 7 and 15 digits.");
 
             RuleFor(x => x.RefreshToken)
-                .NotEmpty().WithMessage("Refresh Token is required.");
+                .NotEmpty().WithMessage("Refresh token is required.");
         }
     }
 }

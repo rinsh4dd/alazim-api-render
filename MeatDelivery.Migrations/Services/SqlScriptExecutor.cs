@@ -1,19 +1,23 @@
-﻿using Dapper;
+using Dapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MeatDelivery.Migrations.Services
 {
     public sealed class SqlScriptExecutor : ISqlScriptExecutor
     {
-
         private readonly ILogger<SqlScriptExecutor> _logger;
 
         public SqlScriptExecutor(ILogger<SqlScriptExecutor> logger)
@@ -22,10 +26,10 @@ namespace MeatDelivery.Migrations.Services
         }
 
         public async Task ExecuteScriptsAsync(
-       string connectionString,
-       string resourcePrefix,
-       Assembly assembly,
-       CancellationToken cancellationToken = default)
+            string connectionString,
+            string resourcePrefix,
+            Assembly assembly,
+            CancellationToken cancellationToken = default)
         {
             await using var connection = new SqlConnection(connectionString);
             await connection.OpenAsync(cancellationToken);
@@ -60,7 +64,20 @@ namespace MeatDelivery.Migrations.Services
 
                 try
                 {
-                    await connection.ExecuteAsync(sql, transaction: transaction);
+                    // Split SQL script into batches on T-SQL GO statements
+                    var batches = Regex.Split(
+                        sql,
+                        @"^\s*GO\s*$",
+                        RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+                    foreach (var batch in batches)
+                    {
+                        var trimmedBatch = batch.Trim();
+                        if (!string.IsNullOrWhiteSpace(trimmedBatch))
+                        {
+                            await connection.ExecuteAsync(trimmedBatch, transaction: transaction);
+                        }
+                    }
 
                     stopwatch.Stop();
 
@@ -75,15 +92,25 @@ namespace MeatDelivery.Migrations.Services
 
                     _logger.LogInformation("Applied script: {ScriptName}", scriptName);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    await transaction.RollbackAsync(cancellationToken);
-                    _logger.LogError("Failed to execute script: {ScriptName}", scriptName);
+                    _logger.LogError(ex, "Failed to execute script: {ScriptName}", scriptName);
+
+                    try
+                    {
+                        if (connection.State == ConnectionState.Open)
+                        {
+                            await transaction.RollbackAsync(cancellationToken);
+                        }
+                    }
+                    catch (Exception rollbackEx)
+                    {
+                        _logger.LogWarning(rollbackEx, "Failed to rollback transaction for script: {ScriptName}", scriptName);
+                    }
+
                     throw;
                 }
             }
-
-
         }
 
         private static async Task EnsureVersionTableAsync(IDbConnection connection)
@@ -110,8 +137,8 @@ namespace MeatDelivery.Migrations.Services
         }
 
         private static async Task<bool> IsScriptAppliedAsync(
-      IDbConnection connection,
-      string scriptName)
+            IDbConnection connection,
+            string scriptName)
         {
             const string sql = """
             SELECT COUNT(1)
@@ -126,13 +153,12 @@ namespace MeatDelivery.Migrations.Services
             return count > 0;
         }
 
-
         private static async Task RecordScriptExecutionAsync(
-        IDbConnection connection,
-        IDbTransaction transaction,
-        string scriptName,
-        long executionTimeMs,
-        string checksum)
+            IDbConnection connection,
+            IDbTransaction transaction,
+            string scriptName,
+            long executionTimeMs,
+            string checksum)
         {
             const string sql = """
             INSERT INTO dbo.SchemaVersions
@@ -164,13 +190,10 @@ namespace MeatDelivery.Migrations.Services
                 transaction);
         }
 
-
         private static string ComputeChecksum(string content)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(content));
             return Convert.ToHexString(bytes);
         }
-
-
     }
 }

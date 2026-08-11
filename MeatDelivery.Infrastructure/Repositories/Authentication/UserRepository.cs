@@ -1,9 +1,6 @@
-using MeatDelivery.Application.DTOs.Auth;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Repositories.Authentication;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using MeatDelivery.Domain.Entities.Authentication;
 
 namespace MeatDelivery.Infrastructure.Repositories.Authentication
 {
@@ -16,64 +13,18 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             _repository = repository;
         }
 
-        public async Task<UserLoginDto?> GetByUsernameAsync(
-            string username,
-            CancellationToken cancellationToken = default)
+        public async Task<User?> GetByIdAsync(long userId, CancellationToken cancellationToken = default)
         {
-            return await _repository.QueryFirstOrDefaultAsync<UserLoginDto>(
-                "usp_Auth_GetUserByUsername",
-                new { Username = username });
-        }
-
-        public async Task<UserContextDto?> GetUserContextAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default)
-        {
-            return await _repository.QueryMultipleAsync(
-                "usp_Auth_GetUserContext",
-                async multi =>
-                {
-                    var userContext = await multi.ReadSingleOrDefaultAsync<UserContextDto>();
-                    
-                    if (userContext != null)
-                    {
-                        var roles = await multi.ReadAsync<string>();
-                        var permissions = await multi.ReadAsync<string>();
-                        
-                        userContext.Roles = roles.ToList();
-                        userContext.Permissions = permissions.ToList();
-                    }
-
-                    return userContext;
-                },
+            return await _repository.QueryFirstOrDefaultAsync<User>(
+                "SELECT USER_ID AS UserId, COUNTRY_CODE AS CountryCode, MOBILE_NUMBER AS MobileNumber, EMAIL AS Email, FULL_NAME AS FullName, LANGUAGE_CODE AS LanguageCode, IS_MOBILE_VERIFIED AS IsMobileVerified, IS_EMAIL_VERIFIED AS IsEmailVerified, IS_PROFILE_COMPLETED AS IsProfileCompleted, USER_STATUS AS UserStatus, LAST_LOGIN_AT AS LastLoginAt, CREATED_AT AS CreatedAt FROM dbo.USERS WHERE USER_ID = @UserId",
                 new { UserId = userId });
         }
 
-        public async Task UpdateLastLoginAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default)
+        public async Task<User?> GetByMobileAsync(string countryCode, string mobileNumber, CancellationToken cancellationToken = default)
         {
-            await _repository.ExecuteAsync(
-                "usp_Auth_UpdateLastLogin",
-                new { UserId = userId });
-        }
-
-        public async Task<Guid> CreateUserAsync(
-            CreateUserDto user,
-            CancellationToken cancellationToken = default)
-        {
-            return await _repository.ExecuteScalarAsync<Guid>(
-                "usp_Auth_CreateUser",
-                new
-                {
-                    Username = user.Username,
-                    Email = user.Email,
-                    PasswordHash = user.PasswordHash,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    PhoneNumber = user.PhoneNumber,
-                    RoleId = user.RoleId
-                });
-        }
+            return await _repository.QueryFirstOrDefaultAsync<User>(
+                "SELECT USER_ID AS UserId, COUNTRY_CODE AS CountryCode, MOBILE_NUMBER AS MobileNumber, EMAIL AS Email, FULL_NAME AS FullName, LANGUAGE_CODE AS LanguageCode, IS_MOBILE_VERIFIED AS IsMobileVerified, IS_EMAIL_VERIFIED AS IsEmailVerified, IS_PROFILE_COMPLETED AS IsProfileCompleted, USER_STATUS AS UserStatus, LAST_LOGIN_AT AS LastLoginAt, CREATED_AT AS CreatedAt FROM dbo.USERS WHERE COUNTRY_CODE = @CountryCode AND MOBILE_NUMBER = @MobileNumber",
+                new { CountryCode = countryCode, MobileNumber = mobileNumber });
+         }
     }
 }

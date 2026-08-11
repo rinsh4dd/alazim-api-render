@@ -1,234 +1,181 @@
 using MeatDelivery.Application.DTOs.Auth;
 using MeatDelivery.Application.Interfaces.Authentication;
 using MeatDelivery.Application.Interfaces.Repositories.Authentication;
+using MeatDelivery.Domain.Entities.Authentication;
 using MeatDelivery.Infrastructure.Configurations;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Microsoft.Extensions.Options;
 
 namespace MeatDelivery.Infrastructure.Services.Authentication
 {
     public sealed class AuthenticationService : IAuthenticationService
     {
         private readonly IUserRepository _userRepository;
-        private readonly IRefreshTokenRepository _refreshTokenRepository;
-        private readonly IPasswordHasher _passwordHasher;
+        private readonly IOtpVerificationRepository _otpVerificationRepository;
+        private readonly IUserRegistrationRepository _userRegistrationRepository;
+        private readonly IUserSessionRepository _userSessionRepository;
         private readonly ITokenService _tokenService;
-        private readonly IRefreshTokenService _refreshTokenService;
-        private readonly MeatDelivery.Application.Interfaces.Logging.IActivityLogService _activityLogService;
+        private readonly IOtpService _otpService;
         private readonly JwtSettings _jwtSettings;
 
         public AuthenticationService(
             IUserRepository userRepository,
-            IRefreshTokenRepository refreshTokenRepository,
-            IPasswordHasher passwordHasher,
+            IOtpVerificationRepository otpVerificationRepository,
+            IUserRegistrationRepository userRegistrationRepository,
+            IUserSessionRepository userSessionRepository,
             ITokenService tokenService,
-            IRefreshTokenService refreshTokenService,
-            MeatDelivery.Application.Interfaces.Logging.IActivityLogService activityLogService,
-            Microsoft.Extensions.Options.IOptions<JwtSettings> jwtOptions)
+            IOtpService otpService,
+            IOptions<JwtSettings> jwtOptions)
         {
             _userRepository = userRepository;
-            _refreshTokenRepository = refreshTokenRepository;
-            _passwordHasher = passwordHasher;
+            _otpVerificationRepository = otpVerificationRepository;
+            _userRegistrationRepository = userRegistrationRepository;
+            _userSessionRepository = userSessionRepository;
             _tokenService = tokenService;
-            _refreshTokenService = refreshTokenService;
-            _activityLogService = activityLogService;
+            _otpService = otpService;
             _jwtSettings = jwtOptions.Value;
         }
 
-        public async Task<LoginResponseDto> LoginAsync(
-            LoginRequestDto request,
-            string ipAddress,
-            string userAgent,
-            CancellationToken cancellationToken = default)
+        public async Task<SendOtpResponseDto> SendOtpAsync(SendOtpRequestDto request,CancellationToken cancellationToken = default)
         {
-            Guid sessionId = Guid.NewGuid();
+            string otpCode = _otpService.GenerateOtpCode();
+            string otpHash = _otpService.HashOtpCode(otpCode, request.CountryCode, request.MobileNumber);
+            DateTime expiresAt = DateTime.UtcNow.AddMinutes(5);
+            Guid challengeId = Guid.NewGuid();
 
-            var user = await _userRepository.GetByUsernameAsync(
-                request.UserNameOrEmail,
-                cancellationToken);
+            var otpResult = await _otpVerificationRepository.CreateOtpVerificationAsync(
+                request.CountryCode,
+                request.MobileNumber,
+                otpHash,
+                "AUTHENTICATION",
+                expiresAt,
+                maxAttempts: 5,
+                challengeId: challengeId);
 
-            if (user is null)
-                throw new UnauthorizedAccessException("Invalid username or password.");
-
-            if (!user.IsActive)
-                throw new UnauthorizedAccessException("User account is inactive.");
-
-            if (!_passwordHasher.VerifyPassword(request.Password, user.PasswordHash))
-                throw new UnauthorizedAccessException("Invalid username or password.");
-
-            var userData = await _userRepository.GetUserContextAsync(
-                user.UserId,
-                cancellationToken);
-
-            var accessToken = _tokenService.GenerateAccessToken(userData, sessionId);
-
-            var refreshToken = _refreshTokenService.GenerateToken();
-            var refreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
-
-            await _refreshTokenRepository.SaveAsync(sessionId,
-                userData.UserId,
-                refreshToken,
-                refreshTokenExpiry,
-                ipAddress,
-                userAgent,
-                cancellationToken);
-
-            await _userRepository.UpdateLastLoginAsync(
-                user.UserId,
-                cancellationToken);
-
-            // Log the successful login activity
-            await _activityLogService.LogActivityAsync(
-                userId: user.UserId,
-                activityType: "UserLoggedIn",
-                description: $"User '{user.Username}' logged in successfully from IP: {ipAddress}.",
-                source: "AuthenticationService",
-                referenceId: sessionId.ToString(),
-                cancellationToken: cancellationToken);
-
-            return new LoginResponseDto
+            return new SendOtpResponseDto
             {
-                Success = true,
-                Message = "Login successful",
-                AccessToken = accessToken,
-                RefreshToken = refreshToken,
-                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
-                User = userData
+                ChallengeId = otpResult.ChallengeId != Guid.Empty ? otpResult.ChallengeId : challengeId,
+                CountryCode = request.CountryCode,
+                MobileNumber = request.MobileNumber,
+                ExpiresAt = expiresAt,
+                ResendIntervalSeconds = 60,
+                DevOtpCode = otpCode
             };
         }
 
-        public async Task<LoginResponseDto> RefreshTokenAsync(
-            RefreshTokenRequestDto request,
+        public async Task<AuthTokenResponseDto> AuthenticateWithOtpAsync(
+            VerifyOtpRequestDto request,
             string ipAddress,
+            string? deviceId = null,
+            string? deviceType = null,
             CancellationToken cancellationToken = default)
         {
-            var userId = _tokenService.GetUserIdFromExpiredToken(request.AccessToken);
-            if (userId == null)
-                throw new UnauthorizedAccessException("Invalid access token.");
+            string otpHash = _otpService.HashOtpCode(request.OtpCode, request.CountryCode, request.MobileNumber);
+            string rawRefreshToken = _tokenService.GenerateRefreshToken();
+            string refreshTokenHash = _otpService.HashOtpCode(rawRefreshToken, request.CountryCode, request.MobileNumber);
+            DateTime sessionExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
 
-            var userData = await _userRepository.GetUserContextAsync(
-                userId.Value,
-                cancellationToken);
-
-            if (userData is null)
-                throw new UnauthorizedAccessException("User account is inactive or not found.");
-
-            var isValid = await _refreshTokenRepository.ValidateAsync(
-                userData.UserId,
-                request.RefreshToken,
-                cancellationToken);
-
-            if (!isValid)
-                throw new UnauthorizedAccessException("Invalid or expired refresh token.");
-
-            await _refreshTokenRepository.RevokeAsync(
-                request.RefreshToken,
-                cancellationToken);
-
-            Guid newSessionId = Guid.NewGuid();
-            var accessToken = _tokenService.GenerateAccessToken(userData, newSessionId);
-
-            var newRefreshToken = _refreshTokenService.GenerateToken();
-            var refreshTokenExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
-
-            await _refreshTokenRepository.SaveAsync(
-                newSessionId,
-                userData.UserId,
-                newRefreshToken,
-                refreshTokenExpiry,
+            var regResult = await _userRegistrationRepository.VerifyOtpAndRegisterCustomerAsync(
+                request.CountryCode,
+                request.MobileNumber,
+                otpHash,
+                null,
+                "EN",
+                refreshTokenHash,
+                deviceId,
+                deviceType,
                 ipAddress,
-                "Unknown",
+                sessionExpiry,
+                maxAttempts: 5,
+                challengeId: request.ChallengeId);
+
+            var roles = new List<string> { "CUSTOMER" };
+            string accessToken = _tokenService.GenerateAccessTokenForUser(
+                regResult.UserId,
+                regResult.FullName,
+                request.CountryCode,
+                request.MobileNumber,
+                roles,
+                regResult.SessionId);
+
+            DateTime accessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes);
+
+            return new AuthTokenResponseDto
+            {
+                UserId = regResult.UserId,
+                FullName = regResult.FullName,
+                CountryCode = request.CountryCode,
+                MobileNumber = request.MobileNumber,
+                IsNewUser = regResult.IsNewUser,
+                Roles = roles,
+                AccessToken = accessToken,
+                AccessTokenExpiresAt = accessTokenExpiry,
+                RefreshToken = rawRefreshToken,
+                RefreshTokenExpiresAt = sessionExpiry
+            };
+        }
+
+        public async Task<AuthTokenResponseDto> RefreshTokenAsync(
+            RefreshTokenRequestDto request,
+            string ipAddress,
+            string? deviceId = null,
+            string? deviceType = null,
+            CancellationToken cancellationToken = default)
+        {
+            string oldRefreshTokenHash = _otpService.HashOtpCode(request.RefreshToken, request.CountryCode, request.MobileNumber);
+            string newRawRefreshToken = _tokenService.GenerateRefreshToken();
+            string newRefreshTokenHash = _otpService.HashOtpCode(newRawRefreshToken, request.CountryCode, request.MobileNumber);
+            DateTime sessionExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
+
+            var sessionResult = await _userSessionRepository.RefreshTokenSessionAsync(
+                request.CountryCode,
+                request.MobileNumber,
+                oldRefreshTokenHash,
+                newRefreshTokenHash,
+                deviceId ?? request.DeviceId,
+                deviceType ?? request.DeviceType,
+                ipAddress,
+                sessionExpiry,
                 cancellationToken);
 
-            return new LoginResponseDto
+            var roles = new List<string> { "CUSTOMER" };
+            string accessToken = _tokenService.GenerateAccessTokenForUser(
+                sessionResult.UserId,
+                sessionResult.FullName,
+                sessionResult.CountryCode,
+                sessionResult.MobileNumber,
+                roles,
+                sessionResult.SessionId);
+
+            DateTime accessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes);
+
+            return new AuthTokenResponseDto
             {
-                Success = true,
-                Message = "Token refreshed successfully",
+                UserId = sessionResult.UserId,
+                FullName = sessionResult.FullName,
+                CountryCode = sessionResult.CountryCode,
+                MobileNumber = sessionResult.MobileNumber,
+                IsNewUser = false,
+                Roles = roles,
                 AccessToken = accessToken,
-                RefreshToken = newRefreshToken,
-                ExpiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
-                User = userData
+                AccessTokenExpiresAt = accessTokenExpiry,
+                RefreshToken = newRawRefreshToken,
+                RefreshTokenExpiresAt = sessionExpiry
             };
         }
 
         public async Task LogoutAsync(
-            Guid userId,
-            string refreshToken,
+            LogoutRequestDto request,
             CancellationToken cancellationToken = default)
         {
-            var userData = await _userRepository.GetUserContextAsync(
-                userId,
-                cancellationToken);
-
-            if (userData is null)
-                return;
-
-            var isValid = await _refreshTokenRepository.ValidateAsync(
-                userData.UserId,
-                refreshToken,
-                cancellationToken);
-
-            if (isValid)
-            {
-                await _refreshTokenRepository.RevokeAsync(
-                    refreshToken,
-                    cancellationToken);
-            }
+            string refreshTokenHash = _otpService.HashOtpCode(request.RefreshToken, request.CountryCode, request.MobileNumber);
+            await _userSessionRepository.LogoutSessionAsync(request.CountryCode, request.MobileNumber, refreshTokenHash, cancellationToken);
         }
 
         public async Task RevokeAllSessionsAsync(
-            Guid userId,
+            long userId,
             CancellationToken cancellationToken = default)
         {
-            var userData = await _userRepository.GetUserContextAsync(
-                userId,
-                cancellationToken);
-
-            if (userData != null)
-            {
-                await _refreshTokenRepository.RevokeAllByUserIdAsync(
-                    userData.UserId,
-                    cancellationToken);
-            }
-        }
-
-        public async Task<UserContextDto?> GetCurrentUserAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default)
-        {
-            return await _userRepository.GetUserContextAsync(
-                userId,
-                cancellationToken);
-        }
-
-        public async Task<Guid> RegisterUserAsync(
-            RegisterRequestDto request,
-            CancellationToken cancellationToken = default)
-        {
-            var createUserDto = new CreateUserDto
-            {
-                Username = request.Username,
-                Email = request.Email,
-                PasswordHash = _passwordHasher.HashPassword(request.Password),
-                FirstName = request.FirstName,
-                LastName = request.LastName,
-                PhoneNumber = request.PhoneNumber,
-                RoleId = request.RoleId
-            };
-
-            var newUserId = await _userRepository.CreateUserAsync(createUserDto, cancellationToken);
-
-            // Log the successful registration activity
-            await _activityLogService.LogActivityAsync(
-                userId: newUserId,
-                activityType: "UserRegistered",
-                description: $"New user '{request.Username}' was registered.",
-                source: "AuthenticationService",
-                referenceId: newUserId.ToString(),
-                cancellationToken: cancellationToken);
-
-            return newUserId;
+            await _userSessionRepository.RevokeAllSessionsByUserIdAsync(userId, cancellationToken);
         }
     }
 }

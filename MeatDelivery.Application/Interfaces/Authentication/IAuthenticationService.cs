@@ -1,38 +1,35 @@
 using MeatDelivery.Application.DTOs.Auth;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MeatDelivery.Application.Interfaces.Authentication
 {
     public interface IAuthenticationService
     {
-        Task<LoginResponseDto> LoginAsync(
-            LoginRequestDto request,
-            string ipAddress,
-            string userAgent,
+        Task<SendOtpResponseDto> SendOtpAsync(
+            SendOtpRequestDto request,
             CancellationToken cancellationToken = default);
 
-        Task<LoginResponseDto> RefreshTokenAsync(
+        Task<AuthTokenResponseDto> AuthenticateWithOtpAsync(
+            VerifyOtpRequestDto request,
+            string ipAddress,
+            string? deviceId = null,
+            string? deviceType = null,
+            CancellationToken cancellationToken = default);
+
+        Task<AuthTokenResponseDto> RefreshTokenAsync(
             RefreshTokenRequestDto request,
             string ipAddress,
+            string? deviceId = null,
+            string? deviceType = null,
             CancellationToken cancellationToken = default);
 
         Task LogoutAsync(
-            Guid userId,
-            string refreshToken,
+            LogoutRequestDto request,
             CancellationToken cancellationToken = default);
 
         Task RevokeAllSessionsAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default);
-
-        Task<UserContextDto?> GetCurrentUserAsync(
-            Guid userId,
-            CancellationToken cancellationToken = default);
-
-        Task<Guid> RegisterUserAsync(
-            RegisterRequestDto request,
+            long userId,
             CancellationToken cancellationToken = default);
     }
 }

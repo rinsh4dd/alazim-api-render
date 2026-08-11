@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using MeatDelivery.Application.DTOs.Auth;
 using MeatDelivery.Application.Interfaces.Authentication;
 using MeatDelivery.Infrastructure.Configurations;
 
@@ -19,7 +18,13 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             _jwtSettings = jwtOptions.Value;
         }
 
-        public string GenerateAccessToken(UserContextDto user, Guid sessionId)
+        public string GenerateAccessTokenForUser(
+            long userId,
+            string fullName,
+            string countryCode,
+            string mobileNumber,
+            IEnumerable<string> roles,
+            long sessionId)
         {
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
@@ -30,20 +35,17 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
 
             var claims = new List<Claim>
             {
-                new(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
-                new(JwtRegisteredClaimNames.UniqueName, user.UserName),
-                new(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
-                new("full_name", user.FullName ?? string.Empty),
+                new(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new("mobile_number", $"{countryCode}{mobileNumber}"),
+                new("country_code", countryCode),
+                new("full_name", fullName ?? string.Empty),
                 new("session_id", sessionId.ToString()),
-                new(ClaimTypes.NameIdentifier, user.UserId.ToString()),
-                new(ClaimTypes.Name, user.UserName)
+                new(ClaimTypes.NameIdentifier, userId.ToString()),
+                new(ClaimTypes.Name, fullName ?? mobileNumber)
             };
 
-            foreach (var role in user.Roles ?? Enumerable.Empty<string>())
+            foreach (var role in roles ?? Enumerable.Empty<string>())
                 claims.Add(new Claim(ClaimTypes.Role, role));
-
-            foreach (var permission in user.Permissions ?? Enumerable.Empty<string>())
-                claims.Add(new Claim("permission", permission));
 
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
@@ -64,61 +66,6 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
         public DateTime GetRefreshTokenExpiryUtc()
         {
             return DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
-        }
-
-        public Guid? GetUserIdFromExpiredToken(string accessToken)
-        {
-            var principal = GetPrincipalFromExpiredToken(accessToken);
-
-            var userIdClaim = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                           ?? principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-
-            return Guid.TryParse(userIdClaim, out var userId)
-                ? userId
-                : null;
-        }
-
-        private ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
-        {
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateAudience = true,
-                ValidAudience = _jwtSettings.Audience,
-
-                ValidateIssuer = true,
-                ValidIssuer = _jwtSettings.Issuer,
-
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(_jwtSettings.SecretKey)),
-
-                ValidateLifetime = false,
-                ClockSkew = TimeSpan.Zero
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-
-            try
-            {
-                var principal = tokenHandler.ValidateToken(
-                    token,
-                    tokenValidationParameters,
-                    out var validatedToken);
-
-                if (validatedToken is not JwtSecurityToken jwtToken ||
-                    !jwtToken.Header.Alg.Equals(
-                        SecurityAlgorithms.HmacSha256,
-                        StringComparison.InvariantCultureIgnoreCase))
-                {
-                    throw new SecurityTokenException("Invalid token.");
-                }
-
-                return principal;
-            }
-            catch
-            {
-                return null;
-            }
         }
     }
 }

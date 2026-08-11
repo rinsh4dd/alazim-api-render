@@ -1,20 +1,20 @@
-using MeatDelivery.Application.DTOs.Auth;
 using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace MeatDelivery.Application.Interfaces.Authentication
 {
     public interface ITokenService
     {
-        string GenerateAccessToken(
-            UserContextDto user,
-            Guid sessionId);
+        string GenerateAccessTokenForUser(
+            long userId,
+            string fullName,
+            string countryCode,
+            string mobileNumber,
+            IEnumerable<string> roles,
+            long sessionId);
 
         string GenerateRefreshToken();
 
         DateTime GetRefreshTokenExpiryUtc();
-
-        Guid? GetUserIdFromExpiredToken(string accessToken);
     }
 }

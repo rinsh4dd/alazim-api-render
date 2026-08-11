@@ -26,62 +26,74 @@ namespace MeatDelivery.Api.Controllers
             _authenticationService = authenticationService;
             _fileStorageService = fileStorageService;
         }
-
-        [HttpPost("login")]
+     
+        [HttpPost("send-otp")]
         [AllowAnonymous]
-        public async Task<IActionResult> Login([FromBody] LoginRequestDto request, CancellationToken cancellationToken)
+        [EnableRateLimiting(RateLimitExtensions.OtpPolicy)]
+        public async Task<IActionResult> SendOtp([FromBody] SendOtpRequestDto request, CancellationToken cancellationToken)
         {
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-            var userAgent = Request.Headers.UserAgent.ToString();
+            var response = await _authenticationService.SendOtpAsync(request, cancellationToken);
+            return Success(response, "OTP sent successfully.");
+        }
 
-            var response = await _authenticationService.LoginAsync(request, ipAddress, userAgent, cancellationToken);
-            return Success(response);
+        [HttpPost("verify-otp")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequestDto request, CancellationToken cancellationToken)
+        {
+            var ipAddress = HttpContext.GetClientIpAddress();
+            var deviceId = HttpContext.GetDeviceId();
+            var deviceType = HttpContext.GetDeviceType();
+
+            var response = await _authenticationService.AuthenticateWithOtpAsync(request, ipAddress, deviceId, deviceType, cancellationToken);
+            return Success(response, "OTP verified successfully.");
         }
 
         [HttpPost("refresh")]
         [AllowAnonymous]
         public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto request, CancellationToken cancellationToken)
         {
-            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+            var ipAddress = HttpContext.GetClientIpAddress();
+            var deviceId = HttpContext.GetDeviceId();
+            var deviceType = HttpContext.GetDeviceType();
 
-            var response = await _authenticationService.RefreshTokenAsync(request, ipAddress, cancellationToken);
-            return Success(response);
+            var response = await _authenticationService.RefreshTokenAsync(request, ipAddress, deviceId, deviceType, cancellationToken);
+            return Success(response, "Token refreshed successfully.");
         }
+
 
         [HttpPost("logout")]
-        [Authorize]
-        public async Task<IActionResult> Logout([FromBody] LogoutRequestDto request, CancellationToken cancellationToken)
-        {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var userId))
-                return Unauthorized();
-
-            await _authenticationService.LogoutAsync(userId, request.RefreshToken, cancellationToken);
-            return Success(new { Message = "Logged out successfully" });
-        }
-
-        [HttpGet("me")]
-        [Authorize]
-        public async Task<IActionResult> GetCurrentUser(CancellationToken cancellationToken)
-        {
-            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var userId))
-                return Unauthorized();
-
-            var user = await _authenticationService.GetCurrentUserAsync(userId, cancellationToken);
-            
-            if (user == null)
-                return NotFound("User not found");
-
-            return Success(user);
-        }
-
-        [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<IActionResult> Register([FromBody] RegisterRequestDto request, CancellationToken cancellationToken)
+        public async Task<IActionResult> Logout([FromBody] LogoutRequestDto? request, CancellationToken cancellationToken)
         {
-            var userId = await _authenticationService.RegisterUserAsync(request, cancellationToken);
-            return CreatedResponse(new { UserId = userId }, "User registered successfully");
+            request ??= new LogoutRequestDto();
+
+            if (string.IsNullOrWhiteSpace(request.RefreshToken) && Request.Cookies.TryGetValue("refreshToken", out var cookieRefreshToken))
+            {
+                request.RefreshToken = cookieRefreshToken;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.RefreshToken) && !string.IsNullOrWhiteSpace(request.CountryCode) && !string.IsNullOrWhiteSpace(request.MobileNumber))
+            {
+                await _authenticationService.LogoutAsync(request, cancellationToken);
+            }
+
+            Response.Cookies.Delete("accessToken");
+            Response.Cookies.Delete("refreshToken");
+
+            return Success(new { Message = "Logged out successfully." });
+        }
+
+
+        [HttpPost("revoke-all-sessions")]
+        [Authorize]
+        public async Task<IActionResult> RevokeAllSessions(CancellationToken cancellationToken)
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!long.TryParse(userIdString, out var userId))
+                return Unauthorized();
+
+            await _authenticationService.RevokeAllSessionsAsync(userId, cancellationToken);
+            return Success(new { Message = "All active sessions revoked successfully." });
         }
 
         [HttpPost("profile-picture")]
@@ -89,7 +101,7 @@ namespace MeatDelivery.Api.Controllers
         public async Task<IActionResult> UploadProfilePicture(IFormFile file, CancellationToken cancellationToken)
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userIdString, out var userId))
+            if (!long.TryParse(userIdString, out var userId))
                 return Unauthorized();
 
             if (file == null || file.Length == 0)

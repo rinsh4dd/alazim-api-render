@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using MeatDelivery.Shared.Constants;
 using MeatDelivery.Shared.Responses;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace MeatDelivery.Infrastructure.Middleware
 {
@@ -42,11 +42,26 @@ namespace MeatDelivery.Infrastructure.Middleware
         private static Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+            var statusCode = exception switch
+            {
+                InvalidOperationException => HttpStatusCode.BadRequest,
+                ArgumentException => HttpStatusCode.BadRequest,
+                UnauthorizedAccessException => HttpStatusCode.Unauthorized,
+                KeyNotFoundException => HttpStatusCode.NotFound,
+                Microsoft.Data.SqlClient.SqlException => HttpStatusCode.BadRequest,
+                _ => HttpStatusCode.InternalServerError
+            };
+
+            context.Response.StatusCode = (int)statusCode;
+
+            var message = statusCode == HttpStatusCode.InternalServerError
+                ? ResponseMessages.InternalServerError
+                : exception.Message;
 
             var response = new ErrorResponse
             {
-                Message = ResponseMessages.InternalServerError,
+                Message = message,
                 Errors = new List<string> { exception.Message },
                 TraceId = context.TraceIdentifier
             };
@@ -59,5 +74,4 @@ namespace MeatDelivery.Infrastructure.Middleware
             return context.Response.WriteAsync(json);
         }
     }
-
 }

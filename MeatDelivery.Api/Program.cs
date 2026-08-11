@@ -36,6 +36,9 @@ builder.Services.AddRateLimitPolicy(builder.Configuration);
 // Configure API Versioning (BE-008)
 builder.Services.AddApiVersioningSupport();
 
+// Configure Gzip Response Compression
+builder.Services.AddGzipCompressionSupport();
+
 // Add Application Health Checks
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? builder.Configuration.GetConnectionString("MasterDb") 
@@ -104,6 +107,8 @@ if (app.Environment.IsDevelopment())
         options.DocumentTitle = "MeatDelivery Client API Documentation";
     });
 }
+
+app.UseGzipCompressionSupport();
 
 app.UseHttpsRedirection();
 

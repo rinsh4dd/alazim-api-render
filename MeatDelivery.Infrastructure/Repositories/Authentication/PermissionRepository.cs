@@ -20,7 +20,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             CancellationToken cancellationToken = default)
         {
             var permissions = await _repository.QueryAsync<string>(
-                "usp_Auth_GetRolePermissions",
+                "PR_AUTH_GET_ROLE_PERMISSIONS",
                 new { RoleId = roleId });
 
             return permissions.ToList();

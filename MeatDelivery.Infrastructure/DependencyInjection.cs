@@ -119,13 +119,15 @@ namespace MeatDelivery.Infrastructure
             // --------------------------------------------
             services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
             services.AddScoped<ITokenService, JwtTokenService>();
+            services.AddScoped<IOtpService, OtpService>();
 
             services.AddScoped<IUserRepository, UserRepository>();
-            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+            services.AddScoped<IUserSessionRepository, UserSessionRepository>();
             services.AddScoped<IPermissionRepository, PermissionRepository>();
+            services.AddScoped<IOtpVerificationRepository, OtpVerificationRepository>();
+            services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
 
             services.AddScoped<IAuthenticationService, AuthenticationService>();
-            services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
             // Test Domain Repository
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Test.ITestRepository, MeatDelivery.Infrastructure.Repositories.Test.TestRepository>();
