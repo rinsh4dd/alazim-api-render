@@ -361,3 +361,10 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Frontends / Apps
+MeatDelivery.Web/
+meat_delivery_mobile/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
