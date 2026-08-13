@@ -6,6 +6,7 @@ using MeatDelivery.Application.DTOs.Addresses;
 using MeatDelivery.Application.Interfaces.Customer;
 using MeatDelivery.Application.Interfaces.Repositories.Customer;
 using MeatDelivery.Domain.Entities.Addresses;
+using MeatDelivery.Domain.Enums;
 using MeatDelivery.Shared.Responses;
 
 namespace MeatDelivery.Infrastructure.Services.Customer
@@ -19,7 +20,9 @@ namespace MeatDelivery.Infrastructure.Services.Customer
             _customerRepository = customerRepository;
         }
 
-        public async Task<ApiResponse<List<CustomerAddressDto>>> GetCustomerAddressAsync(GetCustomerAddressQueryDto query,CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<List<CustomerAddressDto>>> GetCustomerAddressAsync(
+            GetCustomerAddressQueryDto query,
+            CancellationToken cancellationToken = default)
         {
             var addresses = await _customerRepository.GetCustomerAddressAsync(query, cancellationToken);
             var dtos = addresses.Select(MapToDto).ToList();
@@ -28,7 +31,9 @@ namespace MeatDelivery.Infrastructure.Services.Customer
                 ? (dtos.Count > 0 ? "Address retrieved successfully." : "Address not found.")
                 : "Addresses retrieved successfully.";
 
-            return ApiResponse<List<CustomerAddressDto>>.SuccessResponse(dtos,message: message);
+            return ApiResponse<List<CustomerAddressDto>>.SuccessResponse(
+                dtos,
+                message: message);
         }
 
         public async Task<ApiResponse<object>> SaveCustomerAddressAsync(
@@ -37,11 +42,17 @@ namespace MeatDelivery.Infrastructure.Services.Customer
         {
             var addressId = await _customerRepository.SaveCustomerAddressAsync(request, cancellationToken);
 
-            string mode = request.Mode?.ToUpperInvariant() ?? "ADD";
-            string message = mode switch
-            {"ADD" => "Address added successfully.","EDIT" => "Address updated successfully.","DELETE" => "Address deleted successfully.",_ => "Address saved successfully."};
+            string message = request.Mode switch
+            {
+                AddressMode.ADD => "Address added successfully.",
+                AddressMode.EDIT => "Address updated successfully.",
+                AddressMode.DELETE => "Address deleted successfully.",
+                _ => "Address saved successfully."
+            };
 
-            return ApiResponse<object>.SuccessResponse(new { addressId = addressId > 0 ? addressId : request.AddressId },message: message);
+            return ApiResponse<object>.SuccessResponse(
+                new { addressId = addressId > 0 ? addressId : request.AddressId },
+                message: message);
         }
 
         private static CustomerAddressDto MapToDto(CustomerAddress a) => new()

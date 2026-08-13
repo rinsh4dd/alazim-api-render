@@ -28,7 +28,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
                 {
                     ADDRESS_ID = query.AddressId,
                     CUSTOMER_USER_ID = query.CustomerUserId,
-                    ADDRESS_TYPE = query.AddressType,
+                    ADDRESS_TYPE = query.AddressType?.ToString(),
                     IS_DEFAULT = query.IsDefault
                 }
             );
@@ -44,10 +44,10 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
                 "PR_SAVE_CUSTOMER_ADDRESS",
                 new
                 {
-                    MODE = request.Mode,
+                    MODE = request.Mode.ToString(),
                     ADDRESS_ID = request.AddressId,
                     CUSTOMER_USER_ID = request.CustomerUserId,
-                    ADDRESS_TYPE = request.AddressType,
+                    ADDRESS_TYPE = request.AddressType?.ToString(),
                     CONTACT_NUMBER = request.ContactNumber,
                     BUILDING_NAME = request.BuildingName,
                     VILLA_OR_FLAT_NO = request.VillaOrFlatNo,
