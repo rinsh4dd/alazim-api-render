@@ -73,7 +73,7 @@ namespace MeatDelivery.Api.Controllers
                 request.RefreshToken = cookieRefreshToken;
             }
 
-            if (!string.IsNullOrWhiteSpace(request.RefreshToken) && !string.IsNullOrWhiteSpace(request.CountryCode) && !string.IsNullOrWhiteSpace(request.MobileNumber))
+            if (!string.IsNullOrWhiteSpace(request.RefreshToken))
             {
                 await _authenticationService.LogoutAsync(request, cancellationToken);
             }

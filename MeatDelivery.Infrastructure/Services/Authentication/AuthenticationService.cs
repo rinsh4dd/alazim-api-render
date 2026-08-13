@@ -62,16 +62,11 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             };
         }
 
-        public async Task<AuthTokenResponseDto> AuthenticateWithOtpAsync(
-            VerifyOtpRequestDto request,
-            string ipAddress,
-            string? deviceId = null,
-            string? deviceType = null,
-            CancellationToken cancellationToken = default)
+        public async Task<AuthTokenResponseDto> AuthenticateWithOtpAsync(VerifyOtpRequestDto request,string ipAddress,string? deviceId = null,string? deviceType = null,CancellationToken cancellationToken = default)
         {
             string otpHash = _otpService.HashOtpCode(request.OtpCode, request.CountryCode, request.MobileNumber);
             string rawRefreshToken = _tokenService.GenerateRefreshToken();
-            string refreshTokenHash = _otpService.HashOtpCode(rawRefreshToken, request.CountryCode, request.MobileNumber);
+            string refreshTokenHash = _tokenService.HashRefreshToken(rawRefreshToken);
             DateTime sessionExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
 
             var regResult = await _userRegistrationRepository.VerifyOtpAndRegisterCustomerAsync(
@@ -89,13 +84,8 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 challengeId: request.ChallengeId);
 
             var roles = new List<string> { "CUSTOMER" };
-            string accessToken = _tokenService.GenerateAccessTokenForUser(
-                regResult.UserId,
-                regResult.FullName,
-                request.CountryCode,
-                request.MobileNumber,
-                roles,
-                regResult.SessionId);
+            string accessToken = _tokenService.GenerateAccessTokenForUser(regResult.UserId,regResult.FullName,
+            request.CountryCode,request.MobileNumber,roles,regResult.SessionId);
 
             DateTime accessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes);
 
@@ -121,14 +111,12 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             string? deviceType = null,
             CancellationToken cancellationToken = default)
         {
-            string oldRefreshTokenHash = _otpService.HashOtpCode(request.RefreshToken, request.CountryCode, request.MobileNumber);
+            string oldRefreshTokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
             string newRawRefreshToken = _tokenService.GenerateRefreshToken();
-            string newRefreshTokenHash = _otpService.HashOtpCode(newRawRefreshToken, request.CountryCode, request.MobileNumber);
+            string newRefreshTokenHash = _tokenService.HashRefreshToken(newRawRefreshToken);
             DateTime sessionExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
 
             var sessionResult = await _userSessionRepository.RefreshTokenSessionAsync(
-                request.CountryCode,
-                request.MobileNumber,
                 oldRefreshTokenHash,
                 newRefreshTokenHash,
                 deviceId ?? request.DeviceId,
@@ -163,12 +151,10 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             };
         }
 
-        public async Task LogoutAsync(
-            LogoutRequestDto request,
-            CancellationToken cancellationToken = default)
+        public async Task LogoutAsync(LogoutRequestDto request, CancellationToken cancellationToken = default)
         {
-            string refreshTokenHash = _otpService.HashOtpCode(request.RefreshToken, request.CountryCode, request.MobileNumber);
-            await _userSessionRepository.LogoutSessionAsync(request.CountryCode, request.MobileNumber, refreshTokenHash, cancellationToken);
+            string refreshTokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
+            await _userSessionRepository.LogoutSessionAsync(refreshTokenHash, cancellationToken);
         }
 
         public async Task RevokeAllSessionsAsync(

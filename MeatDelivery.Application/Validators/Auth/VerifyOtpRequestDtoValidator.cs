@@ -9,7 +9,7 @@ namespace MeatDelivery.Application.Validators.Auth
         {
             RuleFor(x => x.CountryCode)
                 .NotEmpty().WithMessage("Country code is required.")
-                .Matches(@"^\+[1-9]\d{0,3}$").WithMessage("Country code must start with '+' followed by 1 to 3 digits (e.g. +966, +971).");
+                .Matches(@"^\+[1-9]\d{0,2}$").WithMessage("Country code must start with '+' followed by 1 to 2 digits (e.g. +91, +966, +971).");
 
             RuleFor(x => x.MobileNumber)
                 .NotEmpty().WithMessage("Mobile number is required.")
@@ -17,7 +17,7 @@ namespace MeatDelivery.Application.Validators.Auth
 
             RuleFor(x => x.OtpCode)
                 .NotEmpty().WithMessage("OTP code is required.")
-                .Length(6).WithMessage("OTP code must be 6 digits.");
+                .Length(4).WithMessage("OTP code must be 4 digits.");
         }
     }
 }

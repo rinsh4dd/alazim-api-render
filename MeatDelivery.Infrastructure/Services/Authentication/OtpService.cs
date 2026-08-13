@@ -10,8 +10,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
 
         public string GenerateOtpCode()
         {
-            // Generate cryptographically secure 6-digit number
-            int randomNumber = RandomNumberGenerator.GetInt32(100000, 999999);
+            int randomNumber = RandomNumberGenerator.GetInt32(1000, 9999);
             return randomNumber.ToString();
         }
 

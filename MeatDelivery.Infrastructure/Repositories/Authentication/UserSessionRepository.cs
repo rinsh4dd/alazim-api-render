@@ -92,8 +92,6 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
         }
 
         public async Task<RefreshTokenSessionResult> RefreshTokenSessionAsync(
-            string countryCode,
-            string mobileNumber,
             string oldRefreshTokenHash,
             string newRefreshTokenHash,
             string? deviceId,
@@ -106,8 +104,6 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 "PR_AUTH_REFRESH_TOKEN_SESSION",
                 new
                 {
-                    CountryCode = countryCode,
-                    MobileNumber = mobileNumber,
                     OldRefreshTokenHash = oldRefreshTokenHash,
                     NewRefreshTokenHash = newRefreshTokenHash,
                     DeviceId = deviceId,
@@ -119,18 +115,10 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             return result ?? throw new InvalidOperationException("Failed to refresh token session.");
         }
 
-        public async Task LogoutSessionAsync(
-            string countryCode,
-            string mobileNumber,
-            string refreshTokenHash,
-            CancellationToken cancellationToken = default)
+        public async Task LogoutSessionAsync(string refreshTokenHash,CancellationToken cancellationToken = default)
         {
-            await _dapperRepository.ExecuteAsync(
-                "PR_AUTH_LOGOUT_SESSION",
-                new
+            await _dapperRepository.ExecuteAsync("PR_AUTH_LOGOUT_SESSION",new
                 {
-                    CountryCode = countryCode,
-                    MobileNumber = mobileNumber,
                     RefreshTokenHash = refreshTokenHash
                 });
         }

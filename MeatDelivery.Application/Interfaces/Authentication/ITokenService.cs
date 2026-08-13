@@ -15,6 +15,8 @@ namespace MeatDelivery.Application.Interfaces.Authentication
 
         string GenerateRefreshToken();
 
+        string HashRefreshToken(string refreshToken);
+
         DateTime GetRefreshTokenExpiryUtc();
     }
 }

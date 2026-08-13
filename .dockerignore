@@ -1,0 +1,11 @@
+**/.git
+**/.vs
+**/.vscode
+**/bin
+**/obj
+**/Logs
+**/logs
+meat_delivery_mobile
+*.user
+*.suo
+*.md

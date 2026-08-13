@@ -33,8 +33,6 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
             CancellationToken cancellationToken = default);
 
         Task<RefreshTokenSessionResult> RefreshTokenSessionAsync(
-            string countryCode,
-            string mobileNumber,
             string oldRefreshTokenHash,
             string newRefreshTokenHash,
             string? deviceId,
@@ -44,8 +42,6 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
             CancellationToken cancellationToken = default);
 
         Task LogoutSessionAsync(
-            string countryCode,
-            string mobileNumber,
             string refreshTokenHash,
             CancellationToken cancellationToken = default);
     }

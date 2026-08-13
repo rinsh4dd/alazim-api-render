@@ -63,6 +63,14 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             return Convert.ToBase64String(randomBytes);
         }
 
+        public string HashRefreshToken(string refreshToken)
+        {
+            string rawValue = $"{refreshToken}:{_jwtSettings.SecretKey}";
+            using var sha256 = SHA256.Create();
+            byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(rawValue));
+            return Convert.ToBase64String(bytes);
+        }
+
         public DateTime GetRefreshTokenExpiryUtc()
         {
             return DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
