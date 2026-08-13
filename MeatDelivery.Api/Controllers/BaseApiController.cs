@@ -21,7 +21,7 @@ namespace MeatDelivery.Api.Controllers
 
         protected IActionResult Failure(string message, List<string>? errors = null)
         {
-            return BadRequest(ApiResponse<object>.FailureResponse(
+            return Ok(ApiResponse<object>.FailureResponse(
                 message,
                 errors,
                 HttpContext.TraceIdentifier));

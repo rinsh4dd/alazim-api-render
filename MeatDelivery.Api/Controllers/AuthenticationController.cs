@@ -33,7 +33,8 @@ namespace MeatDelivery.Api.Controllers
         public async Task<IActionResult> SendOtp([FromBody] SendOtpRequestDto request, CancellationToken cancellationToken)
         {
             var response = await _authenticationService.SendOtpAsync(request, cancellationToken);
-            return Success(response, "OTP sent successfully.");
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
         }
 
         [HttpPost("verify-otp")]

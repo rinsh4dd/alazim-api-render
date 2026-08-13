@@ -204,9 +204,12 @@ CREATE OR ALTER PROCEDURE [dbo].[PR_AUTH_CREATE_OTP_VERIFICATION]
 AS
 BEGIN
 	SET NOCOUNT ON;
-	DECLARE @LAST_RESEND_COUNT INT, @LAST_WINDOW_START_AT DATETIME2;
+	DECLARE @LAST_CREATED_AT DATETIME2;
+	DECLARE @LAST_RESEND_COUNT INT;
+	DECLARE @LAST_WINDOW_START_AT DATETIME2;
 
 	SELECT TOP 1
+		@LAST_CREATED_AT      = CREATED_AT,
 		@LAST_RESEND_COUNT    = ISNULL(RESEND_COUNT, 0),
 		@LAST_WINDOW_START_AT = RATE_LIMIT_WINDOW_START_AT
 	FROM dbo.OTP_VERIFICATIONS
@@ -215,6 +218,29 @@ BEGIN
 	AND   OTP_PURPOSE   = @OtpPurpose
 	ORDER BY OTP_ID DESC;
 
+	-- 1. Check 60-second resend cooldown
+	DECLARE @CooldownSeconds INT = 60;
+	IF @LAST_CREATED_AT IS NOT NULL
+	BEGIN
+		DECLARE @ELAPSED_SECONDS INT = DATEDIFF(SECOND, @LAST_CREATED_AT, SYSUTCDATETIME());
+		IF @ELAPSED_SECONDS < @CooldownSeconds
+		BEGIN
+			DECLARE @COOLDOWN_REMAINING INT = @CooldownSeconds - @ELAPSED_SECONDS;
+			IF @COOLDOWN_REMAINING <= 0 SET @COOLDOWN_REMAINING = 1;
+
+			SELECT 
+				CAST(0 AS BIT) AS IsSuccess,
+				-1 AS StatusCode,
+				FORMATMESSAGE('Please wait %d second(s) before requesting a new OTP.', @COOLDOWN_REMAINING) AS Message,
+				@COOLDOWN_REMAINING AS Interval,
+				CAST(0 AS BIGINT) AS OtpId,
+				CAST(0x0 AS UNIQUEIDENTIFIER) AS ChallengeId,
+				@LAST_RESEND_COUNT AS ResendCount;
+			RETURN;
+		END
+	END
+
+	-- 2. Check 5-minute rate limit window (max 3 per window)
 	DECLARE @NEW_WINDOW_START_AT DATETIME2, @NEW_RESEND_COUNT INT;
 
 	IF @LAST_WINDOW_START_AT IS NOT NULL
@@ -222,14 +248,18 @@ BEGIN
 	BEGIN
 		IF @LAST_RESEND_COUNT >= @MaxResendPerWindow
 		BEGIN
-			DECLARE @WINDOW_EXPIRES_AT DATETIME2     = DATEADD(MINUTE, @WindowMinutes, @LAST_WINDOW_START_AT);
-			DECLARE @WAIT_SECONDS      INT           = DATEDIFF(SECOND, SYSUTCDATETIME(), @WINDOW_EXPIRES_AT);
-			DECLARE @WAIT_MINUTES      INT           = (@WAIT_SECONDS / 60) + 1;
-			DECLARE @ERR_MSG           NVARCHAR(300) = FORMATMESSAGE(
-				'OTP resend limit reached (%d/%d). Please try again in %d minute(s).',
-				@LAST_RESEND_COUNT, @MaxResendPerWindow, @WAIT_MINUTES
-			);
-			RAISERROR(@ERR_MSG, 16, 1);
+			DECLARE @WINDOW_EXPIRES_AT DATETIME2 = DATEADD(MINUTE, @WindowMinutes, @LAST_WINDOW_START_AT);
+			DECLARE @WAIT_SECONDS INT = DATEDIFF(SECOND, SYSUTCDATETIME(), @WINDOW_EXPIRES_AT);
+			IF @WAIT_SECONDS <= 0 SET @WAIT_SECONDS = 1;
+
+			SELECT 
+				CAST(0 AS BIT) AS IsSuccess,
+				-1 AS StatusCode,
+				FORMATMESSAGE('OTP resend limit reached (%d/%d). Please try again in %d second(s).', @LAST_RESEND_COUNT, @MaxResendPerWindow, @WAIT_SECONDS) AS Message,
+				@WAIT_SECONDS AS Interval,
+				CAST(0 AS BIGINT) AS OtpId,
+				CAST(0x0 AS UNIQUEIDENTIFIER) AS ChallengeId,
+				@LAST_RESEND_COUNT AS ResendCount;
 			RETURN;
 		END
 
@@ -263,12 +293,13 @@ BEGIN
 	DECLARE @NEW_OTP_ID BIGINT = SCOPE_IDENTITY();
 
 	SELECT
-		@NEW_OTP_ID                                           AS OtpId,
-		@ChallengeId                                          AS ChallengeId,
-		@NEW_RESEND_COUNT                                     AS ResendCount,
-		@MaxResendPerWindow                                   AS MaxResendPerWindow,
-		@NEW_WINDOW_START_AT                                  AS WindowStartAt,
-		DATEADD(MINUTE, @WindowMinutes, @NEW_WINDOW_START_AT) AS WindowExpiresAt;
+		CAST(1 AS BIT) AS IsSuccess,
+		1 AS StatusCode,
+		'OTP sent successfully.' AS Message,
+		60 AS Interval,
+		@NEW_OTP_ID AS OtpId,
+		@ChallengeId AS ChallengeId,
+		@NEW_RESEND_COUNT AS ResendCount;
 END;
 GO
 

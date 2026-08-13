@@ -21,9 +21,9 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             );
         }
 
-        public async Task<(long OtpId, Guid ChallengeId)> CreateOtpVerificationAsync(string countryCode, string mobileNumber, string otpHash, string purpose, DateTime expiresAt, int maxAttempts = 5, Guid? challengeId = null)
+        public async Task<CreateOtpVerificationResult> CreateOtpVerificationAsync(string countryCode, string mobileNumber, string otpHash, string purpose, DateTime expiresAt, int maxAttempts = 5, Guid? challengeId = null)
         {
-            var result = await _dapperRepository.QueryFirstOrDefaultAsync<CreateOtpResultDto>(
+            var result = await _dapperRepository.QueryFirstOrDefaultAsync<CreateOtpVerificationResult>(
                 "PR_AUTH_CREATE_OTP_VERIFICATION",
                 new
                 {
@@ -37,13 +37,12 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 }
             );
 
-            return result != null ? (result.OtpId, result.ChallengeId) : (0, Guid.Empty);
-        }
-
-        private class CreateOtpResultDto
-        {
-            public long OtpId { get; set; }
-            public Guid ChallengeId { get; set; }
+            return result ?? new CreateOtpVerificationResult
+            {
+                IsSuccess = false,
+                StatusCode = 0,
+                Message = "Failed to initiate OTP verification."
+            };
         }
 
         public async Task<OtpVerification?> GetLatestPendingOtpAsync(string countryCode, string mobileNumber, string purpose)

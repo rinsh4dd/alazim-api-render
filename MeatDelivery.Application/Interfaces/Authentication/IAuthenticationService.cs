@@ -1,4 +1,5 @@
 using MeatDelivery.Application.DTOs.Auth;
+using MeatDelivery.Shared.Responses;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -6,7 +7,7 @@ namespace MeatDelivery.Application.Interfaces.Authentication
 {
     public interface IAuthenticationService
     {
-        Task<SendOtpResponseDto> SendOtpAsync(
+        Task<ApiResponse<SendOtpResponseDto>> SendOtpAsync(
             SendOtpRequestDto request,
             CancellationToken cancellationToken = default);
 

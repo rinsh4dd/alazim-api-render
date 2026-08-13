@@ -45,24 +45,38 @@ namespace MeatDelivery.Infrastructure.Middleware
 
             var statusCode = exception switch
             {
-                InvalidOperationException => HttpStatusCode.BadRequest,
-                ArgumentException => HttpStatusCode.BadRequest,
                 UnauthorizedAccessException => HttpStatusCode.Unauthorized,
                 KeyNotFoundException => HttpStatusCode.NotFound,
-                Microsoft.Data.SqlClient.SqlException => HttpStatusCode.BadRequest,
-                _ => HttpStatusCode.InternalServerError
+                _ => HttpStatusCode.OK
             };
 
             context.Response.StatusCode = (int)statusCode;
 
-            var message = statusCode == HttpStatusCode.InternalServerError
-                ? ResponseMessages.InternalServerError
-                : exception.Message;
+            var message = exception.Message;
+
+            int status = 0;
+            int? interval = null;
+            var match = System.Text.RegularExpressions.Regex.Match(message, @"(?:in|wait)\s+(\d+)\s+second", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (match.Success && int.TryParse(match.Groups[1].Value, out int parsedSeconds))
+            {
+                interval = parsedSeconds;
+                status = -1;
+            }
+            else if (message.Contains("limit reached", StringComparison.OrdinalIgnoreCase) ||
+                     message.Contains("Maximum", StringComparison.OrdinalIgnoreCase) ||
+                     message.Contains("exceeded", StringComparison.OrdinalIgnoreCase) ||
+                     message.Contains("blocked", StringComparison.OrdinalIgnoreCase))
+            {
+                status = -1;
+            }
 
             var response = new ErrorResponse
             {
+                Success = false,
+                Status = status,
                 Message = message,
-                Errors = new List<string> { exception.Message },
+                Interval = interval,
+                Errors = new List<string> { message },
                 TraceId = context.TraceIdentifier
             };
 

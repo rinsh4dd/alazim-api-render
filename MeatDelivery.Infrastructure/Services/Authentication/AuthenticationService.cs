@@ -3,6 +3,7 @@ using MeatDelivery.Application.Interfaces.Authentication;
 using MeatDelivery.Application.Interfaces.Repositories.Authentication;
 using MeatDelivery.Domain.Entities.Authentication;
 using MeatDelivery.Infrastructure.Configurations;
+using MeatDelivery.Shared.Responses;
 using Microsoft.Extensions.Options;
 
 namespace MeatDelivery.Infrastructure.Services.Authentication
@@ -35,7 +36,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             _jwtSettings = jwtOptions.Value;
         }
 
-        public async Task<SendOtpResponseDto> SendOtpAsync(SendOtpRequestDto request,CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<SendOtpResponseDto>> SendOtpAsync(SendOtpRequestDto request, CancellationToken cancellationToken = default)
         {
             string otpCode = _otpService.GenerateOtpCode();
             string otpHash = _otpService.HashOtpCode(otpCode, request.CountryCode, request.MobileNumber);
@@ -51,18 +52,31 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 maxAttempts: 5,
                 challengeId: challengeId);
 
-            return new SendOtpResponseDto
+            if (!otpResult.IsSuccess)
+            {
+                return ApiResponse<SendOtpResponseDto>.FailureResponse(
+                    message: otpResult.Message,
+                    interval: otpResult.Interval,
+                    status: otpResult.StatusCode);
+            }
+
+            var dto = new SendOtpResponseDto
             {
                 ChallengeId = otpResult.ChallengeId != Guid.Empty ? otpResult.ChallengeId : challengeId,
                 CountryCode = request.CountryCode,
                 MobileNumber = request.MobileNumber,
                 ExpiresAt = expiresAt,
-                ResendIntervalSeconds = 60,
+                Interval = otpResult.Interval,
                 DevOtpCode = otpCode
             };
+
+            return ApiResponse<SendOtpResponseDto>.SuccessResponse(
+                dto,
+                message: otpResult.Message,
+                interval: otpResult.Interval);
         }
 
-        public async Task<AuthTokenResponseDto> AuthenticateWithOtpAsync(VerifyOtpRequestDto request,string ipAddress,string? deviceId = null,string? deviceType = null,CancellationToken cancellationToken = default)
+        public async Task<AuthTokenResponseDto> AuthenticateWithOtpAsync(VerifyOtpRequestDto request, string ipAddress, string? deviceId = null, string? deviceType = null, CancellationToken cancellationToken = default)
         {
             string otpHash = _otpService.HashOtpCode(request.OtpCode, request.CountryCode, request.MobileNumber);
             string rawRefreshToken = _tokenService.GenerateRefreshToken();
@@ -84,10 +98,8 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 challengeId: request.ChallengeId);
 
             var roles = new List<string> { "CUSTOMER" };
-            string accessToken = _tokenService.GenerateAccessTokenForUser(regResult.UserId,regResult.FullName,
-            request.CountryCode,request.MobileNumber,roles,regResult.SessionId);
-
-            DateTime accessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes);
+            string accessToken = _tokenService.GenerateAccessTokenForUser(regResult.UserId, regResult.FullName,
+            request.CountryCode, request.MobileNumber, roles, regResult.SessionId);
 
             return new AuthTokenResponseDto
             {
@@ -98,9 +110,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 IsNewUser = regResult.IsNewUser,
                 Roles = roles,
                 AccessToken = accessToken,
-                AccessTokenExpiresAt = accessTokenExpiry,
-                RefreshToken = rawRefreshToken,
-                RefreshTokenExpiresAt = sessionExpiry
+                RefreshToken = rawRefreshToken
             };
         }
 
@@ -134,8 +144,6 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 roles,
                 sessionResult.SessionId);
 
-            DateTime accessTokenExpiry = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes);
-
             return new AuthTokenResponseDto
             {
                 UserId = sessionResult.UserId,
@@ -145,9 +153,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 IsNewUser = false,
                 Roles = roles,
                 AccessToken = accessToken,
-                AccessTokenExpiresAt = accessTokenExpiry,
-                RefreshToken = newRawRefreshToken,
-                RefreshTokenExpiresAt = sessionExpiry
+                RefreshToken = newRawRefreshToken
             };
         }
 
