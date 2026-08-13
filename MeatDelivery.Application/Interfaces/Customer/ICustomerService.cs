@@ -15,5 +15,9 @@ namespace MeatDelivery.Application.Interfaces.Customer
         Task<ApiResponse<object>> SaveCustomerAddressAsync(
             SaveCustomerAddressDto request,
             CancellationToken cancellationToken = default);
+
+        Task<ApiResponse<object>> SetDefaultCustomerAddressAsync(
+            SetDefaultCustomerAddressDto request,
+            CancellationToken cancellationToken = default);
     }
 }

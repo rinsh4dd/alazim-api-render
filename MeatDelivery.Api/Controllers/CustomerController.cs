@@ -32,9 +32,21 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpPost("address")]
-        public async Task<IActionResult> SaveCustomerAddress([FromBody] SaveCustomerAddressDto request,CancellationToken cancellationToken)
+        public async Task<IActionResult> SaveCustomerAddress(
+            [FromBody] SaveCustomerAddressDto request,
+            CancellationToken cancellationToken)
         {
             var response = await _customerService.SaveCustomerAddressAsync(request, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpPost("address/default")]
+        public async Task<IActionResult> SetDefaultCustomerAddress(
+            [FromBody] SetDefaultCustomerAddressDto request,
+            CancellationToken cancellationToken)
+        {
+            var response = await _customerService.SetDefaultCustomerAddressAsync(request, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

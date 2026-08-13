@@ -55,6 +55,20 @@ namespace MeatDelivery.Infrastructure.Services.Customer
                 message: message);
         }
 
+        public async Task<ApiResponse<object>> SetDefaultCustomerAddressAsync(
+            SetDefaultCustomerAddressDto request,
+            CancellationToken cancellationToken = default)
+        {
+            await _customerRepository.SetDefaultCustomerAddressAsync(
+                request.AddressId,
+                request.CustomerUserId,
+                cancellationToken);
+
+            return ApiResponse<object>.SuccessResponse(
+                new { addressId = request.AddressId },
+                message: "Default delivery address updated successfully.");
+        }
+
         private static CustomerAddressDto MapToDto(CustomerAddress a) => new()
         {
             AddressId = a.AddressId,
