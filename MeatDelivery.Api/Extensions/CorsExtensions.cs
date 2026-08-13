@@ -19,21 +19,25 @@ namespace MeatDelivery.Api.Extensions
                     .Get<string[]>()
                 ?? Array.Empty<string>();
 
-            if (allowedOrigins.Length == 0)
-            {
-                throw new InvalidOperationException(
-                    "CORS configuration is missing. Configure CorsSettings:AllowedOrigins.");
-            }
-
             services.AddCors(options =>
             {
                 options.AddPolicy(PolicyName, policy =>
                 {
-                    policy
-                        .WithOrigins(allowedOrigins)
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
+                    if (allowedOrigins.Length > 0 && !allowedOrigins.Contains("*"))
+                    {
+                        policy
+                            .WithOrigins(allowedOrigins)
+                            .AllowAnyHeader()
+                            .AllowAnyMethod()
+                            .AllowCredentials();
+                    }
+                    else
+                    {
+                        policy
+                            .AllowAnyOrigin()
+                            .AllowAnyHeader()
+                            .AllowAnyMethod();
+                    }
                 });
             });
 
