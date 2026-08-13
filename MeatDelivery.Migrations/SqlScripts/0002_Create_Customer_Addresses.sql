@@ -1,0 +1,299 @@
+-- =============================================================================
+-- 0002_Create_Customer_Addresses.sql
+-- CUSTOMER_ADDRESSES TABLE, PR_GET_CUSTOMER_ADDRESS & PR_SAVE_CUSTOMER_ADDRESS
+-- =============================================================================
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'CUSTOMER_ADDRESSES')
+BEGIN
+    CREATE TABLE dbo.CUSTOMER_ADDRESSES   
+    (
+        ADDRESS_ID          BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        CUSTOMER_USER_ID    BIGINT NOT NULL CONSTRAINT FK_CUSTOMER_ADDRESSES_USERS REFERENCES dbo.USERS(USER_ID),
+        ADDRESS_TYPE        VARCHAR(20) NOT NULL CONSTRAINT CK_CUSTOMER_ADDRESS_TYPE CHECK (ADDRESS_TYPE IN ('HOME', 'OFFICE', 'OTHER')),
+        CONTACT_NUMBER      VARCHAR(20) NOT NULL,
+        BUILDING_NAME       NVARCHAR(150) NULL,
+        VILLA_OR_FLAT_NO    NVARCHAR(50) NOT NULL,
+        STREET              NVARCHAR(150) NOT NULL,
+        AREA                NVARCHAR(150) NOT NULL,
+        CITY                NVARCHAR(100) NOT NULL,
+        LANDMARK            NVARCHAR(200) NULL,
+        POSTAL_CODE         VARCHAR(20) NULL,
+        EMIRATE             NVARCHAR(100) NOT NULL,
+        LATITUDE            DECIMAL(10,7) NULL,
+        LONGITUDE           DECIMAL(10,7) NULL,
+        IS_DEFAULT          BIT NOT NULL DEFAULT 0,
+        IS_ACTIVE           BIT NOT NULL DEFAULT 1,
+        IS_DELETED          BIT NOT NULL DEFAULT 0,
+        CREATED_AT          DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+        UPDATED_AT          DATETIME2 NULL,
+        DELETED_AT          DATETIME2 NULL
+    );
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.CUSTOMER_ADDRESSES') AND name = 'IS_DELETED')
+BEGIN
+    ALTER TABLE dbo.CUSTOMER_ADDRESSES ADD IS_DELETED BIT NOT NULL CONSTRAINT DF_CUSTOMER_ADDRESSES_IS_DELETED DEFAULT 0;
+END
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.CUSTOMER_ADDRESSES') AND name = 'DELETED_AT')
+BEGIN
+    ALTER TABLE dbo.CUSTOMER_ADDRESSES ADD DELETED_AT DATETIME2 NULL;
+END
+GO
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'UX_CUSTOMER_DEFAULT_ADDRESS' AND object_id = OBJECT_ID('dbo.CUSTOMER_ADDRESSES'))
+BEGIN
+    DROP INDEX UX_CUSTOMER_DEFAULT_ADDRESS ON dbo.CUSTOMER_ADDRESSES;
+END
+GO
+
+CREATE UNIQUE INDEX UX_CUSTOMER_DEFAULT_ADDRESS
+ON dbo.CUSTOMER_ADDRESSES (CUSTOMER_USER_ID)
+WHERE IS_DEFAULT = 1 AND IS_DELETED = 0;
+GO
+
+IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_CUSTOMER_ADDRESSES_USER' AND object_id = OBJECT_ID('dbo.CUSTOMER_ADDRESSES'))
+BEGIN
+    DROP INDEX IX_CUSTOMER_ADDRESSES_USER ON dbo.CUSTOMER_ADDRESSES;
+END
+GO
+
+CREATE INDEX IX_CUSTOMER_ADDRESSES_USER
+ON dbo.CUSTOMER_ADDRESSES(CUSTOMER_USER_ID, IS_DELETED, CREATED_AT);
+GO
+
+CREATE OR ALTER PROCEDURE dbo.PR_GET_CUSTOMER_ADDRESS
+(
+    @ADDRESS_ID         BIGINT      = NULL,
+    @CUSTOMER_USER_ID   BIGINT      = NULL,
+    @ADDRESS_TYPE       VARCHAR(20) = NULL,
+    @IS_DEFAULT         BIT         = NULL
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SET @ADDRESS_TYPE = NULLIF(LTRIM(RTRIM(@ADDRESS_TYPE)), '');
+
+    -- Get single address (excluding deleted)
+    IF ISNULL(@ADDRESS_ID, 0) > 0
+    BEGIN
+        SELECT
+            A.ADDRESS_ID,
+            A.CUSTOMER_USER_ID,
+            A.ADDRESS_TYPE,
+            A.CONTACT_NUMBER,
+            A.BUILDING_NAME,
+            A.VILLA_OR_FLAT_NO,
+            A.STREET,
+            A.AREA,
+            A.CITY,
+            A.LANDMARK,
+            A.POSTAL_CODE,
+            A.EMIRATE,
+            A.LATITUDE,
+            A.LONGITUDE,
+            A.IS_DEFAULT,
+            A.IS_ACTIVE,
+            A.IS_DELETED,
+            A.CREATED_AT,
+            A.UPDATED_AT,
+            A.DELETED_AT
+        FROM dbo.CUSTOMER_ADDRESSES AS A
+        WHERE A.ADDRESS_ID = @ADDRESS_ID
+          AND A.IS_DELETED = 0
+          AND (
+                @CUSTOMER_USER_ID IS NULL
+                OR A.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
+              );
+
+        RETURN;
+    END;
+
+    -- Get customer addresses (excluding deleted)
+    SELECT
+        A.ADDRESS_ID,
+        A.CUSTOMER_USER_ID,
+        A.ADDRESS_TYPE,
+        A.CONTACT_NUMBER,
+        A.BUILDING_NAME,
+        A.VILLA_OR_FLAT_NO,
+        A.STREET,
+        A.AREA,
+        A.CITY,
+        A.LANDMARK,
+        A.POSTAL_CODE,
+        A.EMIRATE,
+        A.LATITUDE,
+        A.LONGITUDE,
+        A.IS_DEFAULT,
+        A.IS_ACTIVE,
+        A.IS_DELETED,
+        A.CREATED_AT,
+        A.UPDATED_AT,
+        A.DELETED_AT
+    FROM dbo.CUSTOMER_ADDRESSES AS A
+    WHERE A.IS_DELETED = 0
+      AND (@CUSTOMER_USER_ID IS NULL OR A.CUSTOMER_USER_ID = @CUSTOMER_USER_ID)
+      AND (@IS_DEFAULT IS NULL OR A.IS_DEFAULT = @IS_DEFAULT)
+      AND (@ADDRESS_TYPE IS NULL OR A.ADDRESS_TYPE = @ADDRESS_TYPE)
+    ORDER BY
+        A.IS_DEFAULT DESC,
+        ISNULL(A.UPDATED_AT, A.CREATED_AT) DESC;
+END
+GO
+
+CREATE OR ALTER PROCEDURE dbo.PR_SAVE_CUSTOMER_ADDRESS
+(
+    @MODE               VARCHAR(10),
+
+    @ADDRESS_ID         BIGINT         = NULL,
+    @CUSTOMER_USER_ID   BIGINT         = NULL,
+    @ADDRESS_TYPE       VARCHAR(20)    = NULL,
+    @CONTACT_NUMBER     VARCHAR(20)    = NULL,
+    @BUILDING_NAME      NVARCHAR(150)  = NULL,
+    @VILLA_OR_FLAT_NO   NVARCHAR(50)   = NULL,
+    @STREET             NVARCHAR(150)  = NULL,
+    @AREA               NVARCHAR(150)  = NULL,
+    @CITY               NVARCHAR(100)  = NULL,
+    @LANDMARK           NVARCHAR(200)  = NULL,
+    @POSTAL_CODE        VARCHAR(20)    = NULL,
+    @EMIRATE            NVARCHAR(100)  = NULL,
+    @LATITUDE           DECIMAL(10,7)  = NULL,
+    @LONGITUDE          DECIMAL(10,7)  = NULL,
+    @IS_DEFAULT         BIT            = NULL
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SET @MODE         = UPPER(LTRIM(RTRIM(@MODE)));
+    SET @ADDRESS_TYPE = NULLIF(LTRIM(RTRIM(@ADDRESS_TYPE)), '');
+
+    -- ADD
+    IF @MODE = 'ADD'
+    BEGIN
+        IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMER_ADDRESSES WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND IS_DELETED = 0)
+        BEGIN
+            SET @IS_DEFAULT = 1;
+        END
+
+        IF @IS_DEFAULT = 1
+        BEGIN
+            UPDATE dbo.CUSTOMER_ADDRESSES
+            SET IS_DEFAULT = 0, UPDATED_AT = SYSUTCDATETIME()
+            WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND IS_DEFAULT = 1 AND IS_DELETED = 0;
+        END
+
+        INSERT INTO dbo.CUSTOMER_ADDRESSES
+        (
+            CUSTOMER_USER_ID,
+            ADDRESS_TYPE,
+            CONTACT_NUMBER,
+            BUILDING_NAME,
+            VILLA_OR_FLAT_NO,
+            STREET,
+            AREA,
+            CITY,
+            LANDMARK,
+            POSTAL_CODE,
+            EMIRATE,
+            LATITUDE,
+            LONGITUDE,
+            IS_DEFAULT,
+            IS_ACTIVE,
+            IS_DELETED,
+            CREATED_AT
+        )
+        VALUES
+        (
+            @CUSTOMER_USER_ID,
+            @ADDRESS_TYPE,
+            @CONTACT_NUMBER,
+            @BUILDING_NAME,
+            @VILLA_OR_FLAT_NO,
+            @STREET,
+            @AREA,
+            @CITY,
+            @LANDMARK,
+            @POSTAL_CODE,
+            @EMIRATE,
+            @LATITUDE,
+            @LONGITUDE,
+            ISNULL(@IS_DEFAULT, 0),
+            1,
+            0,
+            SYSUTCDATETIME()
+        );
+
+        SELECT CAST(SCOPE_IDENTITY() AS BIGINT) AS ADDRESS_ID;
+        RETURN;
+    END;
+
+    -- EDIT
+    IF @MODE = 'EDIT'
+    BEGIN
+        IF @IS_DEFAULT = 1
+        BEGIN
+            UPDATE dbo.CUSTOMER_ADDRESSES
+            SET IS_DEFAULT = 0, UPDATED_AT = SYSUTCDATETIME()
+            WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND IS_DEFAULT = 1 AND IS_DELETED = 0;
+        END
+
+        UPDATE dbo.CUSTOMER_ADDRESSES
+        SET
+            ADDRESS_TYPE     = ISNULL(@ADDRESS_TYPE, ADDRESS_TYPE),
+            CONTACT_NUMBER   = ISNULL(@CONTACT_NUMBER, CONTACT_NUMBER),
+            BUILDING_NAME    = @BUILDING_NAME,
+            VILLA_OR_FLAT_NO = ISNULL(@VILLA_OR_FLAT_NO, VILLA_OR_FLAT_NO),
+            STREET           = ISNULL(@STREET, STREET),
+            AREA             = ISNULL(@AREA, AREA),
+            CITY             = ISNULL(@CITY, CITY),
+            LANDMARK         = @LANDMARK,
+            POSTAL_CODE      = @POSTAL_CODE,
+            EMIRATE          = ISNULL(@EMIRATE, EMIRATE),
+            LATITUDE         = ISNULL(@LATITUDE, LATITUDE),
+            LONGITUDE        = ISNULL(@LONGITUDE, LONGITUDE),
+            IS_DEFAULT       = ISNULL(@IS_DEFAULT, IS_DEFAULT),
+            UPDATED_AT       = SYSUTCDATETIME()
+        WHERE ADDRESS_ID = @ADDRESS_ID
+          AND CUSTOMER_USER_ID = @CUSTOMER_USER_ID
+          AND IS_DELETED = 0;
+
+        SELECT @ADDRESS_ID AS ADDRESS_ID;
+        RETURN;
+    END;
+
+    -- DELETE (SOFT DELETE)
+    IF @MODE = 'DELETE'
+    BEGIN
+        UPDATE dbo.CUSTOMER_ADDRESSES
+        SET
+            IS_DELETED = 1,
+            DELETED_AT = SYSUTCDATETIME(),
+            IS_ACTIVE  = 0,
+            IS_DEFAULT = 0,
+            UPDATED_AT = SYSUTCDATETIME()
+        WHERE ADDRESS_ID = @ADDRESS_ID
+          AND CUSTOMER_USER_ID = @CUSTOMER_USER_ID;
+
+        -- If default was deleted, make next active non-deleted address default
+        IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMER_ADDRESSES WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND IS_DEFAULT = 1 AND IS_DELETED = 0)
+        BEGIN
+            WITH CTE AS (
+                SELECT TOP (1) IS_DEFAULT, UPDATED_AT
+                FROM dbo.CUSTOMER_ADDRESSES
+                WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND IS_DELETED = 0
+                ORDER BY CREATED_AT DESC
+            )
+            UPDATE CTE
+            SET IS_DEFAULT = 1, UPDATED_AT = SYSUTCDATETIME();
+        END
+
+        SELECT @ADDRESS_ID AS ADDRESS_ID;
+        RETURN;
+    END;
+END
+GO

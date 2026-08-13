@@ -62,5 +62,15 @@ namespace MeatDelivery.Api.Extensions
 
             return "WEB";
         }
+
+        public static long GetUserId(this HttpContext context)
+        {
+            if (context?.User == null) return 0;
+
+            var claim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                     ?? context.User.FindFirst("sub")?.Value;
+
+            return long.TryParse(claim, out var userId) ? userId : 0;
+        }
     }
 }

@@ -129,6 +129,10 @@ namespace MeatDelivery.Infrastructure
 
             services.AddScoped<IAuthenticationService, AuthenticationService>();
 
+            // Customer Services & Repositories
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customer.ICustomerRepository, MeatDelivery.Infrastructure.Repositories.Customer.CustomerRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Customer.ICustomerService, MeatDelivery.Infrastructure.Services.Customer.CustomerService>();
+
             // Test Domain Repository
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Test.ITestRepository, MeatDelivery.Infrastructure.Repositories.Test.TestRepository>();
 
