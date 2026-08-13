@@ -81,26 +81,26 @@ BEGIN
     IF ISNULL(@ADDRESS_ID, 0) > 0
     BEGIN
         SELECT
-            A.ADDRESS_ID,
-            A.CUSTOMER_USER_ID,
-            A.ADDRESS_TYPE,
-            A.CONTACT_NUMBER,
-            A.BUILDING_NAME,
-            A.VILLA_OR_FLAT_NO,
-            A.STREET,
-            A.AREA,
-            A.CITY,
-            A.LANDMARK,
-            A.POSTAL_CODE,
-            A.EMIRATE,
-            A.LATITUDE,
-            A.LONGITUDE,
-            A.IS_DEFAULT,
-            A.IS_ACTIVE,
-            A.IS_DELETED,
-            A.CREATED_AT,
-            A.UPDATED_AT,
-            A.DELETED_AT
+            A.ADDRESS_ID          AS AddressId,
+            A.CUSTOMER_USER_ID    AS CustomerUserId,
+            A.ADDRESS_TYPE        AS AddressType,
+            A.CONTACT_NUMBER      AS ContactNumber,
+            A.BUILDING_NAME       AS BuildingName,
+            A.VILLA_OR_FLAT_NO    AS VillaOrFlatNo,
+            A.STREET              AS Street,
+            A.AREA                AS Area,
+            A.CITY                AS City,
+            A.LANDMARK            AS Landmark,
+            A.POSTAL_CODE         AS PostalCode,
+            A.EMIRATE             AS Emirate,
+            A.LATITUDE            AS Latitude,
+            A.LONGITUDE           AS Longitude,
+            A.IS_DEFAULT          AS IsDefault,
+            A.IS_ACTIVE           AS IsActive,
+            A.IS_DELETED          AS IsDeleted,
+            A.CREATED_AT          AS CreatedAt,
+            A.UPDATED_AT          AS UpdatedAt,
+            A.DELETED_AT          AS DeletedAt
         FROM dbo.CUSTOMER_ADDRESSES AS A
         WHERE A.ADDRESS_ID = @ADDRESS_ID
           AND A.IS_DELETED = 0
@@ -114,26 +114,26 @@ BEGIN
 
     -- Get customer addresses (excluding deleted)
     SELECT
-        A.ADDRESS_ID,
-        A.CUSTOMER_USER_ID,
-        A.ADDRESS_TYPE,
-        A.CONTACT_NUMBER,
-        A.BUILDING_NAME,
-        A.VILLA_OR_FLAT_NO,
-        A.STREET,
-        A.AREA,
-        A.CITY,
-        A.LANDMARK,
-        A.POSTAL_CODE,
-        A.EMIRATE,
-        A.LATITUDE,
-        A.LONGITUDE,
-        A.IS_DEFAULT,
-        A.IS_ACTIVE,
-        A.IS_DELETED,
-        A.CREATED_AT,
-        A.UPDATED_AT,
-        A.DELETED_AT
+        A.ADDRESS_ID          AS AddressId,
+        A.CUSTOMER_USER_ID    AS CustomerUserId,
+        A.ADDRESS_TYPE        AS AddressType,
+        A.CONTACT_NUMBER      AS ContactNumber,
+        A.BUILDING_NAME       AS BuildingName,
+        A.VILLA_OR_FLAT_NO    AS VillaOrFlatNo,
+        A.STREET              AS Street,
+        A.AREA                AS Area,
+        A.CITY                AS City,
+        A.LANDMARK            AS Landmark,
+        A.POSTAL_CODE         AS PostalCode,
+        A.EMIRATE             AS Emirate,
+        A.LATITUDE            AS Latitude,
+        A.LONGITUDE           AS Longitude,
+        A.IS_DEFAULT          AS IsDefault,
+        A.IS_ACTIVE           AS IsActive,
+        A.IS_DELETED          AS IsDeleted,
+        A.CREATED_AT          AS CreatedAt,
+        A.UPDATED_AT          AS UpdatedAt,
+        A.DELETED_AT          AS DeletedAt
     FROM dbo.CUSTOMER_ADDRESSES AS A
     WHERE A.IS_DELETED = 0
       AND (@CUSTOMER_USER_ID IS NULL OR A.CUSTOMER_USER_ID = @CUSTOMER_USER_ID)
