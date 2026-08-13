@@ -23,8 +23,8 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             string fullName,
             string countryCode,
             string mobileNumber,
-            IEnumerable<string> roles,
-            long sessionId)
+            IEnumerable<string>? roles = null,
+            long sessionId = 0)
         {
             var key = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));

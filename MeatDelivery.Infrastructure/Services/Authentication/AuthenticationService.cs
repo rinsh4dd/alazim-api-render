@@ -97,9 +97,12 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 maxAttempts: 5,
                 challengeId: request.ChallengeId);
 
-            var roles = new List<string> { "CUSTOMER" };
-            string accessToken = _tokenService.GenerateAccessTokenForUser(regResult.UserId, regResult.FullName,
-            request.CountryCode, request.MobileNumber, roles, regResult.SessionId);
+            string accessToken = _tokenService.GenerateAccessTokenForUser(
+                regResult.UserId,
+                regResult.FullName,
+                request.CountryCode,
+                request.MobileNumber,
+                sessionId: regResult.SessionId);
 
             return new AuthTokenResponseDto
             {
@@ -108,7 +111,6 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 CountryCode = request.CountryCode,
                 MobileNumber = request.MobileNumber,
                 IsNewUser = regResult.IsNewUser,
-                Roles = roles,
                 AccessToken = accessToken,
                 RefreshToken = rawRefreshToken
             };
@@ -135,14 +137,12 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 sessionExpiry,
                 cancellationToken);
 
-            var roles = new List<string> { "CUSTOMER" };
             string accessToken = _tokenService.GenerateAccessTokenForUser(
                 sessionResult.UserId,
                 sessionResult.FullName,
                 sessionResult.CountryCode,
                 sessionResult.MobileNumber,
-                roles,
-                sessionResult.SessionId);
+                sessionId: sessionResult.SessionId);
 
             return new AuthTokenResponseDto
             {
@@ -151,7 +151,6 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 CountryCode = sessionResult.CountryCode,
                 MobileNumber = sessionResult.MobileNumber,
                 IsNewUser = false,
-                Roles = roles,
                 AccessToken = accessToken,
                 RefreshToken = newRawRefreshToken
             };

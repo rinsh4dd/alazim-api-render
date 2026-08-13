@@ -10,8 +10,8 @@ namespace MeatDelivery.Application.Interfaces.Authentication
             string fullName,
             string countryCode,
             string mobileNumber,
-            IEnumerable<string> roles,
-            long sessionId);
+            IEnumerable<string>? roles = null,
+            long sessionId = 0);
 
         string GenerateRefreshToken();
 

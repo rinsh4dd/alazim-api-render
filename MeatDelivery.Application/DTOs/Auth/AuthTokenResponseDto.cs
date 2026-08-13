@@ -10,7 +10,6 @@ namespace MeatDelivery.Application.DTOs.Auth
         public string CountryCode { get; set; } = string.Empty;
         public string MobileNumber { get; set; } = string.Empty;
         public bool IsNewUser { get; set; }
-        public List<string> Roles { get; set; } = new();
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
     }
