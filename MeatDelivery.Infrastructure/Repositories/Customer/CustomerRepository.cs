@@ -66,9 +66,19 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
             return addressId;
         }
 
-        public async Task<bool> SetDefaultCustomerAddressAsync(long addressId,long customerUserId,CancellationToken cancellationToken = default)
+        public async Task<bool> SetDefaultCustomerAddressAsync(
+            long addressId,
+            long? customerUserId = null,
+            CancellationToken cancellationToken = default)
         {
-            await _dapperRepository.ExecuteAsync("PR_SET_DEFAULT_CUSTOMER_ADDRESS",new{ADDRESS_ID = addressId,CUSTOMER_USER_ID = customerUserId});
+            await _dapperRepository.ExecuteAsync(
+                "PR_SET_DEFAULT_CUSTOMER_ADDRESS",
+                new
+                {
+                    ADDRESS_ID = addressId,
+                    CUSTOMER_USER_ID = customerUserId
+                }
+            );
             return true;
         }
     }
