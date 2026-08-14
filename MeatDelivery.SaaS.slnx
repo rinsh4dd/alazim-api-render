@@ -6,5 +6,6 @@
   <Project Path="MeatDelivery.Migrations/MeatDelivery.Migrations.csproj" />
   <Project Path="MeatDelivery.Plugins/MeatDelivery.Plugins.csproj" />
   <Project Path="MeatDelivery.Shared/MeatDelivery.Shared.csproj" />
+  <Project Path="MeatDelivery.UnitTests/MeatDelivery.UnitTests.csproj" />
   <Project Path="MeatDelivery.Worker/MeatDelivery.Worker.csproj" />
 </Solution>
