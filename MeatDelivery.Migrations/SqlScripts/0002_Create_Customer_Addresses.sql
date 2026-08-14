@@ -77,42 +77,6 @@ BEGIN
 
     SET @ADDRESS_TYPE = NULLIF(LTRIM(RTRIM(@ADDRESS_TYPE)), '');
 
-    -- Get single address (excluding deleted)
-    IF ISNULL(@ADDRESS_ID, 0) > 0
-    BEGIN
-        SELECT
-            A.ADDRESS_ID          AS AddressId,
-            A.CUSTOMER_USER_ID    AS CustomerUserId,
-            A.ADDRESS_TYPE        AS AddressType,
-            A.CONTACT_NUMBER      AS ContactNumber,
-            A.BUILDING_NAME       AS BuildingName,
-            A.VILLA_OR_FLAT_NO    AS VillaOrFlatNo,
-            A.STREET              AS Street,
-            A.AREA                AS Area,
-            A.CITY                AS City,
-            A.LANDMARK            AS Landmark,
-            A.POSTAL_CODE         AS PostalCode,
-            A.EMIRATE             AS Emirate,
-            A.LATITUDE            AS Latitude,
-            A.LONGITUDE           AS Longitude,
-            A.IS_DEFAULT          AS IsDefault,
-            A.IS_ACTIVE           AS IsActive,
-            A.IS_DELETED          AS IsDeleted,
-            A.CREATED_AT          AS CreatedAt,
-            A.UPDATED_AT          AS UpdatedAt,
-            A.DELETED_AT          AS DeletedAt
-        FROM dbo.CUSTOMER_ADDRESSES AS A
-        WHERE A.ADDRESS_ID = @ADDRESS_ID
-          AND A.IS_DELETED = 0
-          AND (
-                @CUSTOMER_USER_ID IS NULL
-                OR A.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
-              );
-
-        RETURN;
-    END;
-
-    -- Get customer addresses (excluding deleted)
     SELECT
         A.ADDRESS_ID          AS AddressId,
         A.CUSTOMER_USER_ID    AS CustomerUserId,
@@ -136,9 +100,10 @@ BEGIN
         A.DELETED_AT          AS DeletedAt
     FROM dbo.CUSTOMER_ADDRESSES AS A
     WHERE A.IS_DELETED = 0
-      AND (@CUSTOMER_USER_ID IS NULL OR A.CUSTOMER_USER_ID = @CUSTOMER_USER_ID)
-      AND (@IS_DEFAULT IS NULL OR A.IS_DEFAULT = @IS_DEFAULT)
+      AND (@ADDRESS_ID IS NULL OR @ADDRESS_ID = 0 OR A.ADDRESS_ID = @ADDRESS_ID)
+      AND (@CUSTOMER_USER_ID IS NULL OR @CUSTOMER_USER_ID = 0 OR A.CUSTOMER_USER_ID = @CUSTOMER_USER_ID)
       AND (@ADDRESS_TYPE IS NULL OR A.ADDRESS_TYPE = @ADDRESS_TYPE)
+      AND (@IS_DEFAULT IS NULL OR A.IS_DEFAULT = @IS_DEFAULT)
     ORDER BY
         A.IS_DEFAULT DESC,
         ISNULL(A.UPDATED_AT, A.CREATED_AT) DESC;

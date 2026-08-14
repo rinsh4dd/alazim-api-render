@@ -6,6 +6,9 @@ namespace MeatDelivery.Application.Validators.Auth
     public class SendOtpRequestDtoValidator : AbstractValidator<SendOtpRequestDto>
     {
         public SendOtpRequestDtoValidator()
+        //update digits
+
+        
         {
             RuleFor(x => x.CountryCode)
                 .NotEmpty().WithMessage("Country code is required.")
