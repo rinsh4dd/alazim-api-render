@@ -290,34 +290,35 @@ GO
 CREATE OR ALTER PROCEDURE dbo.PR_SET_DEFAULT_CUSTOMER_ADDRESS
 (
     @ADDRESS_ID       BIGINT,
-    @CUSTOMER_USER_ID BIGINT = NULL
+    @CUSTOMER_USER_ID BIGINT
 )
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- If customer user id is missing/zero, resolve it directly from the address record
-    IF ISNULL(@CUSTOMER_USER_ID, 0) = 0
-    BEGIN
-        SELECT @CUSTOMER_USER_ID = CUSTOMER_USER_ID
+    -- 1. Validate that the address exists and belongs to this customer
+    IF NOT EXISTS (
+        SELECT 1
         FROM dbo.CUSTOMER_ADDRESSES
-        WHERE ADDRESS_ID = @ADDRESS_ID;
-    END;
-
-    IF ISNULL(@CUSTOMER_USER_ID, 0) = 0
+        WHERE ADDRESS_ID = @ADDRESS_ID
+          AND CUSTOMER_USER_ID = @CUSTOMER_USER_ID
+          AND IS_DELETED = 0
+    )
     BEGIN
+        RAISERROR('Delivery address not found.', 16, 1);
         RETURN;
     END;
 
-    -- Reset previous default for this customer
+    -- 2. Reset previous default for this customer
     UPDATE dbo.CUSTOMER_ADDRESSES
     SET IS_DEFAULT = 0,
         UPDATED_AT = SYSUTCDATETIME()
     WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID
       AND IS_DEFAULT = 1
-      AND IS_DELETED = 0;
+      AND IS_DELETED = 0
+      AND ADDRESS_ID <> @ADDRESS_ID;
 
-    -- Set new default for this address
+    -- 3. Set new default for this address
     UPDATE dbo.CUSTOMER_ADDRESSES
     SET IS_DEFAULT = 1,
         UPDATED_AT = SYSUTCDATETIME()
