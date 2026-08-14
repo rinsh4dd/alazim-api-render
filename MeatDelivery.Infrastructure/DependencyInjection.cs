@@ -100,6 +100,7 @@ namespace MeatDelivery.Infrastructure
             // --------------------------------------------
             // Database & Unit of Work
             // --------------------------------------------
+            DapperTypeHandlerExtensions.RegisterDapperEnumHandlers();
             services.AddScoped<IDbConnectionFactory, DbConnectionFactory>();
             services.AddScoped<IDapperRepository, DapperRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();

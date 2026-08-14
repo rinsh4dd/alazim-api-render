@@ -88,7 +88,7 @@ namespace MeatDelivery.UnitTests.Services
                 LastName = "Khan",
                 Email = "rashid@example.com",
                 Dob = new DateTime(1995, 5, 10),
-                Gender = "MALE"
+                Gender = Gender.MALE
             };
 
             var updatedProfile = new CustomerProfileDto

@@ -1,4 +1,5 @@
 using System;
+using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Application.DTOs.Customer
 {
@@ -14,14 +15,14 @@ namespace MeatDelivery.Application.DTOs.Customer
         public string? LastName { get; set; }
         public string FullName { get; set; } = string.Empty;
         public DateTime? Dob { get; set; }
-        public string? Gender { get; set; }
+        public Gender? Gender { get; set; }
         public string? ProfileImageUrl { get; set; }
         public string LanguageCode { get; set; } = "EN";
         public bool IsMobileVerified { get; set; }
         public bool IsEmailVerified { get; set; }
         public bool EligibleForOrder { get; set; }
         public bool IsProfileCompleted { get; set; }
-        public string UserStatus { get; set; } = "PENDING";
+        public UserStatus UserStatus { get; set; } = UserStatus.PENDING;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }

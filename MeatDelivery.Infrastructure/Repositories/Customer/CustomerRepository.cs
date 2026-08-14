@@ -115,7 +115,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
                     LAST_NAME = request.LastName,
                     EMAIL = request.Email,
                     DOB = request.Dob,
-                    GENDER = request.Gender,
+                    GENDER = request.Gender?.ToString(),
                     PROFILE_IMAGE_URL = request.ProfileImageUrl,
                     LANGUAGE_CODE = request.LanguageCode
                 }
