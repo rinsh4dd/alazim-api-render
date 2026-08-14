@@ -107,9 +107,14 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             return new AuthTokenResponseDto
             {
                 UserId = regResult.UserId,
+                DocType = regResult.DocType,
+                DocNo = regResult.DocNo,
+                FirstName = regResult.FirstName,
+                LastName = regResult.LastName,
                 FullName = regResult.FullName,
                 CountryCode = request.CountryCode,
                 MobileNumber = request.MobileNumber,
+                IsProfileCompleted = regResult.IsProfileCompleted,
                 IsNewUser = regResult.IsNewUser,
                 AccessToken = accessToken,
                 RefreshToken = rawRefreshToken

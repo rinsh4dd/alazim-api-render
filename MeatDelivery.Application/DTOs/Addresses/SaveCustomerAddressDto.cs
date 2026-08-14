@@ -6,7 +6,8 @@ namespace MeatDelivery.Application.DTOs.Addresses
     {
         public AddressMode Mode { get; set; } = AddressMode.ADD;
         public long? AddressId { get; set; }
-        public long? CustomerUserId { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
         public AddressType? AddressType { get; set; }
         public string? ContactNumber { get; set; }
         public string? BuildingName { get; set; }

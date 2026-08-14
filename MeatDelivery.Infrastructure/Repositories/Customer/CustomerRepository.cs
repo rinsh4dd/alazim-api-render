@@ -20,6 +20,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
 
         public async Task<List<CustomerAddress>> GetCustomerAddressAsync(
             GetCustomerAddressQueryDto query,
+            long customerUserId,
             CancellationToken cancellationToken = default)
         {
             var result = await _dapperRepository.QueryAsync<CustomerAddress>(
@@ -27,7 +28,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
                 new
                 {
                     ADDRESS_ID = query.AddressId,
-                    CUSTOMER_USER_ID = query.CustomerUserId,
+                    CUSTOMER_USER_ID = customerUserId,
                     ADDRESS_TYPE = query.AddressType?.ToString(),
                     IS_DEFAULT = query.IsDefault
                 }
@@ -38,6 +39,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
 
         public async Task<long> SaveCustomerAddressAsync(
             SaveCustomerAddressDto request,
+            long customerUserId,
             CancellationToken cancellationToken = default)
         {
             var addressId = await _dapperRepository.ExecuteScalarAsync<long>(
@@ -46,7 +48,9 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
                 {
                     MODE = request.Mode.ToString(),
                     ADDRESS_ID = request.AddressId,
-                    CUSTOMER_USER_ID = request.CustomerUserId,
+                    CUSTOMER_USER_ID = customerUserId,
+                    FIRST_NAME = request.FirstName,
+                    LAST_NAME = request.LastName,
                     ADDRESS_TYPE = request.AddressType?.ToString(),
                     CONTACT_NUMBER = request.ContactNumber,
                     BUILDING_NAME = request.BuildingName,
@@ -68,7 +72,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
 
         public async Task<bool> SetDefaultCustomerAddressAsync(
             long addressId,
-            long? customerUserId = null,
+            long customerUserId,
             CancellationToken cancellationToken = default)
         {
             await _dapperRepository.ExecuteAsync(

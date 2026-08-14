@@ -1,6 +1,7 @@
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Addresses;
 using MeatDelivery.Application.Interfaces.Customer;
 using System.Threading;
@@ -26,7 +27,8 @@ namespace MeatDelivery.Api.Controllers
             [FromQuery] GetCustomerAddressQueryDto query,
             CancellationToken cancellationToken)
         {
-            var response = await _customerService.GetCustomerAddressAsync(query, cancellationToken);
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _customerService.GetCustomerAddressAsync(query, customerUserId, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }
@@ -36,7 +38,8 @@ namespace MeatDelivery.Api.Controllers
             [FromBody] SaveCustomerAddressDto request,
             CancellationToken cancellationToken)
         {
-            var response = await _customerService.SaveCustomerAddressAsync(request, cancellationToken);
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _customerService.SaveCustomerAddressAsync(request, customerUserId, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }
@@ -46,7 +49,8 @@ namespace MeatDelivery.Api.Controllers
             [FromBody] SetDefaultCustomerAddressDto request,
             CancellationToken cancellationToken)
         {
-            var response = await _customerService.SetDefaultCustomerAddressAsync(request, cancellationToken);
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _customerService.SetDefaultCustomerAddressAsync(request.AddressId, customerUserId, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

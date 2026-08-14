@@ -31,6 +31,12 @@ namespace MeatDelivery.Application.Validators.Addresses
             RuleFor(x => x.Landmark)
                 .MaximumLength(250).WithMessage("Landmark cannot exceed 250 characters.");
 
+            RuleFor(x => x.PostalCode)
+                .MaximumLength(5).WithMessage("Postal code cannot exceed 5 characters.")
+                .Matches(@"^[0-9]{5}$")
+                .When(x => !string.IsNullOrWhiteSpace(x.PostalCode))
+                .WithMessage("Postal code must be a valid 5-digit number (e.g. 12345).");
+
             RuleFor(x => x.DeliveryNotes)
                 .MaximumLength(500).WithMessage("Delivery notes cannot exceed 500 characters.");
 

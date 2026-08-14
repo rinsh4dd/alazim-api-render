@@ -11,6 +11,7 @@ namespace MeatDelivery.Application.DTOs.Addresses
         public string? VillaApartmentNo { get; set; }
         public string? FloorNo { get; set; }
         public string? Landmark { get; set; }
+        public string? PostalCode { get; set; }
         public string? DeliveryNotes { get; set; }
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }

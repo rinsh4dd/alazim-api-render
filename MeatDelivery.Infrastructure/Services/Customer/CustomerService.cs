@@ -22,9 +22,10 @@ namespace MeatDelivery.Infrastructure.Services.Customer
 
         public async Task<ApiResponse<List<CustomerAddressDto>>> GetCustomerAddressAsync(
             GetCustomerAddressQueryDto query,
+            long customerUserId,
             CancellationToken cancellationToken = default)
         {
-            var addresses = await _customerRepository.GetCustomerAddressAsync(query, cancellationToken);
+            var addresses = await _customerRepository.GetCustomerAddressAsync(query, customerUserId, cancellationToken);
             var dtos = addresses.Select(MapToDto).ToList();
 
             string message = (query.AddressId.HasValue && query.AddressId.Value > 0)
@@ -38,9 +39,10 @@ namespace MeatDelivery.Infrastructure.Services.Customer
 
         public async Task<ApiResponse<object>> SaveCustomerAddressAsync(
             SaveCustomerAddressDto request,
+            long customerUserId,
             CancellationToken cancellationToken = default)
         {
-            var addressId = await _customerRepository.SaveCustomerAddressAsync(request, cancellationToken);
+            var addressId = await _customerRepository.SaveCustomerAddressAsync(request, customerUserId, cancellationToken);
 
             string message = request.Mode switch
             {
@@ -55,17 +57,27 @@ namespace MeatDelivery.Infrastructure.Services.Customer
                 message: message);
         }
 
-        public async Task<ApiResponse<object>> SetDefaultCustomerAddressAsync(SetDefaultCustomerAddressDto request,CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<object>> SetDefaultCustomerAddressAsync(
+            long addressId,
+            long customerUserId,
+            CancellationToken cancellationToken = default)
         {
-            await _customerRepository.SetDefaultCustomerAddressAsync(request.AddressId,request.CustomerUserId,cancellationToken);
+            await _customerRepository.SetDefaultCustomerAddressAsync(
+                addressId,
+                customerUserId,
+                cancellationToken);
 
-            return ApiResponse<object>.SuccessResponse(new { addressId = request.AddressId },message: "Default delivery address updated successfully.");
+            return ApiResponse<object>.SuccessResponse(
+                new { addressId = addressId },
+                message: "Default delivery address updated successfully.");
         }
 
         private static CustomerAddressDto MapToDto(CustomerAddress a) => new()
         {
             AddressId = a.AddressId,
             CustomerUserId = a.CustomerUserId,
+            FirstName = a.FirstName,
+            LastName = a.LastName,
             AddressType = a.AddressType,
             ContactNumber = a.ContactNumber,
             BuildingName = a.BuildingName,

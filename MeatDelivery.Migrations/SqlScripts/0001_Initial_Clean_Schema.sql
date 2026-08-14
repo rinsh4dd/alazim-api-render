@@ -60,9 +60,11 @@ CREATE TABLE dbo.USERS
     MOBILE_NUMBER VARCHAR(20) NOT NULL,
     EMAIL VARCHAR(150) NULL,
     PASSWORD_HASH VARCHAR(500) NULL,
-    FULL_NAME NVARCHAR(150) NOT NULL,
+    FIRST_NAME NVARCHAR(100) NULL,
+    LAST_NAME NVARCHAR(100) NULL,
+    DOB DATE NULL,
+    GENDER VARCHAR(20) NULL,
     PROFILE_IMAGE_URL VARCHAR(500) NULL,
-    DESIGNATION NVARCHAR(100) NULL,
     LANGUAGE_CODE VARCHAR(10) NOT NULL DEFAULT 'EN',
     IS_MOBILE_VERIFIED BIT NOT NULL DEFAULT 0,
     IS_EMAIL_VERIFIED BIT NOT NULL DEFAULT 0,
@@ -420,15 +422,17 @@ BEGIN
     IF @UserId IS NULL
     BEGIN
         SET @IsNewUser = 1;
-        SET @ResolvedFullName = ISNULL(@FullName, N'Customer');
 
         INSERT INTO dbo.USERS
         (
             COUNTRY_CODE,
             MOBILE_NUMBER,
-            FULL_NAME,
+            FIRST_NAME,
+            LAST_NAME,
             LANGUAGE_CODE,
             IS_MOBILE_VERIFIED,
+            IS_EMAIL_VERIFIED,
+            IS_PROFILE_COMPLETED,
             USER_STATUS,
             LAST_LOGIN_AT,
             CREATED_AT
@@ -437,9 +441,12 @@ BEGIN
         (
             @CountryCode,
             @MobileNumber,
-            @ResolvedFullName,
+            NULL,
+            NULL,
             ISNULL(@LanguageCode, 'EN'),
             1,
+            0,
+            0,
             'ACTIVE',
             SYSUTCDATETIME(),
             SYSUTCDATETIME()
@@ -471,6 +478,8 @@ BEGIN
     SET USER_ID = @UserId 
     WHERE OTP_ID = @OtpId;
 
+    DECLARE @SessionId BIGINT;
+
     INSERT INTO dbo.USER_SESSIONS
     (
         USER_ID,
@@ -496,11 +505,16 @@ BEGIN
         SYSUTCDATETIME()
     );
 
+    SET @SessionId = SCOPE_IDENTITY();
+
     COMMIT TRANSACTION;
 
     SELECT 
         u.USER_ID AS UserId,
-        u.FULL_NAME AS FullName,
+        @SessionId AS SessionId,
+        u.FIRST_NAME AS FirstName,
+        u.LAST_NAME AS LastName,
+        ISNULL(LTRIM(RTRIM(ISNULL(u.FIRST_NAME, '') + ' ' + ISNULL(u.LAST_NAME, ''))), '') AS FullName,
         u.LANGUAGE_CODE AS LanguageCode,
         u.IS_PROFILE_COMPLETED AS IsProfileCompleted,
         @IsNewUser AS IsNewUser,

@@ -1,15 +1,22 @@
+using System;
+
 namespace MeatDelivery.Domain.Entities.Authentication
 {
     public class User
     {
         public long UserId { get; set; }
+        public string? DocType { get; set; }
+        public string? DocNo { get; set; }
         public string CountryCode { get; set; } = string.Empty;
         public string MobileNumber { get; set; } = string.Empty;
         public string? Email { get; set; }
         public string? PasswordHash { get; set; }
-        public string FullName { get; set; } = string.Empty;
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string FullName => string.Join(" ", new[] { FirstName, LastName }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+        public DateOnly? Dob { get; set; }
+        public string? Gender { get; set; }
         public string? ProfileImageUrl { get; set; }
-        public string? Designation { get; set; }
         public string LanguageCode { get; set; } = "EN";
         public bool IsMobileVerified { get; set; }
         public bool IsEmailVerified { get; set; }

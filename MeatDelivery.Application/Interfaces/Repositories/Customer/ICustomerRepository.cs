@@ -10,15 +10,17 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Customer
     {
         Task<List<CustomerAddress>> GetCustomerAddressAsync(
             GetCustomerAddressQueryDto query,
+            long customerUserId,
             CancellationToken cancellationToken = default);
 
         Task<long> SaveCustomerAddressAsync(
             SaveCustomerAddressDto request,
+            long customerUserId,
             CancellationToken cancellationToken = default);
 
         Task<bool> SetDefaultCustomerAddressAsync(
             long addressId,
-            long? customerUserId = null,
+            long customerUserId,
             CancellationToken cancellationToken = default);
     }
 }

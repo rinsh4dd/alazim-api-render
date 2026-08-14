@@ -6,6 +6,8 @@ namespace MeatDelivery.Application.DTOs.Addresses
     {
         public long AddressId { get; set; }
         public long CustomerUserId { get; set; }
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
         public string AddressType { get; set; } = string.Empty; // HOME, OFFICE, OTHER
         public string ContactNumber { get; set; } = string.Empty;
         public string? BuildingName { get; set; }
