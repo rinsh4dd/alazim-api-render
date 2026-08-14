@@ -16,7 +16,7 @@ namespace MeatDelivery.Application.Validators.Auth
 
             RuleFor(x => x.MobileNumber)
                 .NotEmpty().WithMessage("Mobile number is required.")
-                .Length(9).WithMessage("Invalid mobile number.");
+                .Length(9,10).WithMessage("Invalid mobile number.");
         }
     }   
 }

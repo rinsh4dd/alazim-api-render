@@ -9,7 +9,7 @@ namespace MeatDelivery.Application.Validators.Addresses
         {
             RuleFor(x => x.AddressLabel)
                 .NotEmpty().WithMessage("Address label is required (e.g. Home, Work, Villa).")
-                .MaximumLength(100).WithMessage("Address label cannot exceed 100 characters.");
+                .MaximumLength(20).WithMessage("Address label cannot exceed 20 characters.");
 
             RuleFor(x => x.Emirate)
                 .NotEmpty().WithMessage("Emirate is required (e.g. Dubai, Abu Dhabi, Sharjah).")
@@ -17,7 +17,7 @@ namespace MeatDelivery.Application.Validators.Addresses
 
             RuleFor(x => x.Area)
                 .NotEmpty().WithMessage("Area is required.")
-                .MaximumLength(150).WithMessage("Area cannot exceed 150 characters.");
+                .MaximumLength(50).WithMessage("Area cannot exceed 50 characters.");
 
             RuleFor(x => x.BuildingName)
                 .MaximumLength(150).WithMessage("Building name cannot exceed 150 characters.");
