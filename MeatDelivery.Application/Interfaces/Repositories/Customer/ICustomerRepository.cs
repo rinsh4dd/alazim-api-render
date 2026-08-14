@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.DTOs.Addresses;
+using MeatDelivery.Application.DTOs.Customer;
 using MeatDelivery.Domain.Entities.Addresses;
 
 namespace MeatDelivery.Application.Interfaces.Repositories.Customer
@@ -20,6 +21,15 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Customer
 
         Task<bool> SetDefaultCustomerAddressAsync(
             long addressId,
+            long customerUserId,
+            CancellationToken cancellationToken = default);
+
+        Task<CustomerProfileDto?> GetCustomerProfileAsync(
+            long customerUserId,
+            CancellationToken cancellationToken = default);
+
+        Task<CustomerProfileDto> UpdateCustomerProfileAsync(
+            UpdateCustomerProfileDto request,
             long customerUserId,
             CancellationToken cancellationToken = default);
     }

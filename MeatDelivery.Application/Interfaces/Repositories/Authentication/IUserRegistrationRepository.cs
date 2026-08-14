@@ -14,6 +14,7 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
         public string? LastName { get; set; }
         public string FullName { get; set; } = string.Empty;
         public string LanguageCode { get; set; } = "EN";
+        public bool EligibleForOrder { get; set; }
         public bool IsProfileCompleted { get; set; }
         public bool IsNewUser { get; set; }
         public string? RoleCode { get; set; }

@@ -309,7 +309,6 @@ BEGIN
         RETURN;
     END;
 
-    -- 2. Reset previous default for this customer
     UPDATE dbo.CUSTOMER_ADDRESSES
     SET IS_DEFAULT = 0,
         UPDATED_AT = SYSUTCDATETIME()

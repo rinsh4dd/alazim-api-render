@@ -114,6 +114,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 FullName = regResult.FullName,
                 CountryCode = request.CountryCode,
                 MobileNumber = request.MobileNumber,
+                EligibleForOrder = regResult.EligibleForOrder,
                 IsProfileCompleted = regResult.IsProfileCompleted,
                 IsNewUser = regResult.IsNewUser,
                 AccessToken = accessToken,

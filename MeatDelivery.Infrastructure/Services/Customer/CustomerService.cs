@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.DTOs.Addresses;
+using MeatDelivery.Application.DTOs.Customer;
 using MeatDelivery.Application.Interfaces.Customer;
 using MeatDelivery.Application.Interfaces.Repositories.Customer;
 using MeatDelivery.Domain.Entities.Addresses;
@@ -70,6 +71,37 @@ namespace MeatDelivery.Infrastructure.Services.Customer
             return ApiResponse<object>.SuccessResponse(
                 new { addressId = addressId },
                 message: "Default delivery address updated successfully.");
+        }
+
+        public async Task<ApiResponse<CustomerProfileDto>> GetCustomerProfileAsync(
+            long customerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var profile = await _customerRepository.GetCustomerProfileAsync(customerUserId, cancellationToken);
+            if (profile == null)
+            {
+                return ApiResponse<CustomerProfileDto>.FailureResponse(
+                    message: "Customer profile not found.",
+                    status: 404);
+            }
+
+            return ApiResponse<CustomerProfileDto>.SuccessResponse(
+                profile,
+                message: "Customer profile retrieved successfully.");
+        }
+
+        public async Task<ApiResponse<CustomerProfileDto>> UpdateCustomerProfileAsync(
+            UpdateCustomerProfileDto request,
+            long customerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var profile = await _customerRepository.UpdateCustomerProfileAsync(request, customerUserId, cancellationToken);
+
+            
+
+            return ApiResponse<CustomerProfileDto>.SuccessResponse(
+                profile,
+                message: "Profile updated successfully");
         }
 
         private static CustomerAddressDto MapToDto(CustomerAddress a) => new()

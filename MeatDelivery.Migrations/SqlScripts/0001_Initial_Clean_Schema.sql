@@ -68,6 +68,7 @@ CREATE TABLE dbo.USERS
     LANGUAGE_CODE VARCHAR(10) NOT NULL DEFAULT 'EN',
     IS_MOBILE_VERIFIED BIT NOT NULL DEFAULT 0,
     IS_EMAIL_VERIFIED BIT NOT NULL DEFAULT 0,
+    ELIGIBLE_FOR_ORDER BIT NOT NULL DEFAULT 0,
     IS_PROFILE_COMPLETED BIT NOT NULL DEFAULT 0,
     USER_STATUS VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     LAST_LOGIN_AT DATETIME2 NULL,
@@ -81,9 +82,9 @@ ON dbo.USERS(EMAIL)
 WHERE EMAIL IS NOT NULL;
 GO
 
--- -----------------------------------------------------------------------------
--- 5. CREATE USER ROLES TABLE
--- -----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+--5. CREATE USER ROLES TABLE
+-------------------------------------------------------------------------------
 CREATE TABLE dbo.USER_ROLES
 (
     USER_ROLE_ID BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
@@ -100,9 +101,9 @@ CREATE TABLE dbo.USER_ROLES
 );
 GO
 
--- -----------------------------------------------------------------------------
--- 6. CREATE OTP VERIFICATIONS TABLE
--- -----------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+--6. CREATE OTP VERIFICATIONS TABLE
+-------------------------------------------------------------------------------
 CREATE TABLE dbo.OTP_VERIFICATIONS
 (
     OTP_ID BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,

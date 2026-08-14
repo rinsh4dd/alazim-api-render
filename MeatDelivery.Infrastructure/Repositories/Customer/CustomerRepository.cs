@@ -1,8 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.DTOs.Addresses;
+using MeatDelivery.Application.DTOs.Customer;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Repositories.Customer;
 using MeatDelivery.Domain.Entities.Addresses;
@@ -84,6 +86,42 @@ namespace MeatDelivery.Infrastructure.Repositories.Customer
                 }
             );
             return true;
+        }
+
+        public async Task<CustomerProfileDto?> GetCustomerProfileAsync(
+            long customerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _dapperRepository.QueryFirstOrDefaultAsync<CustomerProfileDto>(
+                "PR_CUSTOMER_GET_PROFILE",
+                new
+                {
+                    USER_ID = customerUserId
+                }
+            );
+        }
+
+        public async Task<CustomerProfileDto> UpdateCustomerProfileAsync(
+            UpdateCustomerProfileDto request,
+            long customerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _dapperRepository.QueryFirstOrDefaultAsync<CustomerProfileDto>(
+                "PR_CUSTOMER_UPDATE_PROFILE",
+                new
+                {
+                    USER_ID = customerUserId,
+                    FIRST_NAME = request.FirstName,
+                    LAST_NAME = request.LastName,
+                    EMAIL = request.Email,
+                    DOB = request.Dob,
+                    GENDER = request.Gender,
+                    PROFILE_IMAGE_URL = request.ProfileImageUrl,
+                    LANGUAGE_CODE = request.LanguageCode
+                }
+            );
+
+            return result ?? throw new InvalidOperationException("Failed to update customer profile.");
         }
     }
 }

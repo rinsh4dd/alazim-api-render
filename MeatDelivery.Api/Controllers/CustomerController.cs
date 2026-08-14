@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Addresses;
+using MeatDelivery.Application.DTOs.Customer;
 using MeatDelivery.Application.Interfaces.Customer;
 using System.Threading;
 using System.Threading.Tasks;
@@ -20,6 +21,26 @@ namespace MeatDelivery.Api.Controllers
         public CustomerController(ICustomerService customerService)
         {
             _customerService = customerService;
+        }
+
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _customerService.GetCustomerProfileAsync(customerUserId, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpPost("profile")]
+        public async Task<IActionResult> SaveCustomerProfile(
+            [FromBody] UpdateCustomerProfileDto request,
+            CancellationToken cancellationToken)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _customerService.UpdateCustomerProfileAsync(request, customerUserId, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
         }
 
         [HttpGet("address")]

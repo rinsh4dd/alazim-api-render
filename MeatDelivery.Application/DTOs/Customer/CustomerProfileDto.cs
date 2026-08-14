@@ -1,8 +1,8 @@
 using System;
 
-namespace MeatDelivery.Domain.Entities.Authentication
+namespace MeatDelivery.Application.DTOs.Customer
 {
-    public class User
+    public class CustomerProfileDto
     {
         public long UserId { get; set; }
         public string? DocType { get; set; }
@@ -10,10 +10,9 @@ namespace MeatDelivery.Domain.Entities.Authentication
         public string CountryCode { get; set; } = string.Empty;
         public string MobileNumber { get; set; } = string.Empty;
         public string? Email { get; set; }
-        public string? PasswordHash { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
-        public string FullName => string.Join(" ", new[] { FirstName, LastName }.Where(s => !string.IsNullOrWhiteSpace(s))).Trim();
+        public string FullName { get; set; } = string.Empty;
         public DateTime? Dob { get; set; }
         public string? Gender { get; set; }
         public string? ProfileImageUrl { get; set; }
@@ -23,8 +22,7 @@ namespace MeatDelivery.Domain.Entities.Authentication
         public bool EligibleForOrder { get; set; }
         public bool IsProfileCompleted { get; set; }
         public string UserStatus { get; set; } = "PENDING";
-        public DateTime? LastLoginAt { get; set; }
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
 }
