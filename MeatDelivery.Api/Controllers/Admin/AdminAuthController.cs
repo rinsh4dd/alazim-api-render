@@ -1,5 +1,4 @@
 using System;
-using System.Security.Authentication;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,6 +10,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Admin;
 using MeatDelivery.Application.Interfaces.Authentication;
+using MeatDelivery.Application.Interfaces.Storage;
 
 namespace MeatDelivery.Api.Controllers.Admin
 {
@@ -20,100 +20,90 @@ namespace MeatDelivery.Api.Controllers.Admin
     public class AdminAuthController : BaseApiController
     {
         private readonly IAdminAuthenticationService _adminAuthService;
+        private readonly IFileStorageService _fileStorageService;
 
-        public AdminAuthController(IAdminAuthenticationService adminAuthService)
+        public AdminAuthController(
+            IAdminAuthenticationService adminAuthService,
+            IFileStorageService fileStorageService)
         {
             _adminAuthService = adminAuthService;
+            _fileStorageService = fileStorageService;
         }
 
-    
         [HttpPost("login")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(Shared.Responses.ApiResponse<AdminAuthResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Shared.Responses.ApiResponse<object>), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(Shared.Responses.ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Login([FromBody] AdminLoginRequestDto request, CancellationToken cancellationToken)
         {
-            try
-            {
-                var ipAddress = HttpContext.GetClientIpAddress();
-                var deviceId = HttpContext.GetDeviceId();
-                var userAgent = Request.Headers.UserAgent.ToString();
+            var ipAddress = HttpContext.GetClientIpAddress();
+            var deviceId = HttpContext.GetDeviceId();
+            var userAgent = Request.Headers.UserAgent.ToString();
 
-                var response = await _adminAuthService.LoginAsync(request, ipAddress, deviceId, userAgent, cancellationToken);
-                return Success(response, "Admin login successful.");
-            }
-            catch (InvalidCredentialException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Failure(ex.Message);
-            }
+            var response = await _adminAuthService.LoginAsync(request, ipAddress, deviceId, userAgent, cancellationToken);
+            return Success(response, "Admin login successful.");
         }
 
-        /// <summary>
-        /// Refreshes an expired Admin JWT Access Token using an active Admin Refresh Token.
-        /// </summary>
         [HttpPost("refresh")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(Shared.Responses.ApiResponse<AdminAuthResponseDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(Shared.Responses.ApiResponse<object>), StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> Refresh([FromBody] AdminRefreshTokenRequestDto request, CancellationToken cancellationToken)
         {
-            try
-            {
-                var ipAddress = HttpContext.GetClientIpAddress();
-                var deviceId = HttpContext.GetDeviceId();
-                var userAgent = Request.Headers.UserAgent.ToString();
+            var ipAddress = HttpContext.GetClientIpAddress();
+            var deviceId = HttpContext.GetDeviceId();
+            var userAgent = Request.Headers.UserAgent.ToString();
 
-                var response = await _adminAuthService.RefreshTokenAsync(request, ipAddress, deviceId, userAgent, cancellationToken);
-                return Success(response, "Admin token refreshed successfully.");
-            }
-            catch (InvalidCredentialException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return Failure(ex.Message);
-            }
+            var response = await _adminAuthService.RefreshTokenAsync(request, ipAddress, deviceId, userAgent, cancellationToken);
+            return Success(response, "Admin token refreshed successfully.");
         }
 
-        /// <summary>
-        /// Revokes the current Admin Refresh Token session.
-        /// </summary>
         [HttpPost("logout")]
         [AllowAnonymous]
-        [ProducesResponseType(typeof(Shared.Responses.ApiResponse<object>), StatusCodes.Status200OK)]
-        public async Task<IActionResult> Logout([FromBody] AdminRefreshTokenRequestDto request, CancellationToken cancellationToken)
+        public async Task<IActionResult> Logout([FromBody] AdminRefreshTokenRequestDto? request, CancellationToken cancellationToken)
         {
-            if (!string.IsNullOrWhiteSpace(request?.RefreshToken))
+            request ??= new AdminRefreshTokenRequestDto();
+
+            if (string.IsNullOrWhiteSpace(request.RefreshToken) && Request.Cookies.TryGetValue("refreshToken", out var cookieRefreshToken))
+            {
+                request.RefreshToken = cookieRefreshToken;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.RefreshToken))
             {
                 await _adminAuthService.LogoutAsync(request.RefreshToken, cancellationToken);
             }
 
+            Response.Cookies.Delete("accessToken");
+            Response.Cookies.Delete("refreshToken");
+
             return Success(new { Message = "Logged out successfully." });
         }
 
-        /// <summary>
-        /// Gets the profile and assigned roles of the currently authenticated administrator.
-        /// </summary>
         [HttpGet("me")]
         [Authorize]
-        [ProducesResponseType(typeof(Shared.Responses.ApiResponse<AdminProfileDto>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetProfile(CancellationToken cancellationToken)
         {
             var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!long.TryParse(adminIdClaim, out var adminUserId))
-            {
                 return Unauthorized();
-            }
 
             var profile = await _adminAuthService.GetProfileAsync(adminUserId, cancellationToken);
             return Success(profile);
+        }
+
+        [HttpPost("profile-picture")]
+        [Authorize]
+        public async Task<IActionResult> UploadProfilePicture(IFormFile file, CancellationToken cancellationToken)
+        {
+            var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!long.TryParse(adminIdClaim, out var adminUserId))
+                return Unauthorized();
+
+            if (file == null || file.Length == 0)
+                return BadRequest("Please select a valid image file.");
+
+            using var stream = file.OpenReadStream();
+            var relativePath = await _fileStorageService.UploadFileAsync(stream, file.FileName, "AdminProfiles", cancellationToken);
+
+            var fileUrl = $"{Request.Scheme}://{Request.Host}/{relativePath}";
+            return Success(new { ProfilePictureUrl = fileUrl }, "Profile picture uploaded successfully.");
         }
     }
 }
