@@ -8,6 +8,10 @@ using MeatDelivery.Infrastructure;
 using MeatDelivery.Infrastructure.Logging;
 using System.IO;
 
+// Prevent Linux inotify instance exhaustion in container environments (Render/Docker)
+Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
+Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Configure Serilog
