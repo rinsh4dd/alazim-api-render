@@ -26,9 +26,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             _adminAuthService = adminAuthService;
         }
 
-        /// <summary>
-        /// Authenticates an administrator with email and password, issuing an Admin JWT Access Token and Refresh Token.
-        /// </summary>
+    
         [HttpPost("login")]
         [AllowAnonymous]
         [ProducesResponseType(typeof(Shared.Responses.ApiResponse<AdminAuthResponseDto>), StatusCodes.Status200OK)]
@@ -47,7 +45,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             }
             catch (InvalidCredentialException ex)
             {
-                return Unauthorized(new { message = ex.Message });
+                return UnauthorizedResponse(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -75,7 +73,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             }
             catch (InvalidCredentialException ex)
             {
-                return Unauthorized(new { message = ex.Message });
+                return UnauthorizedResponse(ex.Message);
             }
             catch (InvalidOperationException ex)
             {
@@ -111,7 +109,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!long.TryParse(adminIdClaim, out var adminUserId))
             {
-                return Unauthorized();
+                return UnauthorizedResponse("Unauthorized: Admin identity claim missing.");
             }
 
             var profile = await _adminAuthService.GetProfileAsync(adminUserId, cancellationToken);
