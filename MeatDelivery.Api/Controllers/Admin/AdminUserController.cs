@@ -29,9 +29,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             [FromBody] SaveAdminUserDto request,
             CancellationToken cancellationToken)
         {
-            var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            long.TryParse(adminIdClaim, out var currentAdminUserId);
-
+            var currentAdminUserId = HttpContext.GetUserId();
             var response = await _adminUserService.SaveAdminUserAsync(request, currentAdminUserId, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
 
