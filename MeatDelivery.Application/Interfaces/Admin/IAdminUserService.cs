@@ -17,10 +17,6 @@ namespace MeatDelivery.Application.Interfaces.Admin
             GetAdminUsersQueryDto query,
             CancellationToken cancellationToken = default);
 
-        Task<ApiResponse<SaveAdminUserResponseDto>> GetAdminUserByIdAsync(
-            long adminUserId,
-            CancellationToken cancellationToken = default);
-
         Task<ApiResponse<List<AdminRoleDto>>> GetAdminRolesAsync(
             CancellationToken cancellationToken = default);
     }

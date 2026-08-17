@@ -14,7 +14,7 @@ CREATE OR ALTER PROCEDURE dbo.PR_SAVE_ADMIN_USER
     @MOBILE_NUMBER          VARCHAR(20) = NULL,
     @PROFILE_IMAGE_URL      VARCHAR(500) = NULL,
     @ADMIN_STATUS           VARCHAR(20) = 'ACTIVE',
-    @ROLES_CSV              VARCHAR(MAX) = NULL, -- Comma-separated roles e.g. 'STORE_MANAGER,ORDER_MANAGER'
+    @ROLE_CODE              VARCHAR(50) = NULL, -- Single role e.g. 'STORE_MANAGER'
     @ACTIONED_BY_ADMIN_ID   BIGINT = NULL
 AS
 BEGIN
@@ -85,18 +85,19 @@ BEGIN
 
         SET @ADMIN_USER_ID = SCOPE_IDENTITY();
 
-        -- Assign Roles
-        IF @ROLES_CSV IS NOT NULL AND LTRIM(RTRIM(@ROLES_CSV)) <> ''
+        -- Assign Single Role
+        IF @ROLE_CODE IS NOT NULL AND LTRIM(RTRIM(@ROLE_CODE)) <> ''
         BEGIN
-            INSERT INTO dbo.ADMIN_USER_ROLES (ADMIN_USER_ID, ROLE_ID, ASSIGNED_BY_ADMIN_USER_ID, ASSIGNED_AT)
-            SELECT 
-                @ADMIN_USER_ID,
-                r.ROLE_ID,
-                @ACTIONED_BY_ADMIN_ID,
-                SYSUTCDATETIME()
-            FROM string_split(@ROLES_CSV, ',') s
-            INNER JOIN dbo.ADMIN_ROLES r ON UPPER(LTRIM(RTRIM(s.value))) = r.ROLE_CODE
-            WHERE r.IS_ACTIVE = 1;
+            DECLARE @ASSIGNED_ROLE_ID INT;
+            SELECT @ASSIGNED_ROLE_ID = ROLE_ID 
+            FROM dbo.ROLES 
+            WHERE ROLE_CODE = UPPER(LTRIM(RTRIM(@ROLE_CODE))) AND IS_ACTIVE = 1;
+
+            IF @ASSIGNED_ROLE_ID IS NOT NULL
+            BEGIN
+                INSERT INTO dbo.ADMIN_USER_ROLES (ADMIN_USER_ID, ROLE_ID, ASSIGNED_BY_ADMIN_USER_ID, ASSIGNED_AT)
+                VALUES (@ADMIN_USER_ID, @ASSIGNED_ROLE_ID, @ACTIONED_BY_ADMIN_ID, SYSUTCDATETIME());
+            END;
         END;
 
         COMMIT TRANSACTION;
@@ -118,11 +119,11 @@ BEGIN
             u.CREATED_AT,
             u.UPDATED_AT,
             ISNULL((
-                SELECT STRING_AGG(r.ROLE_CODE, ',')
+                SELECT TOP 1 r.ROLE_CODE
                 FROM dbo.ADMIN_USER_ROLES ur
-                INNER JOIN dbo.ADMIN_ROLES r ON ur.ROLE_ID = r.ROLE_ID
+                INNER JOIN dbo.ROLES r ON ur.ROLE_ID = r.ROLE_ID
                 WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
-            ), '') AS ROLES_CSV
+            ), '') AS ROLE
         FROM dbo.ADMIN_USERS u
         WHERE u.ADMIN_USER_ID = @ADMIN_USER_ID;
 
@@ -170,22 +171,20 @@ BEGIN
             UPDATED_AT = SYSUTCDATETIME()
         WHERE ADMIN_USER_ID = @ADMIN_USER_ID;
 
-        -- Update Roles if specified
-        IF @ROLES_CSV IS NOT NULL
+        -- Update Single Role if specified
+        IF @ROLE_CODE IS NOT NULL AND LTRIM(RTRIM(@ROLE_CODE)) <> ''
         BEGIN
             DELETE FROM dbo.ADMIN_USER_ROLES WHERE ADMIN_USER_ID = @ADMIN_USER_ID;
 
-            IF LTRIM(RTRIM(@ROLES_CSV)) <> ''
+            DECLARE @NEW_ROLE_ID INT;
+            SELECT @NEW_ROLE_ID = ROLE_ID 
+            FROM dbo.ROLES 
+            WHERE ROLE_CODE = UPPER(LTRIM(RTRIM(@ROLE_CODE))) AND IS_ACTIVE = 1;
+
+            IF @NEW_ROLE_ID IS NOT NULL
             BEGIN
                 INSERT INTO dbo.ADMIN_USER_ROLES (ADMIN_USER_ID, ROLE_ID, ASSIGNED_BY_ADMIN_USER_ID, ASSIGNED_AT)
-                SELECT 
-                    @ADMIN_USER_ID,
-                    r.ROLE_ID,
-                    @ACTIONED_BY_ADMIN_ID,
-                    SYSUTCDATETIME()
-                FROM string_split(@ROLES_CSV, ',') s
-                INNER JOIN dbo.ADMIN_ROLES r ON UPPER(LTRIM(RTRIM(s.value))) = r.ROLE_CODE
-                WHERE r.IS_ACTIVE = 1;
+                VALUES (@ADMIN_USER_ID, @NEW_ROLE_ID, @ACTIONED_BY_ADMIN_ID, SYSUTCDATETIME());
             END;
         END;
 
@@ -208,11 +207,11 @@ BEGIN
             u.CREATED_AT,
             u.UPDATED_AT,
             ISNULL((
-                SELECT STRING_AGG(r.ROLE_CODE, ',')
+                SELECT TOP 1 r.ROLE_CODE
                 FROM dbo.ADMIN_USER_ROLES ur
-                INNER JOIN dbo.ADMIN_ROLES r ON ur.ROLE_ID = r.ROLE_ID
+                INNER JOIN dbo.ROLES r ON ur.ROLE_ID = r.ROLE_ID
                 WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
-            ), '') AS ROLES_CSV
+            ), '') AS ROLE
         FROM dbo.ADMIN_USERS u
         WHERE u.ADMIN_USER_ID = @ADMIN_USER_ID;
 
@@ -259,11 +258,11 @@ BEGIN
             u.CREATED_AT,
             u.UPDATED_AT,
             ISNULL((
-                SELECT STRING_AGG(r.ROLE_CODE, ',')
+                SELECT TOP 1 r.ROLE_CODE
                 FROM dbo.ADMIN_USER_ROLES ur
-                INNER JOIN dbo.ADMIN_ROLES r ON ur.ROLE_ID = r.ROLE_ID
+                INNER JOIN dbo.ROLES r ON ur.ROLE_ID = r.ROLE_ID
                 WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
-            ), '') AS ROLES_CSV
+            ), '') AS ROLE
         FROM dbo.ADMIN_USERS u
         WHERE u.ADMIN_USER_ID = @ADMIN_USER_ID;
 

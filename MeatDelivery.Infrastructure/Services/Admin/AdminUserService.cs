@@ -47,25 +47,20 @@ namespace MeatDelivery.Infrastructure.Services.Admin
 
             string? passwordHash = null;
 
-            if (request.Mode == AdminUserMode.ADD && !string.IsNullOrWhiteSpace(request.Password))
+            if (request.Mode == Mode.ADD && !string.IsNullOrWhiteSpace(request.Password))
             {
                 passwordHash = _passwordHasher.Hash(request.Password);
             }
-            else if (request.Mode == AdminUserMode.EDIT && !string.IsNullOrWhiteSpace(request.Password))
+            else if (request.Mode == Mode.EDIT && !string.IsNullOrWhiteSpace(request.Password))
             {
                 passwordHash = _passwordHasher.Hash(request.Password);
             }
-
-            string? rolesCsv = request.Roles != null && request.Roles.Count > 0
-                ? string.Join(",", request.Roles.Distinct().Select(r => r.Trim().ToUpperInvariant()))
-                : null;
 
             try
             {
                 var result = await _adminUserRepository.SaveAdminUserAsync(
                     request,
                     passwordHash,
-                    rolesCsv,
                     currentAdminUserId,
                     cancellationToken);
 
@@ -76,9 +71,9 @@ namespace MeatDelivery.Infrastructure.Services.Admin
 
                 string message = request.Mode switch
                 {
-                    AdminUserMode.ADD => "Admin user created successfully.",
-                    AdminUserMode.EDIT => "Admin user updated successfully.",
-                    AdminUserMode.DELETE => "Admin user deleted successfully.",
+                    Mode.ADD => "Admin user created successfully.",
+                    Mode.EDIT => "Admin user updated successfully.",
+                    Mode.DELETE => "Admin user deleted successfully.",
                     _ => "Operation completed successfully."
                 };
 
@@ -97,58 +92,19 @@ namespace MeatDelivery.Infrastructure.Services.Admin
             try
             {
                 query ??= new GetAdminUsersQueryDto();
-                var (users, totalCount) = await _adminUserRepository.GetAdminUsersAsync(query, cancellationToken);
+                var users = await _adminUserRepository.GetAdminUsersAsync(query, cancellationToken);
+
+                string message = (query.AdminUserId.HasValue && query.AdminUserId.Value > 0)
+                    ? (users.Count > 0 ? "Admin user retrieved successfully." : "Admin user not found.")
+                    : "Admin users retrieved successfully.";
 
                 return ApiResponse<List<SaveAdminUserResponseDto>>.SuccessResponse(
                     users,
-                    "Admin users retrieved successfully.");
+                    message: message);
             }
             catch (Exception ex)
             {
                 return ApiResponse<List<SaveAdminUserResponseDto>>.FailureResponse(ex.Message);
-            }
-        }
-
-        public async Task<ApiResponse<SaveAdminUserResponseDto>> GetAdminUserByIdAsync(
-            long adminUserId,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var (user, roles) = await _adminUserRepository.GetByIdWithRolesAsync(adminUserId, cancellationToken);
-
-                if (user == null)
-                {
-                    return ApiResponse<SaveAdminUserResponseDto>.FailureResponse(
-                        "Admin user not found.",
-                        status: 0);
-                }
-
-                var dto = new SaveAdminUserResponseDto
-                {
-                    AdminUserId = user.AdminUserId,
-                    DocType = user.DocType,
-                    DocNo = user.DocNo,
-                    Email = user.Email,
-                    FirstName = user.FirstName,
-                    LastName = user.LastName ?? string.Empty,
-                    FullName = user.FullName,
-                    CountryCode = user.CountryCode,
-                    MobileNumber = user.MobileNumber,
-                    ProfileImageUrl = user.ProfileImageUrl,
-                    AdminStatus = user.AdminStatus.ToString(),
-                    IsDeleted = user.IsDeleted,
-                    DeletedAt = user.DeletedAt,
-                    Roles = roles,
-                    CreatedAt = user.CreatedAt,
-                    UpdatedAt = user.UpdatedAt
-                };
-
-                return ApiResponse<SaveAdminUserResponseDto>.SuccessResponse(dto, "Admin user details retrieved successfully.");
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<SaveAdminUserResponseDto>.FailureResponse(ex.Message);
             }
         }
 

@@ -105,7 +105,6 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
         public async Task<SaveAdminUserResponseDto?> SaveAdminUserAsync(
             MeatDelivery.Application.DTOs.Admin.SaveAdminUserDto request,
             string? passwordHash,
-            string? rolesCsv,
             long? actionedByAdminId,
             CancellationToken cancellationToken = default)
         {
@@ -124,17 +123,12 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                     MOBILE_NUMBER = request.MobileNumber,
                     PROFILE_IMAGE_URL = request.ProfileImageUrl,
                     ADMIN_STATUS = request.AdminStatus?.ToString() ?? "ACTIVE",
-                    ROLES_CSV = rolesCsv,
+                    ROLE_CODE = request.Role?.ToString(),
                     ACTIONED_BY_ADMIN_ID = actionedByAdminId
                 },
                 commandType: CommandType.StoredProcedure);
 
             if (row == null) return null;
-
-            string rolesString = row.ROLES_CSV != null ? (string)row.ROLES_CSV : string.Empty;
-            var roles = rolesString
-                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                .ToList();
 
             return new MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto
             {
@@ -151,13 +145,13 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 AdminStatus = (string)row.ADMIN_STATUS,
                 IsDeleted = (bool)row.IS_DELETED,
                 DeletedAt = (DateTime?)row.DELETED_AT,
-                Roles = roles,
+                Role = (string?)row.ROLE ?? string.Empty,
                 CreatedAt = (DateTime)row.CREATED_AT,
                 UpdatedAt = (DateTime?)row.UPDATED_AT
             };
         }
 
-        public async Task<(List<MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto> Users, int TotalCount)> GetAdminUsersAsync(
+        public async Task<List<MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto>> GetAdminUsersAsync(
             MeatDelivery.Application.DTOs.Admin.GetAdminUsersQueryDto query,
             CancellationToken cancellationToken = default)
         {
@@ -166,30 +160,15 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 "dbo.PR_GET_ADMIN_USERS",
                 new
                 {
-                    SEARCH = query.Search,
-                    ROLE_CODE = query.Role,
-                    ADMIN_STATUS = query.Status?.ToString(),
-                    INCLUDE_DELETED = query.IncludeDeleted,
-                    PAGE_NUMBER = query.Page,
-                    PAGE_SIZE = query.PageSize
+                    ADMIN_USER_ID = query.AdminUserId,
+                    ROLE_CODE = query.Role?.ToString()
                 },
                 commandType: CommandType.StoredProcedure)).ToList();
 
-            int totalCount = 0;
             var list = new List<MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto>();
 
             foreach (var row in rows)
             {
-                if (totalCount == 0 && row.TOTAL_COUNT != null)
-                {
-                    totalCount = (int)row.TOTAL_COUNT;
-                }
-
-                string rolesString = row.ROLES_CSV != null ? (string)row.ROLES_CSV : string.Empty;
-                var roles = rolesString
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .ToList();
-
                 list.Add(new MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto
                 {
                     AdminUserId = (long)row.ADMIN_USER_ID,
@@ -205,13 +184,13 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                     AdminStatus = (string)row.ADMIN_STATUS,
                     IsDeleted = (bool)row.IS_DELETED,
                     DeletedAt = (DateTime?)row.DELETED_AT,
-                    Roles = roles,
+                    Role = (string?)row.ROLE ?? string.Empty,
                     CreatedAt = (DateTime)row.CREATED_AT,
                     UpdatedAt = (DateTime?)row.UPDATED_AT
                 });
             }
 
-            return (list, totalCount);
+            return list;
         }
 
         public async Task<List<MeatDelivery.Application.DTOs.Admin.AdminRoleDto>> GetAdminRolesAsync(CancellationToken cancellationToken = default)

@@ -18,11 +18,10 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
         Task<SaveAdminUserResponseDto?> SaveAdminUserAsync(
             SaveAdminUserDto request,
             string? passwordHash,
-            string? rolesCsv,
             long? actionedByAdminId,
             CancellationToken cancellationToken = default);
 
-        Task<(List<SaveAdminUserResponseDto> Users, int TotalCount)> GetAdminUsersAsync(
+        Task<List<SaveAdminUserResponseDto>> GetAdminUsersAsync(
             GetAdminUsersQueryDto query,
             CancellationToken cancellationToken = default);
 

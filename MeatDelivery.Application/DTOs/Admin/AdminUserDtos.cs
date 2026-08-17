@@ -1,12 +1,11 @@
 using System;
-using System.Collections.Generic;
 using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Application.DTOs.Admin
 {
     public class SaveAdminUserDto
     {
-        public AdminUserMode Mode { get; set; } = AdminUserMode.ADD;
+        public Mode Mode { get; set; } = Mode.ADD;
         public long? AdminUserId { get; set; }
         public string? DocType { get; set; }
         public string? DocNo { get; set; }
@@ -18,7 +17,7 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string? MobileNumber { get; set; }
         public string? ProfileImageUrl { get; set; }
         public MeatDelivery.Domain.Enums.AdminStatus? AdminStatus { get; set; } = MeatDelivery.Domain.Enums.AdminStatus.ACTIVE;
-        public List<string> Roles { get; set; } = new();
+        public AdminRole? Role { get; set; }
     }
 
     public class SaveAdminUserResponseDto
@@ -36,19 +35,15 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string AdminStatus { get; set; } = string.Empty;
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
-        public List<string> Roles { get; set; } = new();
+        public string Role { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
     }
 
     public class GetAdminUsersQueryDto
     {
-        public string? Search { get; set; }
-        public string? Role { get; set; }
-        public AdminStatus? Status { get; set; }
-        public bool IncludeDeleted { get; set; } = false;
-        public int Page { get; set; } = 1;
-        public int PageSize { get; set; } = 20;
+        public long? AdminUserId { get; set; }
+        public AdminRole? Role { get; set; }
     }
 
     public class AdminRoleDto

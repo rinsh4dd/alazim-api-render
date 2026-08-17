@@ -12,7 +12,7 @@ namespace MeatDelivery.Application.Validators.Admin
                 .IsInEnum().WithMessage("Invalid admin operation mode.");
 
             // ADD Mode validations
-            When(x => x.Mode == AdminUserMode.ADD, () =>
+            When(x => x.Mode == Mode.ADD, () =>
             {
                 RuleFor(x => x.Email)
                     .NotEmpty().WithMessage("Email address is required.")
@@ -31,12 +31,13 @@ namespace MeatDelivery.Application.Validators.Admin
                     .NotEmpty().WithMessage("First name is required.")
                     .MaximumLength(100).WithMessage("First name must not exceed 100 characters.");
 
-                RuleFor(x => x.Roles)
-                    .NotEmpty().WithMessage("At least one role must be assigned to the admin user.");
+                RuleFor(x => x.Role)
+                    .NotNull().WithMessage("Role is required for new admin creation.")
+                    .IsInEnum().WithMessage("Invalid admin role.");
             });
 
             // EDIT Mode validations
-            When(x => x.Mode == AdminUserMode.EDIT, () =>
+            When(x => x.Mode == Mode.EDIT, () =>
             {
                 RuleFor(x => x.AdminUserId)
                     .NotNull().WithMessage("AdminUserId is required for editing.")
@@ -58,10 +59,16 @@ namespace MeatDelivery.Application.Validators.Admin
                         .Matches(@"[0-9]").WithMessage("Password must contain at least one numeric digit.")
                         .Matches(@"[\!\?\*\.@#\$%^&+=]").WithMessage("Password must contain at least one special character.");
                 });
+
+                When(x => x.Role.HasValue, () =>
+                {
+                    RuleFor(x => x.Role!.Value)
+                        .IsInEnum().WithMessage("Invalid admin role.");
+                });
             });
 
             // DELETE Mode validations
-            When(x => x.Mode == AdminUserMode.DELETE, () =>
+            When(x => x.Mode == Mode.DELETE, () =>
             {
                 RuleFor(x => x.AdminUserId)
                     .NotNull().WithMessage("AdminUserId is required for deletion.")

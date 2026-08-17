@@ -123,7 +123,7 @@ namespace MeatDelivery.UnitTests.Services
             long newAddressId = 55;
             var request = new SaveCustomerAddressDto
             {
-                Mode = AddressMode.ADD,
+                Mode = Mode.ADD,
                 BuildingName = "Al Azima Tower",
                 VillaOrFlatNo = "A-402",
                 Street = "Sheikh Zayed Road",

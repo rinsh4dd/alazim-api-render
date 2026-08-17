@@ -30,12 +30,12 @@ namespace MeatDelivery.UnitTests.Services
         }
 
         [Fact]
-        public async Task SaveAdminUserAsync_AddMode_ValidRequest_ReturnsSuccessWithDocNoAndRoles()
+        public async Task SaveAdminUserAsync_AddMode_ValidRequest_ReturnsSuccessWithDocNoAndRole()
         {
             // Arrange
             var request = new SaveAdminUserDto
             {
-                Mode = AdminUserMode.ADD,
+                Mode = Mode.ADD,
                 Email = "manager.dxb@alazima.com",
                 Password = "Manager@2026!",
                 FirstName = "Ahmed",
@@ -43,7 +43,7 @@ namespace MeatDelivery.UnitTests.Services
                 CountryCode = "+971",
                 MobileNumber = "501234567",
                 AdminStatus = AdminStatus.ACTIVE,
-                Roles = new List<string> { "STORE_MANAGER", "ORDER_MANAGER" }
+                Role = AdminRole.ORDER_MANAGER
             };
 
             _passwordHasherMock.Setup(h => h.Hash("Manager@2026!"))
@@ -62,14 +62,13 @@ namespace MeatDelivery.UnitTests.Services
                 MobileNumber = "501234567",
                 AdminStatus = "ACTIVE",
                 IsDeleted = false,
-                Roles = new List<string> { "STORE_MANAGER", "ORDER_MANAGER" },
+                Role = "ORDER_MANAGER",
                 CreatedAt = DateTime.UtcNow
             };
 
             _adminUserRepoMock.Setup(r => r.SaveAdminUserAsync(
                 request,
                 "$2a$10$hashedpassword",
-                "STORE_MANAGER,ORDER_MANAGER",
                 1,
                 It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
@@ -84,7 +83,7 @@ namespace MeatDelivery.UnitTests.Services
             Assert.Equal("ADM0000002", result.Data?.DocNo);
             Assert.Equal(2, result.Data?.AdminUserId);
             Assert.Equal("Ahmed Al Mansoori", result.Data?.FullName);
-            Assert.Contains("STORE_MANAGER", result.Data?.Roles!);
+            Assert.Equal("ORDER_MANAGER", result.Data?.Role);
         }
 
         [Fact]
@@ -93,11 +92,11 @@ namespace MeatDelivery.UnitTests.Services
             // Arrange
             var request = new SaveAdminUserDto
             {
-                Mode = AdminUserMode.EDIT,
+                Mode = Mode.EDIT,
                 AdminUserId = 2,
                 FirstName = "Ahmed Updated",
                 LastName = "Al Mansoori",
-                Roles = new List<string> { "STORE_MANAGER" }
+                Role = AdminRole.INVENTORY_MANAGER
             };
 
             var expectedResponse = new SaveAdminUserResponseDto
@@ -111,13 +110,12 @@ namespace MeatDelivery.UnitTests.Services
                 FullName = "Ahmed Updated Al Mansoori",
                 AdminStatus = "ACTIVE",
                 IsDeleted = false,
-                Roles = new List<string> { "STORE_MANAGER" }
+                Role = "INVENTORY_MANAGER"
             };
 
             _adminUserRepoMock.Setup(r => r.SaveAdminUserAsync(
                 request,
                 null,
-                "STORE_MANAGER",
                 1,
                 It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
@@ -129,6 +127,7 @@ namespace MeatDelivery.UnitTests.Services
             Assert.NotNull(result);
             Assert.True(result.Success);
             Assert.Equal("Ahmed Updated Al Mansoori", result.Data?.FullName);
+            Assert.Equal("INVENTORY_MANAGER", result.Data?.Role);
         }
 
         [Fact]
@@ -137,7 +136,7 @@ namespace MeatDelivery.UnitTests.Services
             // Arrange
             var request = new SaveAdminUserDto
             {
-                Mode = AdminUserMode.DELETE,
+                Mode = Mode.DELETE,
                 AdminUserId = 2
             };
 
@@ -154,7 +153,6 @@ namespace MeatDelivery.UnitTests.Services
 
             _adminUserRepoMock.Setup(r => r.SaveAdminUserAsync(
                 request,
-                null,
                 null,
                 1,
                 It.IsAny<CancellationToken>()))
@@ -176,11 +174,11 @@ namespace MeatDelivery.UnitTests.Services
             // Arrange
             var request = new SaveAdminUserDto
             {
-                Mode = AdminUserMode.ADD,
+                Mode = Mode.ADD,
                 Email = "not-an-email",
                 Password = "Manager@2026!",
                 FirstName = "Ahmed",
-                Roles = new List<string> { "STORE_MANAGER" }
+                Role = AdminRole.INVENTORY_MANAGER
             };
 
             // Act
@@ -193,18 +191,18 @@ namespace MeatDelivery.UnitTests.Services
         }
 
         [Fact]
-        public async Task GetAdminUsersAsync_ValidQuery_ReturnsPaginatedList()
+        public async Task GetAdminUsersAsync_ValidQuery_ReturnsList()
         {
             // Arrange
-            var query = new GetAdminUsersQueryDto { Page = 1, PageSize = 10 };
+            var query = new GetAdminUsersQueryDto { Role = AdminRole.SUPER_ADMIN };
             var list = new List<SaveAdminUserResponseDto>
             {
-                new() { AdminUserId = 1, DocType = "ADM1", DocNo = "ADM0000001", Email = "admin@alazima.com" },
-                new() { AdminUserId = 2, DocType = "ADM1", DocNo = "ADM0000002", Email = "manager@alazima.com" }
+                new() { AdminUserId = 1, DocType = "ADM1", DocNo = "ADM0000001", Email = "admin@alazima.com", Role = "SUPER_ADMIN" },
+                new() { AdminUserId = 2, DocType = "ADM1", DocNo = "ADM0000002", Email = "manager@alazima.com", Role = "SUPER_ADMIN" }
             };
 
             _adminUserRepoMock.Setup(r => r.GetAdminUsersAsync(query, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((list, 2));
+                .ReturnsAsync(list);
 
             // Act
             var result = await _service.GetAdminUsersAsync(query);
@@ -216,50 +214,27 @@ namespace MeatDelivery.UnitTests.Services
         }
 
         [Fact]
-        public async Task GetAdminUserByIdAsync_ExistingId_ReturnsUser()
+        public async Task GetAdminUsersAsync_FilterByAdminUserId_ReturnsMatchingUser()
         {
             // Arrange
-            var user = new AdminUser
+            var query = new GetAdminUsersQueryDto { AdminUserId = 1 };
+            var list = new List<SaveAdminUserResponseDto>
             {
-                AdminUserId = 1,
-                DocType = "ADM1",
-                DocNo = "ADM0000001",
-                Email = "admin@alazima.com",
-                FirstName = "Super",
-                LastName = "Admin",
-                AdminStatus = AdminStatus.ACTIVE
+                new() { AdminUserId = 1, DocType = "ADM1", DocNo = "ADM0000001", Email = "admin@alazima.com", Role = "SUPER_ADMIN" }
             };
-            var roles = new List<string> { "SUPER_ADMIN" };
 
-            _adminUserRepoMock.Setup(r => r.GetByIdWithRolesAsync(1, It.IsAny<CancellationToken>()))
-                .ReturnsAsync((user, roles));
+            _adminUserRepoMock.Setup(r => r.GetAdminUsersAsync(query, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(list);
 
             // Act
-            var result = await _service.GetAdminUserByIdAsync(1);
+            var result = await _service.GetAdminUsersAsync(query);
 
             // Assert
             Assert.NotNull(result);
             Assert.True(result.Success);
-            Assert.Equal("ADM1", result.Data?.DocType);
-            Assert.Equal("ADM0000001", result.Data?.DocNo);
-            Assert.Equal("admin@alazima.com", result.Data?.Email);
-            Assert.Contains("SUPER_ADMIN", result.Data?.Roles!);
-        }
-
-        [Fact]
-        public async Task GetAdminUserByIdAsync_NonExistingId_ReturnsNotFound()
-        {
-            // Arrange
-            _adminUserRepoMock.Setup(r => r.GetByIdWithRolesAsync(999, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(((AdminUser?)null, new List<string>()));
-
-            // Act
-            var result = await _service.GetAdminUserByIdAsync(999);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.False(result.Success);
-            Assert.Equal("Admin user not found.", result.Message);
+            Assert.Single(result.Data!);
+            Assert.Equal("admin@alazima.com", result.Data?[0].Email);
+            Assert.Equal("Admin user retrieved successfully.", result.Message);
         }
     }
 }

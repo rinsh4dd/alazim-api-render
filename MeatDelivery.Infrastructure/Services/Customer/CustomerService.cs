@@ -47,9 +47,9 @@ namespace MeatDelivery.Infrastructure.Services.Customer
 
             string message = request.Mode switch
             {
-                AddressMode.ADD => "Address added successfully.",
-                AddressMode.EDIT => "Address updated successfully.",
-                AddressMode.DELETE => "Address deleted successfully.",
+                Mode.ADD => "Address added successfully.",
+                Mode.EDIT => "Address updated successfully.",
+                Mode.DELETE => "Address deleted successfully.",
                 _ => "Address saved successfully."
             };
 

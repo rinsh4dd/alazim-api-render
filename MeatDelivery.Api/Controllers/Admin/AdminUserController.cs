@@ -49,19 +49,6 @@ namespace MeatDelivery.Api.Controllers.Admin
         }
 
         /// <summary>
-        /// Retrieves the detailed profile and assigned roles of a specific admin user by ID.
-        /// </summary>
-        [HttpGet("adminUser/{id:long}")]
-        public async Task<IActionResult> GetAdminUserById(
-            [FromRoute] long id,
-            CancellationToken cancellationToken)
-        {
-            var response = await _adminUserService.GetAdminUserByIdAsync(id, cancellationToken);
-            response.TraceId = HttpContext.TraceIdentifier;
-            return Ok(response);
-        }
-
-        /// <summary>
         /// Retrieves the list of available admin roles in the system for dropdown selection.
         /// </summary>
         [HttpGet("roles")]
