@@ -42,15 +42,15 @@ namespace MeatDelivery.Api.Controllers.Admin
             return Success(response, "Admin login successful.");
         }
 
-        [HttpPost("logout")]
-        [AllowAnonymous]
-        public IActionResult Logout()
-        {
-            Response.Cookies.Delete("accessToken");
-            Response.Cookies.Delete("refreshToken");
+        // [HttpPost("logout")]
+        // [AllowAnonymous]
+        // public IActionResult Logout()
+        // {
+        //     Response.Cookies.Delete("accessToken");
+        //     Response.Cookies.Delete("refreshToken");
 
-            return Success(new { Message = "Logged out successfully." });
-        }
+        //     return Success(new { Message = "Logged out successfully." });
+        // }
 
         [HttpGet("me")]
         [Authorize]
