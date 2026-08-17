@@ -87,11 +87,15 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             foreach (var role in roles ?? Enumerable.Empty<string>())
                 claims.Add(new Claim(ClaimTypes.Role, role));
 
+            var expiryMinutes = _jwtSettings.AdminAccessTokenExpiryMinutes > 0
+                ? _jwtSettings.AdminAccessTokenExpiryMinutes
+                : _jwtSettings.AccessTokenExpiryMinutes;
+
             var token = new JwtSecurityToken(
                 issuer: _jwtSettings.Issuer,
                 audience: _jwtSettings.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+                expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

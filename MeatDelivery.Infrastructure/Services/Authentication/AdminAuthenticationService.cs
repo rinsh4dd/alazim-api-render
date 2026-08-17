@@ -94,6 +94,10 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 roles,
                 sessionId: 0);
 
+            var expiryMinutes = _jwtSettings.AdminAccessTokenExpiryMinutes > 0
+                ? _jwtSettings.AdminAccessTokenExpiryMinutes
+                : _jwtSettings.AccessTokenExpiryMinutes;
+
             return new AdminAuthResponseDto
             {
                 AdminUserId = user.AdminUserId,
@@ -105,7 +109,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 FullName = user.FullName,
                 Roles = roles,
                 AccessToken = accessToken,
-                ExpiresIn = _jwtSettings.AccessTokenExpiryMinutes * 60
+                ExpiresIn = expiryMinutes * 60
             };
         }
 

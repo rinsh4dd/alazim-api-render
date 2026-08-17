@@ -8,6 +8,7 @@ namespace MeatDelivery.Infrastructure.Configurations
         public string Issuer { get; set; } = string.Empty;
         public string Audience { get; set; } = string.Empty;
         public int AccessTokenExpiryMinutes { get; set; }
+        public int AdminAccessTokenExpiryMinutes { get; set; } = 1440; // 1 day in minutes
         public int RefreshTokenExpiryDays { get; set; }
     }
 }
