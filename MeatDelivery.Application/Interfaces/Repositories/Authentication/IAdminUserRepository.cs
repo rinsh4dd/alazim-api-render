@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using MeatDelivery.Application.DTOs.Admin;
 using MeatDelivery.Domain.Entities.Authentication;
 
 namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
@@ -13,5 +14,19 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
         Task RecordLoginSuccessAsync(long adminUserId, string? upgradedPasswordHash = null, CancellationToken cancellationToken = default);
         Task<(int FailedCount, DateTime? LockedUntil)> RecordLoginFailureAsync(long adminUserId, int maxAttempts = 5, int lockoutMinutes = 15, CancellationToken cancellationToken = default);
         Task UpdatePasswordAsync(long adminUserId, string newPasswordHash, CancellationToken cancellationToken = default);
+
+        Task<SaveAdminUserResponseDto?> SaveAdminUserAsync(
+            SaveAdminUserDto request,
+            string? passwordHash,
+            string? rolesCsv,
+            long? actionedByAdminId,
+            CancellationToken cancellationToken = default);
+
+        Task<(List<SaveAdminUserResponseDto> Users, int TotalCount)> GetAdminUsersAsync(
+            GetAdminUsersQueryDto query,
+            CancellationToken cancellationToken = default);
+
+        Task<List<AdminRoleDto>> GetAdminRolesAsync(
+            CancellationToken cancellationToken = default);
     }
 }

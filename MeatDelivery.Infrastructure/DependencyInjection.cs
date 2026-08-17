@@ -134,10 +134,11 @@ namespace MeatDelivery.Infrastructure
 
             services.AddScoped<IAuthenticationService, AuthenticationService>();
 
-            // Admin Authentication Services & Repositories
+            // Admin Authentication & Management Services & Repositories
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Authentication.IAdminUserRepository, MeatDelivery.Infrastructure.Repositories.Authentication.AdminUserRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Authentication.IAdminSessionRepository, MeatDelivery.Infrastructure.Repositories.Authentication.AdminSessionRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Authentication.IAdminAuthenticationService, MeatDelivery.Infrastructure.Services.Authentication.AdminAuthenticationService>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Admin.IAdminUserService, MeatDelivery.Infrastructure.Services.Admin.AdminUserService>();
 
             // Customer Services & Repositories
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customer.ICustomerRepository, MeatDelivery.Infrastructure.Repositories.Customer.CustomerRepository>();

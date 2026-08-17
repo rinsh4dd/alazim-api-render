@@ -27,10 +27,13 @@ BEGIN
         u.LOCKED_UNTIL AS LockedUntil,
         u.LAST_LOGIN_AT AS LastLoginAt,
         u.PASSWORD_CHANGED_AT AS PasswordChangedAt,
+        u.IS_DELETED AS IsDeleted,
+        u.DELETED_AT AS DeletedAt,
         u.CREATED_AT AS CreatedAt,
         u.UPDATED_AT AS UpdatedAt
     FROM dbo.ADMIN_USERS u
-    WHERE u.EMAIL = @EMAIL;
+    WHERE u.EMAIL = @EMAIL
+      AND (u.IS_DELETED = 0 OR u.IS_DELETED IS NULL);
 
     -- Return Assigned Roles
     SELECT 
@@ -39,6 +42,7 @@ BEGIN
     FROM dbo.ADMIN_USERS u
     INNER JOIN dbo.ADMIN_USER_ROLES ur ON ur.ADMIN_USER_ID = u.ADMIN_USER_ID AND ur.IS_ACTIVE = 1
     INNER JOIN dbo.ROLES r ON r.ROLE_ID = ur.ROLE_ID AND r.IS_ACTIVE = 1
-    WHERE u.EMAIL = @EMAIL;
+    WHERE u.EMAIL = @EMAIL
+      AND (u.IS_DELETED = 0 OR u.IS_DELETED IS NULL);
 END;
 GO

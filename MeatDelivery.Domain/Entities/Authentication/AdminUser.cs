@@ -22,7 +22,8 @@ namespace MeatDelivery.Domain.Entities.Authentication
         public DateTime? LockedUntil { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public DateTime? PasswordChangedAt { get; set; }
-        public long? CreatedByAdminUserId { get; set; }
+        public bool IsDeleted { get; set; } = false;
+        public DateTime? DeletedAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? UpdatedAt { get; set; }
     }

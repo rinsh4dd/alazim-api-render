@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
+using MeatDelivery.Application.DTOs.Admin;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Repositories.Authentication;
 using MeatDelivery.Domain.Entities.Authentication;
@@ -99,6 +100,136 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             """;
 
             await connection.ExecuteAsync(sql, new { AdminUserId = adminUserId, PasswordHash = newPasswordHash });
+        }
+
+        public async Task<SaveAdminUserResponseDto?> SaveAdminUserAsync(
+            MeatDelivery.Application.DTOs.Admin.SaveAdminUserDto request,
+            string? passwordHash,
+            string? rolesCsv,
+            long? actionedByAdminId,
+            CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var row = await connection.QuerySingleOrDefaultAsync<dynamic>(
+                "dbo.PR_SAVE_ADMIN_USER",
+                new
+                {
+                    MODE = request.Mode.ToString(),
+                    ADMIN_USER_ID = request.AdminUserId,
+                    EMAIL = request.Email,
+                    PASSWORD_HASH = passwordHash,
+                    FIRST_NAME = request.FirstName,
+                    LAST_NAME = request.LastName,
+                    COUNTRY_CODE = request.CountryCode,
+                    MOBILE_NUMBER = request.MobileNumber,
+                    PROFILE_IMAGE_URL = request.ProfileImageUrl,
+                    ADMIN_STATUS = request.AdminStatus?.ToString() ?? "ACTIVE",
+                    ROLES_CSV = rolesCsv,
+                    ACTIONED_BY_ADMIN_ID = actionedByAdminId
+                },
+                commandType: CommandType.StoredProcedure);
+
+            if (row == null) return null;
+
+            string rolesString = row.ROLES_CSV != null ? (string)row.ROLES_CSV : string.Empty;
+            var roles = rolesString
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+
+            return new MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto
+            {
+                AdminUserId = (long)row.ADMIN_USER_ID,
+                DocType = (string?)row.DOCTYPE,
+                DocNo = (string?)row.DOC_NO,
+                Email = (string)row.EMAIL,
+                FirstName = (string)row.FIRST_NAME,
+                LastName = (string?)row.LAST_NAME ?? string.Empty,
+                FullName = $"{row.FIRST_NAME} {row.LAST_NAME}".Trim(),
+                CountryCode = (string?)row.COUNTRY_CODE,
+                MobileNumber = (string?)row.MOBILE_NUMBER,
+                ProfileImageUrl = (string?)row.PROFILE_IMAGE_URL,
+                AdminStatus = (string)row.ADMIN_STATUS,
+                IsDeleted = (bool)row.IS_DELETED,
+                DeletedAt = (DateTime?)row.DELETED_AT,
+                Roles = roles,
+                CreatedAt = (DateTime)row.CREATED_AT,
+                UpdatedAt = (DateTime?)row.UPDATED_AT
+            };
+        }
+
+        public async Task<(List<MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto> Users, int TotalCount)> GetAdminUsersAsync(
+            MeatDelivery.Application.DTOs.Admin.GetAdminUsersQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var rows = (await connection.QueryAsync<dynamic>(
+                "dbo.PR_GET_ADMIN_USERS",
+                new
+                {
+                    SEARCH = query.Search,
+                    ROLE_CODE = query.Role,
+                    ADMIN_STATUS = query.Status?.ToString(),
+                    INCLUDE_DELETED = query.IncludeDeleted,
+                    PAGE_NUMBER = query.Page,
+                    PAGE_SIZE = query.PageSize
+                },
+                commandType: CommandType.StoredProcedure)).ToList();
+
+            int totalCount = 0;
+            var list = new List<MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto>();
+
+            foreach (var row in rows)
+            {
+                if (totalCount == 0 && row.TOTAL_COUNT != null)
+                {
+                    totalCount = (int)row.TOTAL_COUNT;
+                }
+
+                string rolesString = row.ROLES_CSV != null ? (string)row.ROLES_CSV : string.Empty;
+                var roles = rolesString
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToList();
+
+                list.Add(new MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto
+                {
+                    AdminUserId = (long)row.ADMIN_USER_ID,
+                    DocType = (string?)row.DOCTYPE,
+                    DocNo = (string?)row.DOC_NO,
+                    Email = (string)row.EMAIL,
+                    FirstName = (string)row.FIRST_NAME,
+                    LastName = (string?)row.LAST_NAME ?? string.Empty,
+                    FullName = $"{row.FIRST_NAME} {row.LAST_NAME}".Trim(),
+                    CountryCode = (string?)row.COUNTRY_CODE,
+                    MobileNumber = (string?)row.MOBILE_NUMBER,
+                    ProfileImageUrl = (string?)row.PROFILE_IMAGE_URL,
+                    AdminStatus = (string)row.ADMIN_STATUS,
+                    IsDeleted = (bool)row.IS_DELETED,
+                    DeletedAt = (DateTime?)row.DELETED_AT,
+                    Roles = roles,
+                    CreatedAt = (DateTime)row.CREATED_AT,
+                    UpdatedAt = (DateTime?)row.UPDATED_AT
+                });
+            }
+
+            return (list, totalCount);
+        }
+
+        public async Task<List<MeatDelivery.Application.DTOs.Admin.AdminRoleDto>> GetAdminRolesAsync(CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var rows = await connection.QueryAsync<MeatDelivery.Application.DTOs.Admin.AdminRoleDto>(
+                "dbo.PR_GET_ADMIN_ROLES",
+                new
+                {
+                    ROLE_ID = (int?)null,
+                    ROLE_CODE = (string?)null,
+                    ROLE_NAME = (string?)null,
+                    DESCRIPTION = (string?)null,
+                    IS_ACTIVE = (bool?)null
+                },
+                commandType: CommandType.StoredProcedure);
+
+            return rows.ToList();
         }
     }
 }
