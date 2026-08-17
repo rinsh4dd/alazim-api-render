@@ -45,7 +45,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             }
             catch (InvalidCredentialException ex)
             {
-                return UnauthorizedResponse(ex.Message);
+                return Unauthorized(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -73,7 +73,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             }
             catch (InvalidCredentialException ex)
             {
-                return UnauthorizedResponse(ex.Message);
+                return Unauthorized(new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -109,7 +109,7 @@ namespace MeatDelivery.Api.Controllers.Admin
             var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!long.TryParse(adminIdClaim, out var adminUserId))
             {
-                return UnauthorizedResponse("Unauthorized: Admin identity claim missing.");
+                return Unauthorized();
             }
 
             var profile = await _adminAuthService.GetProfileAsync(adminUserId, cancellationToken);

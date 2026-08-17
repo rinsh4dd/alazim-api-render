@@ -26,34 +26,5 @@ namespace MeatDelivery.Api.Controllers
                 errors,
                 HttpContext.TraceIdentifier));
         }
-
-        protected IActionResult UnauthorizedResponse(string message = "Unauthorized access.")
-        {
-            return StatusCode(StatusCodes.Status401Unauthorized,
-                ApiResponse<object>.FailureResponse(
-                    message,
-                    new List<string> { message },
-                    HttpContext.TraceIdentifier,
-                    status: 0));
-        }
-
-        protected IActionResult NotFoundResponse(string message = "Resource not found.")
-        {
-            return StatusCode(StatusCodes.Status404NotFound,
-                ApiResponse<object>.FailureResponse(
-                    message,
-                    new List<string> { message },
-                    HttpContext.TraceIdentifier,
-                    status: 0));
-        }
-
-        protected IActionResult BadRequestResponse(string message, List<string>? errors = null)
-        {
-            return BadRequest(ApiResponse<object>.FailureResponse(
-                message,
-                errors,
-                HttpContext.TraceIdentifier,
-                status: 0));
-        }
     }
 }
