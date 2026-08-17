@@ -9,11 +9,6 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string Password { get; set; } = string.Empty;
     }
 
-    public class AdminRefreshTokenRequestDto
-    {
-        public string RefreshToken { get; set; } = string.Empty;
-    }
-
     public class AdminAuthResponseDto
     {
         public long AdminUserId { get; set; }
@@ -25,7 +20,6 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string FullName { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new();
         public string AccessToken { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty;
         public int ExpiresIn { get; set; }
     }
 

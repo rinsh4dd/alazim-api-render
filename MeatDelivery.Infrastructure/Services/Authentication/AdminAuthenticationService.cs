@@ -16,20 +16,17 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
     public sealed class AdminAuthenticationService : IAdminAuthenticationService
     {
         private readonly IAdminUserRepository _adminUserRepository;
-        private readonly IAdminSessionRepository _adminSessionRepository;
         private readonly IPasswordHasher _passwordHasher;
         private readonly ITokenService _tokenService;
         private readonly JwtSettings _jwtSettings;
 
         public AdminAuthenticationService(
             IAdminUserRepository adminUserRepository,
-            IAdminSessionRepository adminSessionRepository,
             IPasswordHasher passwordHasher,
             ITokenService tokenService,
             IOptions<JwtSettings> jwtOptions)
         {
             _adminUserRepository = adminUserRepository;
-            _adminSessionRepository = adminSessionRepository;
             _passwordHasher = passwordHasher;
             _tokenService = tokenService;
             _jwtSettings = jwtOptions.Value;
@@ -89,31 +86,13 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             // Record login success
             await _adminUserRepository.RecordLoginSuccessAsync(user.AdminUserId, upgradedPasswordHash, cancellationToken);
 
-            // Create new refresh session
-            string rawRefreshToken = _tokenService.GenerateRefreshToken();
-            string refreshTokenHash = _tokenService.HashRefreshToken(rawRefreshToken);
-            DateTime sessionExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
-
-            var session = new Domain.Entities.Authentication.AdminSession
-            {
-                AdminUserId = user.AdminUserId,
-                RefreshTokenHash = refreshTokenHash,
-                DeviceId = deviceId,
-                IpAddress = ipAddress,
-                UserAgent = userAgent,
-                ExpiresAt = sessionExpiry,
-                IsActive = true
-            };
-
-            long sessionId = await _adminSessionRepository.CreateSessionAsync(session, cancellationToken);
-
             // Generate JWT Access Token
             string accessToken = _tokenService.GenerateAccessTokenForAdmin(
                 user.AdminUserId,
                 user.Email,
                 user.FullName,
                 roles,
-                sessionId);
+                sessionId: 0);
 
             return new AdminAuthResponseDto
             {
@@ -126,76 +105,8 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 FullName = user.FullName,
                 Roles = roles,
                 AccessToken = accessToken,
-                RefreshToken = rawRefreshToken,
                 ExpiresIn = _jwtSettings.AccessTokenExpiryMinutes * 60
             };
-        }
-
-        public async Task<AdminAuthResponseDto> RefreshTokenAsync(
-            AdminRefreshTokenRequestDto request,
-            string? ipAddress,
-            string? deviceId,
-            string? userAgent,
-            CancellationToken cancellationToken = default)
-        {
-            ArgumentNullException.ThrowIfNull(request);
-
-            if (string.IsNullOrWhiteSpace(request.RefreshToken))
-            {
-                throw new InvalidCredentialException("Refresh token is required.");
-            }
-
-            string currentTokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
-            string newRawRefreshToken = _tokenService.GenerateRefreshToken();
-            string newRefreshTokenHash = _tokenService.HashRefreshToken(newRawRefreshToken);
-            DateTime newSessionExpiry = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpiryDays);
-
-            var (user, roles, newSessionId) = await _adminSessionRepository.RefreshSessionAsync(
-                currentTokenHash,
-                newRefreshTokenHash,
-                deviceId,
-                ipAddress,
-                userAgent,
-                newSessionExpiry,
-                cancellationToken);
-
-            if (user == null || newSessionId == 0)
-            {
-                throw new InvalidCredentialException("Invalid or expired refresh token session.");
-            }
-
-            string accessToken = _tokenService.GenerateAccessTokenForAdmin(
-                user.AdminUserId,
-                user.Email,
-                user.FullName,
-                roles,
-                newSessionId);
-
-            return new AdminAuthResponseDto
-            {
-                AdminUserId = user.AdminUserId,
-                DocType = user.DocType,
-                DocNo = user.DocNo,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName ?? string.Empty,
-                FullName = user.FullName,
-                Roles = roles,
-                AccessToken = accessToken,
-                RefreshToken = newRawRefreshToken,
-                ExpiresIn = _jwtSettings.AccessTokenExpiryMinutes * 60
-            };
-        }
-
-        public async Task LogoutAsync(
-            string refreshToken,
-            CancellationToken cancellationToken = default)
-        {
-            if (string.IsNullOrWhiteSpace(refreshToken))
-                return;
-
-            string tokenHash = _tokenService.HashRefreshToken(refreshToken);
-            await _adminSessionRepository.RevokeSessionAsync(tokenHash, cancellationToken);
         }
 
         public async Task<AdminProfileDto> GetProfileAsync(

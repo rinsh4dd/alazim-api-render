@@ -42,34 +42,10 @@ namespace MeatDelivery.Api.Controllers.Admin
             return Success(response, "Admin login successful.");
         }
 
-        [HttpPost("refresh")]
-        [AllowAnonymous]
-        public async Task<IActionResult> Refresh([FromBody] AdminRefreshTokenRequestDto request, CancellationToken cancellationToken)
-        {
-            var ipAddress = HttpContext.GetClientIpAddress();
-            var deviceId = HttpContext.GetDeviceId();
-            var userAgent = Request.Headers.UserAgent.ToString();
-
-            var response = await _adminAuthService.RefreshTokenAsync(request, ipAddress, deviceId, userAgent, cancellationToken);
-            return Success(response, "Admin token refreshed successfully.");
-        }
-
         [HttpPost("logout")]
         [AllowAnonymous]
-        public async Task<IActionResult> Logout([FromBody] AdminRefreshTokenRequestDto? request, CancellationToken cancellationToken)
+        public IActionResult Logout()
         {
-            request ??= new AdminRefreshTokenRequestDto();
-
-            if (string.IsNullOrWhiteSpace(request.RefreshToken) && Request.Cookies.TryGetValue("refreshToken", out var cookieRefreshToken))
-            {
-                request.RefreshToken = cookieRefreshToken;
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.RefreshToken))
-            {
-                await _adminAuthService.LogoutAsync(request.RefreshToken, cancellationToken);
-            }
-
             Response.Cookies.Delete("accessToken");
             Response.Cookies.Delete("refreshToken");
 
@@ -88,22 +64,22 @@ namespace MeatDelivery.Api.Controllers.Admin
             return Success(profile);
         }
 
-        [HttpPost("profile-picture")]
-        [Authorize]
-        public async Task<IActionResult> UploadProfilePicture(IFormFile file, CancellationToken cancellationToken)
-        {
-            var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!long.TryParse(adminIdClaim, out var adminUserId))
-                return Unauthorized();
+        // [HttpPost("profile-picture")]
+        // [Authorize]
+        // public async Task<IActionResult> UploadProfilePicture(IFormFile file, CancellationToken cancellationToken)
+        // {
+        //     var adminIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        //     if (!long.TryParse(adminIdClaim, out var adminUserId))
+        //         return Unauthorized();
 
-            if (file == null || file.Length == 0)
-                return BadRequest("Please select a valid image file.");
+        //     if (file == null || file.Length == 0)
+        //         return BadRequest("Please select a valid image file.");
 
-            using var stream = file.OpenReadStream();
-            var relativePath = await _fileStorageService.UploadFileAsync(stream, file.FileName, "AdminProfiles", cancellationToken);
+        //     using var stream = file.OpenReadStream();
+        //     var relativePath = await _fileStorageService.UploadFileAsync(stream, file.FileName, "AdminProfiles", cancellationToken);
 
-            var fileUrl = $"{Request.Scheme}://{Request.Host}/{relativePath}";
-            return Success(new { ProfilePictureUrl = fileUrl }, "Profile picture uploaded successfully.");
-        }
+        //     var fileUrl = $"{Request.Scheme}://{Request.Host}/{relativePath}";
+        //     return Success(new { ProfilePictureUrl = fileUrl }, "Profile picture uploaded successfully.");
+        // }
     }
 }

@@ -13,17 +13,6 @@ namespace MeatDelivery.Application.Interfaces.Authentication
             string? userAgent,
             CancellationToken cancellationToken = default);
 
-        Task<AdminAuthResponseDto> RefreshTokenAsync(
-            AdminRefreshTokenRequestDto request,
-            string? ipAddress,
-            string? deviceId,
-            string? userAgent,
-            CancellationToken cancellationToken = default);
-
-        Task LogoutAsync(
-            string refreshToken,
-            CancellationToken cancellationToken = default);
-
         Task<AdminProfileDto> GetProfileAsync(
             long adminUserId,
             CancellationToken cancellationToken = default);

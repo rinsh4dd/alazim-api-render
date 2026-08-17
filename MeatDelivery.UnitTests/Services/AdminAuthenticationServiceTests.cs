@@ -20,7 +20,6 @@ namespace MeatDelivery.UnitTests.Services
     public class AdminAuthenticationServiceTests
     {
         private readonly Mock<IAdminUserRepository> _adminUserRepoMock = new();
-        private readonly Mock<IAdminSessionRepository> _adminSessionRepoMock = new();
         private readonly Mock<IPasswordHasher> _passwordHasherMock = new();
         private readonly Mock<ITokenService> _tokenServiceMock = new();
         private readonly IOptions<JwtSettings> _jwtOptions = Options.Create(new JwtSettings
@@ -38,14 +37,13 @@ namespace MeatDelivery.UnitTests.Services
         {
             _service = new AdminAuthenticationService(
                 _adminUserRepoMock.Object,
-                _adminSessionRepoMock.Object,
                 _passwordHasherMock.Object,
                 _tokenServiceMock.Object,
                 _jwtOptions);
         }
 
         [Fact]
-        public async Task LoginAsync_ValidCredentials_ReturnsSuccessWithRolesAndTokens()
+        public async Task LoginAsync_ValidCredentials_ReturnsSuccessWithRolesAndAccessToken()
         {
             // Arrange
             var request = new AdminLoginRequestDto { Email = "admin@alazima.com", Password = "SuperAdmin@2026!" };
@@ -55,7 +53,7 @@ namespace MeatDelivery.UnitTests.Services
                 DocType = "ADM1",
                 DocNo = "ADM0000001",
                 Email = "admin@alazima.com",
-                PasswordHash = "$2a$12$somehash",
+                PasswordHash = "$2a$10$somehash",
                 FirstName = "Super",
                 LastName = "Admin",
                 AdminStatus = AdminStatus.ACTIVE,
@@ -72,12 +70,7 @@ namespace MeatDelivery.UnitTests.Services
             _passwordHasherMock.Setup(h => h.NeedsRehash(adminUser.PasswordHash))
                 .Returns(false);
 
-            _tokenServiceMock.Setup(t => t.GenerateRefreshToken()).Returns("test_raw_refresh_token");
-            _tokenServiceMock.Setup(t => t.HashRefreshToken("test_raw_refresh_token")).Returns("test_hashed_refresh_token");
-            _adminSessionRepoMock.Setup(s => s.CreateSessionAsync(It.IsAny<AdminSession>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(100);
-
-            _tokenServiceMock.Setup(t => t.GenerateAccessTokenForAdmin(1, "admin@alazima.com", "Super Admin", roles, 100))
+            _tokenServiceMock.Setup(t => t.GenerateAccessTokenForAdmin(1, "admin@alazima.com", "Super Admin", roles, 0))
                 .Returns("mocked_jwt_access_token");
 
             // Act
@@ -90,7 +83,6 @@ namespace MeatDelivery.UnitTests.Services
             Assert.Equal("ADM0000001", result.DocNo);
             Assert.Equal("admin@alazima.com", result.Email);
             Assert.Equal("mocked_jwt_access_token", result.AccessToken);
-            Assert.Equal("test_raw_refresh_token", result.RefreshToken);
             Assert.Contains("SUPER_ADMIN", result.Roles);
             _adminUserRepoMock.Verify(r => r.RecordLoginSuccessAsync(1, null, It.IsAny<CancellationToken>()), Times.Once);
         }
@@ -104,7 +96,7 @@ namespace MeatDelivery.UnitTests.Services
             {
                 AdminUserId = 1,
                 Email = "admin@alazima.com",
-                PasswordHash = "$2a$12$somehash",
+                PasswordHash = "$2a$10$somehash",
                 AdminStatus = AdminStatus.ACTIVE
             };
 
@@ -165,12 +157,8 @@ namespace MeatDelivery.UnitTests.Services
 
             _passwordHasherMock.Setup(h => h.Verify(request.Password, adminUser.PasswordHash)).Returns(true);
             _passwordHasherMock.Setup(h => h.NeedsRehash(adminUser.PasswordHash)).Returns(true);
-            _passwordHasherMock.Setup(h => h.Hash(request.Password)).Returns("$2a$12$newCostHash");
+            _passwordHasherMock.Setup(h => h.Hash(request.Password)).Returns("$2a$10$newCostHash");
 
-            _tokenServiceMock.Setup(t => t.GenerateRefreshToken()).Returns("token");
-            _tokenServiceMock.Setup(t => t.HashRefreshToken("token")).Returns("hashed_token");
-            _adminSessionRepoMock.Setup(s => s.CreateSessionAsync(It.IsAny<AdminSession>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(1);
             _tokenServiceMock.Setup(t => t.GenerateAccessTokenForAdmin(It.IsAny<long>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<IEnumerable<string>>(), It.IsAny<long>()))
                 .Returns("jwt");
 
@@ -178,7 +166,7 @@ namespace MeatDelivery.UnitTests.Services
             await _service.LoginAsync(request, "127.0.0.1", null, null);
 
             // Assert
-            _adminUserRepoMock.Verify(r => r.RecordLoginSuccessAsync(1, "$2a$12$newCostHash", It.IsAny<CancellationToken>()), Times.Once);
+            _adminUserRepoMock.Verify(r => r.RecordLoginSuccessAsync(1, "$2a$10$newCostHash", It.IsAny<CancellationToken>()), Times.Once);
         }
     }
 }
