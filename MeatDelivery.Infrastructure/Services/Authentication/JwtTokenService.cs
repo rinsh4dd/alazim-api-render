@@ -57,6 +57,46 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        public string GenerateAccessTokenForAdmin(
+            long adminUserId,
+            string email,
+            string fullName,
+            IEnumerable<string>? roles = null,
+            long sessionId = 0)
+        {
+            var key = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+
+            var credentials = new SigningCredentials(
+                key,
+                SecurityAlgorithms.HmacSha256);
+
+            var claims = new List<Claim>
+            {
+                new(JwtRegisteredClaimNames.Sub, adminUserId.ToString()),
+                new(JwtRegisteredClaimNames.Email, email),
+                new("email", email),
+                new("full_name", fullName ?? string.Empty),
+                new("session_id", sessionId.ToString()),
+                new("user_type", "ADMIN"),
+                new(ClaimTypes.NameIdentifier, adminUserId.ToString()),
+                new(ClaimTypes.Email, email),
+                new(ClaimTypes.Name, fullName ?? email)
+            };
+
+            foreach (var role in roles ?? Enumerable.Empty<string>())
+                claims.Add(new Claim(ClaimTypes.Role, role));
+
+            var token = new JwtSecurityToken(
+                issuer: _jwtSettings.Issuer,
+                audience: _jwtSettings.Audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpiryMinutes),
+                signingCredentials: credentials);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
         public string GenerateRefreshToken()
         {
             var randomBytes = RandomNumberGenerator.GetBytes(64);

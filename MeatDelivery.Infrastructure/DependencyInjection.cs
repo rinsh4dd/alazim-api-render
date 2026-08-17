@@ -116,9 +116,13 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<IBackgroundJobService, HangfireJobService>();
 
             // --------------------------------------------
-            // Authentication Services
+            // Authentication & Security Services
             // --------------------------------------------
-            services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+            services.Configure<MeatDelivery.Infrastructure.Security.PasswordHashingOptions>(
+                configuration.GetSection(MeatDelivery.Infrastructure.Security.PasswordHashingOptions.SectionName));
+            services.AddSingleton<MeatDelivery.Application.Common.Security.IPasswordHasher, MeatDelivery.Infrastructure.Security.BcryptPasswordHasher>();
+            services.AddSingleton<MeatDelivery.Application.Common.Security.IPasswordGenerator, MeatDelivery.Infrastructure.Security.SecurePasswordGenerator>();
+
             services.AddScoped<ITokenService, JwtTokenService>();
             services.AddScoped<IOtpService, OtpService>();
 
@@ -129,6 +133,11 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<IUserRegistrationRepository, UserRegistrationRepository>();
 
             services.AddScoped<IAuthenticationService, AuthenticationService>();
+
+            // Admin Authentication Services & Repositories
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Authentication.IAdminUserRepository, MeatDelivery.Infrastructure.Repositories.Authentication.AdminUserRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Authentication.IAdminSessionRepository, MeatDelivery.Infrastructure.Repositories.Authentication.AdminSessionRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Authentication.IAdminAuthenticationService, MeatDelivery.Infrastructure.Services.Authentication.AdminAuthenticationService>();
 
             // Customer Services & Repositories
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customer.ICustomerRepository, MeatDelivery.Infrastructure.Repositories.Customer.CustomerRepository>();

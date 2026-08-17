@@ -46,7 +46,7 @@ namespace MeatDelivery.Migrations.Runners
 
             await _sqlScriptExecutor.ExecuteScriptsAsync(
                 connectionString,
-                "MeatDelivery.Migrations.SqlScripts.",
+                "MeatDelivery.Migrations.SqlScripts.MigrateScripts.",
                 Assembly.GetExecutingAssembly(),
                 cancellationToken);
 

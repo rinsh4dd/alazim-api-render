@@ -1,0 +1,115 @@
+-- =============================================================================
+-- STORED PROCEDURE: dbo.PR_AUTH_CREATE_OTP_VERIFICATION
+-- =============================================================================
+
+CREATE OR ALTER PROCEDURE dbo.PR_AUTH_CREATE_OTP_VERIFICATION
+	@CountryCode        VARCHAR(10),
+	@MobileNumber       VARCHAR(20),
+	@OtpHash            VARCHAR(500),
+	@OtpPurpose         VARCHAR(30),
+	@ExpiresAt          DATETIME2,
+	@MaxAttempts        INT              = 5,
+	@WindowMinutes      INT              = 5,
+	@MaxResendPerWindow INT              = 3,
+	@ChallengeId        UNIQUEIDENTIFIER = NULL
+AS
+BEGIN
+	SET NOCOUNT ON;
+	DECLARE @LAST_CREATED_AT DATETIME2;
+	DECLARE @LAST_RESEND_COUNT INT;
+	DECLARE @LAST_WINDOW_START_AT DATETIME2;
+
+	SELECT TOP 1
+		@LAST_CREATED_AT      = CREATED_AT,
+		@LAST_RESEND_COUNT    = ISNULL(RESEND_COUNT, 0),
+		@LAST_WINDOW_START_AT = RATE_LIMIT_WINDOW_START_AT
+	FROM dbo.OTP_VERIFICATIONS
+	WHERE COUNTRY_CODE  = @CountryCode
+	AND   MOBILE_NUMBER = @MobileNumber
+	AND   OTP_PURPOSE   = @OtpPurpose
+	ORDER BY OTP_ID DESC;
+
+	-- 1. Check 60-second resend cooldown
+	DECLARE @CooldownSeconds INT = 60;
+	IF @LAST_CREATED_AT IS NOT NULL
+	BEGIN
+		DECLARE @ELAPSED_SECONDS INT = DATEDIFF(SECOND, @LAST_CREATED_AT, SYSUTCDATETIME());
+		IF @ELAPSED_SECONDS < @CooldownSeconds
+		BEGIN
+			DECLARE @COOLDOWN_REMAINING INT = @CooldownSeconds - @ELAPSED_SECONDS;
+			IF @COOLDOWN_REMAINING <= 0 SET @COOLDOWN_REMAINING = 1;
+
+			SELECT 
+				CAST(0 AS BIT) AS IsSuccess,
+				-1 AS StatusCode,
+				FORMATMESSAGE('Please wait %d second(s) before requesting a new OTP.', @COOLDOWN_REMAINING) AS Message,
+				@COOLDOWN_REMAINING AS Interval,
+				CAST(0 AS BIGINT) AS OtpId,
+				CAST(0x0 AS UNIQUEIDENTIFIER) AS ChallengeId,
+				@LAST_RESEND_COUNT AS ResendCount;
+			RETURN;
+		END
+	END
+
+	-- 2. Check 5-minute rate limit window (max 3 per window)
+	DECLARE @NEW_WINDOW_START_AT DATETIME2, @NEW_RESEND_COUNT INT;
+
+	IF @LAST_WINDOW_START_AT IS NOT NULL
+	   AND SYSUTCDATETIME() < DATEADD(MINUTE, @WindowMinutes, @LAST_WINDOW_START_AT)
+	BEGIN
+		IF @LAST_RESEND_COUNT >= @MaxResendPerWindow
+		BEGIN
+			DECLARE @WINDOW_EXPIRES_AT DATETIME2 = DATEADD(MINUTE, @WindowMinutes, @LAST_WINDOW_START_AT);
+			DECLARE @WAIT_SECONDS INT = DATEDIFF(SECOND, SYSUTCDATETIME(), @WINDOW_EXPIRES_AT);
+			IF @WAIT_SECONDS <= 0 SET @WAIT_SECONDS = 1;
+
+			SELECT 
+				CAST(0 AS BIT) AS IsSuccess,
+				-1 AS StatusCode,
+				FORMATMESSAGE('OTP resend limit reached (%d/%d). Please try again in %d second(s).', @LAST_RESEND_COUNT, @MaxResendPerWindow, @WAIT_SECONDS) AS Message,
+				@WAIT_SECONDS AS Interval,
+				CAST(0 AS BIGINT) AS OtpId,
+				CAST(0x0 AS UNIQUEIDENTIFIER) AS ChallengeId,
+				@LAST_RESEND_COUNT AS ResendCount;
+			RETURN;
+		END
+
+		SET @NEW_WINDOW_START_AT = @LAST_WINDOW_START_AT;
+		SET @NEW_RESEND_COUNT    = @LAST_RESEND_COUNT + 1;
+	END
+	ELSE
+	BEGIN
+		SET @NEW_WINDOW_START_AT = SYSUTCDATETIME();
+		SET @NEW_RESEND_COUNT    = 1;
+	END
+
+	IF @ChallengeId IS NULL SET @ChallengeId = NEWID();
+
+	UPDATE dbo.OTP_VERIFICATIONS
+	SET OTP_STATUS = 'INVALIDATED', UPDATED_AT = SYSUTCDATETIME()
+	WHERE COUNTRY_CODE  = @CountryCode
+	AND   MOBILE_NUMBER = @MobileNumber
+	AND   OTP_PURPOSE   = @OtpPurpose
+	AND   OTP_STATUS    = 'PENDING';
+
+	INSERT INTO dbo.OTP_VERIFICATIONS
+	(CHALLENGE_ID, COUNTRY_CODE, MOBILE_NUMBER, OTP_HASH, OTP_PURPOSE,
+	 ATTEMPT_COUNT, RESEND_COUNT, MAX_ATTEMPTS, OTP_STATUS, EXPIRES_AT,
+	 RATE_LIMIT_WINDOW_START_AT, CREATED_AT)
+	VALUES
+	(@ChallengeId, @CountryCode, @MobileNumber, @OtpHash, @OtpPurpose,
+	 0, @NEW_RESEND_COUNT, @MaxAttempts, 'PENDING', @ExpiresAt,
+	 @NEW_WINDOW_START_AT, SYSUTCDATETIME());
+
+	DECLARE @NEW_OTP_ID BIGINT = SCOPE_IDENTITY();
+
+	SELECT
+		CAST(1 AS BIT) AS IsSuccess,
+		1 AS StatusCode,
+		'OTP sent successfully.' AS Message,
+		60 AS Interval,
+		@NEW_OTP_ID AS OtpId,
+		@ChallengeId AS ChallengeId,
+		@NEW_RESEND_COUNT AS ResendCount;
+END;
+GO

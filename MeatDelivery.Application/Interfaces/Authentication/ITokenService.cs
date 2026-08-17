@@ -13,6 +13,13 @@ namespace MeatDelivery.Application.Interfaces.Authentication
             IEnumerable<string>? roles = null,
             long sessionId = 0);
 
+        string GenerateAccessTokenForAdmin(
+            long adminUserId,
+            string email,
+            string fullName,
+            IEnumerable<string>? roles = null,
+            long sessionId = 0);
+
         string GenerateRefreshToken();
 
         string HashRefreshToken(string refreshToken);

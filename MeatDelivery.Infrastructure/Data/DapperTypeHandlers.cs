@@ -33,6 +33,7 @@ namespace MeatDelivery.Infrastructure.Data
         {
             SqlMapper.AddTypeHandler(new EnumStringTypeHandler<Gender>());
             SqlMapper.AddTypeHandler(new EnumStringTypeHandler<UserStatus>());
+            SqlMapper.AddTypeHandler(new EnumStringTypeHandler<AdminStatus>());
             SqlMapper.AddTypeHandler(new EnumStringTypeHandler<AddressType>());
             SqlMapper.AddTypeHandler(new EnumStringTypeHandler<AddressMode>());
         }

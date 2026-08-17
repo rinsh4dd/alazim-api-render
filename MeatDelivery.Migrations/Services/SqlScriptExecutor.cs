@@ -45,8 +45,10 @@ namespace MeatDelivery.Migrations.Services
             foreach (var scriptResource in scripts)
             {
                 var scriptName = Path.GetFileName(scriptResource.Replace('.', '_'));
+                var baseMatch = Regex.Match(scriptResource, @"\d{4}_[A-Za-z0-9_]+");
+                var baseScriptName = baseMatch.Success ? baseMatch.Value : scriptName;
 
-                if (await IsScriptAppliedAsync(connection, scriptName))
+                if (await IsScriptAppliedAsync(connection, scriptName, baseScriptName))
                 {
                     _logger.LogInformation("Skipping already applied script: {ScriptName}", scriptName);
                     continue;
@@ -138,17 +140,19 @@ namespace MeatDelivery.Migrations.Services
 
         private static async Task<bool> IsScriptAppliedAsync(
             IDbConnection connection,
-            string scriptName)
+            string scriptName,
+            string baseScriptName)
         {
             const string sql = """
             SELECT COUNT(1)
             FROM dbo.SchemaVersions
-            WHERE ScriptName = @ScriptName;
+            WHERE ScriptName = @ScriptName 
+               OR ScriptName LIKE '%' + @BaseScriptName + '%';
             """;
 
             var count = await connection.ExecuteScalarAsync<int>(
                 sql,
-                new { ScriptName = scriptName });
+                new { ScriptName = scriptName, BaseScriptName = baseScriptName });
 
             return count > 0;
         }
