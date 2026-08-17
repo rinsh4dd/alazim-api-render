@@ -17,6 +17,8 @@ CREATE TABLE dbo.ADMIN_USERS
     MOBILE_NUMBER            VARCHAR(20)          NULL,
     PROFILE_IMAGE_URL        VARCHAR(500)         NULL,
     ADMIN_STATUS             VARCHAR(20)          NOT NULL DEFAULT 'ACTIVE',
+    IS_DELETED               BIT                  NOT NULL DEFAULT 0,
+    DELETED_AT               DATETIME2            NULL,
     FAILED_LOGIN_COUNT       INT                  NOT NULL DEFAULT 0,
     LOCKED_UNTIL             DATETIME2            NULL,
     LAST_LOGIN_AT            DATETIME2            NULL,
