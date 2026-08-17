@@ -368,3 +368,7 @@ meat_delivery_mobile/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+
+# Local Push Scripts
+push-all.bat
+push-all.ps1
