@@ -94,55 +94,75 @@ namespace MeatDelivery.Infrastructure.Services.Admin
             GetAdminUsersQueryDto query,
             CancellationToken cancellationToken = default)
         {
-            query ??= new GetAdminUsersQueryDto();
+            try
+            {
+                query ??= new GetAdminUsersQueryDto();
+                var (users, totalCount) = await _adminUserRepository.GetAdminUsersAsync(query, cancellationToken);
 
-            var (users, totalCount) = await _adminUserRepository.GetAdminUsersAsync(query, cancellationToken);
-
-            return ApiResponse<List<SaveAdminUserResponseDto>>.SuccessResponse(
-                users,
-                "Admin users retrieved successfully.");
+                return ApiResponse<List<SaveAdminUserResponseDto>>.SuccessResponse(
+                    users,
+                    "Admin users retrieved successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<List<SaveAdminUserResponseDto>>.FailureResponse(ex.Message);
+            }
         }
 
         public async Task<ApiResponse<SaveAdminUserResponseDto>> GetAdminUserByIdAsync(
             long adminUserId,
             CancellationToken cancellationToken = default)
         {
-            var (user, roles) = await _adminUserRepository.GetByIdWithRolesAsync(adminUserId, cancellationToken);
-
-            if (user == null)
+            try
             {
-                return ApiResponse<SaveAdminUserResponseDto>.FailureResponse(
-                    "Admin user not found.",
-                    status: 0);
+                var (user, roles) = await _adminUserRepository.GetByIdWithRolesAsync(adminUserId, cancellationToken);
+
+                if (user == null)
+                {
+                    return ApiResponse<SaveAdminUserResponseDto>.FailureResponse(
+                        "Admin user not found.",
+                        status: 0);
+                }
+
+                var dto = new SaveAdminUserResponseDto
+                {
+                    AdminUserId = user.AdminUserId,
+                    DocType = user.DocType,
+                    DocNo = user.DocNo,
+                    Email = user.Email,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName ?? string.Empty,
+                    FullName = user.FullName,
+                    CountryCode = user.CountryCode,
+                    MobileNumber = user.MobileNumber,
+                    ProfileImageUrl = user.ProfileImageUrl,
+                    AdminStatus = user.AdminStatus.ToString(),
+                    IsDeleted = user.IsDeleted,
+                    DeletedAt = user.DeletedAt,
+                    Roles = roles,
+                    CreatedAt = user.CreatedAt,
+                    UpdatedAt = user.UpdatedAt
+                };
+
+                return ApiResponse<SaveAdminUserResponseDto>.SuccessResponse(dto, "Admin user details retrieved successfully.");
             }
-
-            var dto = new SaveAdminUserResponseDto
+            catch (Exception ex)
             {
-                AdminUserId = user.AdminUserId,
-                DocType = user.DocType,
-                DocNo = user.DocNo,
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName ?? string.Empty,
-                FullName = user.FullName,
-                CountryCode = user.CountryCode,
-                MobileNumber = user.MobileNumber,
-                ProfileImageUrl = user.ProfileImageUrl,
-                AdminStatus = user.AdminStatus.ToString(),
-                IsDeleted = user.IsDeleted,
-                DeletedAt = user.DeletedAt,
-                Roles = roles,
-                CreatedAt = user.CreatedAt,
-                UpdatedAt = user.UpdatedAt
-            };
-
-            return ApiResponse<SaveAdminUserResponseDto>.SuccessResponse(dto, "Admin user details retrieved successfully.");
+                return ApiResponse<SaveAdminUserResponseDto>.FailureResponse(ex.Message);
+            }
         }
 
         public async Task<ApiResponse<List<AdminRoleDto>>> GetAdminRolesAsync(CancellationToken cancellationToken = default)
         {
-            var roles = await _adminUserRepository.GetAdminRolesAsync(cancellationToken);
-            return ApiResponse<List<AdminRoleDto>>.SuccessResponse(roles, "Admin roles retrieved successfully.");
+            try
+            {
+                var roles = await _adminUserRepository.GetAdminRolesAsync(cancellationToken);
+                return ApiResponse<List<AdminRoleDto>>.SuccessResponse(roles, "Admin roles retrieved successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<List<AdminRoleDto>>.FailureResponse(ex.Message);
+            }
         }
     }
 }

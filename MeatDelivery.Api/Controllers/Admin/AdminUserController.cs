@@ -32,12 +32,6 @@ namespace MeatDelivery.Api.Controllers.Admin
             var currentAdminUserId = HttpContext.GetUserId();
             var response = await _adminUserService.SaveAdminUserAsync(request, currentAdminUserId, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
-
-            if (!response.Success)
-            {
-                return BadRequest(response);
-            }
-
             return Ok(response);
         }
 
@@ -64,12 +58,6 @@ namespace MeatDelivery.Api.Controllers.Admin
         {
             var response = await _adminUserService.GetAdminUserByIdAsync(id, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
-
-            if (!response.Success)
-            {
-                return NotFound(response);
-            }
-
             return Ok(response);
         }
 
