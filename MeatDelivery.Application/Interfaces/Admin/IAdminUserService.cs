@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.DTOs.Admin;
+using MeatDelivery.Application.DTOs.Role;
 using MeatDelivery.Shared.Responses;
 
 namespace MeatDelivery.Application.Interfaces.Admin
@@ -19,5 +20,6 @@ namespace MeatDelivery.Application.Interfaces.Admin
 
         Task<ApiResponse<List<AdminRoleDto>>> GetAdminRolesAsync(
             CancellationToken cancellationToken = default);
+        Task<ApiResponse<AdminRoleDto>> SaveAdminRoleAsync(SaveAdminRoleDto request, CancellationToken cancellationToken = default);
     }
 }

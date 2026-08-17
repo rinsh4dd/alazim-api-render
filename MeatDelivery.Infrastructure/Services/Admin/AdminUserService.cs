@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FluentValidation;
 using MeatDelivery.Application.Common.Security;
 using MeatDelivery.Application.DTOs.Admin;
+using MeatDelivery.Application.DTOs.Role;
 using MeatDelivery.Application.Interfaces.Admin;
 using MeatDelivery.Application.Interfaces.Repositories.Authentication;
 using MeatDelivery.Domain.Enums;
@@ -118,6 +119,34 @@ namespace MeatDelivery.Infrastructure.Services.Admin
             catch (Exception ex)
             {
                 return ApiResponse<List<AdminRoleDto>>.FailureResponse(ex.Message);
+            }
+        }
+        public async Task<ApiResponse<AdminRoleDto>> SaveAdminRoleAsync(SaveAdminRoleDto request,CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            try
+            {
+                var result = await _adminUserRepository.SaveAdminRoleAsync(request,cancellationToken);
+
+                if (result == null)
+                {
+                    return ApiResponse<AdminRoleDto>.FailureResponse("Failed to process admin role request.");
+                }
+
+                string message = request.Mode switch
+                {
+                    Mode.ADD => "Admin role created successfully.",
+                    Mode.EDIT => "Admin role updated successfully.",
+                    Mode.DELETE => "Admin role deleted successfully.",
+                    _ => "Operation completed successfully."
+                };
+
+                return ApiResponse<AdminRoleDto>.SuccessResponse(result,message);
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<AdminRoleDto>.FailureResponse(ex.Message);
             }
         }
     }

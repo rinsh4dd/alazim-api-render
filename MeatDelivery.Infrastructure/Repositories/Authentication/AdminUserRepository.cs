@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using MeatDelivery.Application.DTOs.Admin;
+using MeatDelivery.Application.DTOs.Role;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Repositories.Authentication;
 using MeatDelivery.Domain.Entities.Authentication;
@@ -122,15 +123,15 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                     COUNTRY_CODE = request.CountryCode,
                     MOBILE_NUMBER = request.MobileNumber,
                     PROFILE_IMAGE_URL = request.ProfileImageUrl,
-                    ADMIN_STATUS = request.AdminStatus?.ToString() ?? "ACTIVE",
-                    ROLE_CODE = request.Role?.ToString(),
+                    ADMIN_STATUS = request.AdminStatus ?? "ACTIVE",
+                    ROLE_ID = request.RoleId,
                     ACTIONED_BY_ADMIN_ID = actionedByAdminId
                 },
                 commandType: CommandType.StoredProcedure);
 
             if (row == null) return null;
 
-            return new MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto
+            return new SaveAdminUserResponseDto
             {
                 AdminUserId = (long)row.ADMIN_USER_ID,
                 DocType = (string?)row.DOCTYPE,
@@ -151,7 +152,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             };
         }
 
-        public async Task<List<MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto>> GetAdminUsersAsync(
+        public async Task<List<SaveAdminUserResponseDto>> GetAdminUsersAsync(
             MeatDelivery.Application.DTOs.Admin.GetAdminUsersQueryDto query,
             CancellationToken cancellationToken = default)
         {
@@ -161,15 +162,15 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 new
                 {
                     ADMIN_USER_ID = query.AdminUserId,
-                    ROLE_CODE = query.Role?.ToString()
+                    ROLE_CODE = (string?)null
                 },
                 commandType: CommandType.StoredProcedure)).ToList();
 
-            var list = new List<MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto>();
+            var list = new List<SaveAdminUserResponseDto>();
 
             foreach (var row in rows)
             {
-                list.Add(new MeatDelivery.Application.DTOs.Admin.SaveAdminUserResponseDto
+                list.Add(new SaveAdminUserResponseDto
                 {
                     AdminUserId = (long)row.ADMIN_USER_ID,
                     DocType = (string?)row.DOCTYPE,
@@ -193,22 +194,38 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             return list;
         }
 
-        public async Task<List<MeatDelivery.Application.DTOs.Admin.AdminRoleDto>> GetAdminRolesAsync(CancellationToken cancellationToken = default)
+        public async Task<List<AdminRoleDto>> GetAdminRolesAsync(
+    CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var rows = await connection.QueryAsync<MeatDelivery.Application.DTOs.Admin.AdminRoleDto>(
+
+            var rows = await connection.QueryAsync<AdminRoleDto>(
                 "dbo.PR_GET_ADMIN_ROLES",
-                new
-                {
-                    ROLE_ID = (int?)null,
-                    ROLE_CODE = (string?)null,
-                    ROLE_NAME = (string?)null,
-                    DESCRIPTION = (string?)null,
-                    IS_ACTIVE = (bool?)null
-                },
                 commandType: CommandType.StoredProcedure);
 
             return rows.ToList();
         }
+         public async Task<AdminRoleDto?> SaveAdminRoleAsync(
+            SaveAdminRoleDto request,
+            CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            var result = await connection.QuerySingleOrDefaultAsync<AdminRoleDto>(
+                "dbo.PR_SAVE_ADMIN_ROLE",
+                new
+                {
+                    MODE = request.Mode.ToString(),
+                    ROLE_ID = request.RoleId,
+                    ROLE_CODE = request.RoleCode,
+                    ROLE_NAME = request.RoleName,
+                    DESCRIPTION = request.Description,
+                    IS_ACTIVE = request.IsActive
+                },
+                commandType: CommandType.StoredProcedure);
+
+            return result;
+        }
+    
     }
 }

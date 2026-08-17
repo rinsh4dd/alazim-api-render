@@ -8,12 +8,13 @@ using Microsoft.AspNetCore.Mvc;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Admin;
 using MeatDelivery.Application.Interfaces.Admin;
+using MeatDelivery.Application.DTOs.Role;
 
 namespace MeatDelivery.Api.Controllers.Admin
 {
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/admin")]
-    [Authorize(Roles = "SUPER_ADMIN")]
+    [Authorize]
     public class AdminUserController : BaseApiController
     {
         private readonly IAdminUserService _adminUserService;
@@ -35,9 +36,6 @@ namespace MeatDelivery.Api.Controllers.Admin
             return Ok(response);
         }
 
-        /// <summary>
-        /// Retrieves a paginated and filterable list of all admin/staff users.
-        /// </summary>
         [HttpGet("adminUsers")]
         public async Task<IActionResult> GetAdminUsers(
             [FromQuery] GetAdminUsersQueryDto query,
@@ -55,6 +53,14 @@ namespace MeatDelivery.Api.Controllers.Admin
         public async Task<IActionResult> GetAdminRoles(CancellationToken cancellationToken)
         {
             var response = await _adminUserService.GetAdminRolesAsync(cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpPost("saveRoles")]
+         public async Task<IActionResult> saveRoles(SaveAdminRoleDto request,CancellationToken cancellationToken)
+        {
+            var response = await _adminUserService.SaveAdminRoleAsync(request,cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

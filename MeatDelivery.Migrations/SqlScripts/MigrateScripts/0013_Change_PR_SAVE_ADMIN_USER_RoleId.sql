@@ -1,7 +1,8 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_ADMIN_USER
--- Description: Unified CUD procedure for creating, updating, or soft-deleting admin accounts.
---              Accepts @ROLE_ID (INT) instead of @ROLE_CODE (string).
+-- Migration: 0013_Change_PR_SAVE_ADMIN_USER_RoleId
+-- Date: 2026-08-17
+-- Description: Changes PR_SAVE_ADMIN_USER to accept @ROLE_ID (INT) instead 
+--              of @ROLE_CODE (VARCHAR). Looks up role by ID instead of code.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_ADMIN_USER

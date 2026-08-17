@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.DTOs.Admin;
+using MeatDelivery.Application.DTOs.Role;
 using MeatDelivery.Domain.Entities.Authentication;
+using MeatDelivery.Shared.Responses;
 
 namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
 {
@@ -25,7 +27,7 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Authentication
             GetAdminUsersQueryDto query,
             CancellationToken cancellationToken = default);
 
-        Task<List<AdminRoleDto>> GetAdminRolesAsync(
-            CancellationToken cancellationToken = default);
+        Task<List<AdminRoleDto>> GetAdminRolesAsync(CancellationToken cancellationToken = default);
+        Task<AdminRoleDto?> SaveAdminRoleAsync(SaveAdminRoleDto request,CancellationToken cancellationToken = default);
     }
 }

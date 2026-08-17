@@ -16,8 +16,8 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string? CountryCode { get; set; }
         public string? MobileNumber { get; set; }
         public string? ProfileImageUrl { get; set; }
-        public MeatDelivery.Domain.Enums.AdminStatus? AdminStatus { get; set; } = MeatDelivery.Domain.Enums.AdminStatus.ACTIVE;
-        public AdminRole? Role { get; set; }
+        public string? AdminStatus { get; set; } = "ACTIVE";
+        public int? RoleId { get; set; }
     }
 
     public class SaveAdminUserResponseDto
@@ -43,7 +43,7 @@ namespace MeatDelivery.Application.DTOs.Admin
     public class GetAdminUsersQueryDto
     {
         public long? AdminUserId { get; set; }
-        public AdminRole? Role { get; set; }
+        public int? RoleId { get; set; }
     }
 
     public class AdminRoleDto

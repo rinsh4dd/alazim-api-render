@@ -31,9 +31,9 @@ namespace MeatDelivery.Application.Validators.Admin
                     .NotEmpty().WithMessage("First name is required.")
                     .MaximumLength(100).WithMessage("First name must not exceed 100 characters.");
 
-                RuleFor(x => x.Role)
-                    .NotNull().WithMessage("Role is required for new admin creation.")
-                    .IsInEnum().WithMessage("Invalid admin role.");
+                RuleFor(x => x.RoleId)
+                    .NotNull().WithMessage("RoleId is required for new admin creation.")
+                    .GreaterThan(0).WithMessage("Valid RoleId is required.");
             });
 
             // EDIT Mode validations
@@ -60,10 +60,10 @@ namespace MeatDelivery.Application.Validators.Admin
                         .Matches(@"[\!\?\*\.@#\$%^&+=]").WithMessage("Password must contain at least one special character.");
                 });
 
-                When(x => x.Role.HasValue, () =>
+                When(x => x.RoleId.HasValue, () =>
                 {
-                    RuleFor(x => x.Role!.Value)
-                        .IsInEnum().WithMessage("Invalid admin role.");
+                    RuleFor(x => x.RoleId!.Value)
+                        .GreaterThan(0).WithMessage("Valid RoleId is required.");
                 });
             });
 

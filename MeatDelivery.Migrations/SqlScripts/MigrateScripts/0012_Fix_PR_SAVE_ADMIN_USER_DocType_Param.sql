@@ -1,59 +1,12 @@
 -- =============================================================================
--- MIGRATION SCRIPT: 0011_Add_IsDeleted_And_PR_SAVE_ADMIN_USER.sql
--- Description:
---   1. Adds IS_DELETED (BIT) and DELETED_AT (DATETIME2) columns to dbo.ADMIN_USERS.
---   2. Creates dbo.PR_SAVE_ADMIN_USER (CUD procedure supporting ADD, EDIT, DELETE with single Role).
---   3. Creates dbo.PR_GET_ADMIN_USERS (Get by AdminUserId or Role).
---   4. Creates dbo.PR_GET_ADMIN_USER_BY_ID.
---   5. Creates dbo.PR_GET_ADMIN_ROLES.
+-- Migration: 0012_Fix_PR_SAVE_ADMIN_USER_DocType_Param
+-- Date: 2026-08-17
+-- Description: Hotfix — PR_SAVE_ADMIN_USER was calling PR_GET_NEXT_DOC_NO 
+--              with named parameter @DOC_TYPE (underscore) but the target SP 
+--              expects @DOCTYPE (no underscore). This re-creates the SP with 
+--              the corrected parameter name.
 -- =============================================================================
 
-SET NOCOUNT ON;
-GO
-
--- -----------------------------------------------------------------------------
--- 1. ADD IS_DELETED AND DELETED_AT TO ADMIN_USERS
--- -----------------------------------------------------------------------------
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns 
-    WHERE object_id = OBJECT_ID('dbo.ADMIN_USERS') AND name = 'IS_DELETED'
-)
-BEGIN
-    ALTER TABLE dbo.ADMIN_USERS
-    ADD IS_DELETED BIT NOT NULL CONSTRAINT DF_ADMIN_USERS_IS_DELETED DEFAULT 0;
-END;
-GO
-
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns 
-    WHERE object_id = OBJECT_ID('dbo.ADMIN_USERS') AND name = 'DELETED_AT'
-)
-BEGIN
-    ALTER TABLE dbo.ADMIN_USERS
-    ADD DELETED_AT DATETIME2 NULL;
-END;
-GO
-
--- -----------------------------------------------------------------------------
--- Ensure Filtered Unique Index on EMAIL (Active only)
--- -----------------------------------------------------------------------------
-IF EXISTS (
-    SELECT 1 FROM sys.indexes 
-    WHERE name = 'UQ_ADMIN_USERS_EMAIL' AND object_id = OBJECT_ID('dbo.ADMIN_USERS')
-)
-BEGIN
-    DROP INDEX UQ_ADMIN_USERS_EMAIL ON dbo.ADMIN_USERS;
-END;
-GO
-
-CREATE UNIQUE NONCLUSTERED INDEX UQ_ADMIN_USERS_EMAIL 
-ON dbo.ADMIN_USERS(EMAIL)
-WHERE IS_DELETED = 0;
-GO
-
--- -----------------------------------------------------------------------------
--- 2. STORED PROCEDURE: dbo.PR_SAVE_ADMIN_USER
--- -----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_ADMIN_USER
     @MODE                   VARCHAR(10),        -- 'ADD', 'EDIT', 'DELETE'
     @ADMIN_USER_ID          BIGINT = NULL,
@@ -65,7 +18,7 @@ CREATE OR ALTER PROCEDURE dbo.PR_SAVE_ADMIN_USER
     @MOBILE_NUMBER          VARCHAR(20) = NULL,
     @PROFILE_IMAGE_URL      VARCHAR(500) = NULL,
     @ADMIN_STATUS           VARCHAR(20) = 'ACTIVE',
-    @ROLE_CODE              VARCHAR(50) = NULL, -- Single role e.g. 'STORE_MANAGER'
+    @ROLE_CODE              VARCHAR(50) = NULL,
     @ACTIONED_BY_ADMIN_ID   BIGINT = NULL
 AS
 BEGIN
@@ -88,13 +41,12 @@ BEGIN
 
         SET @EMAIL = LOWER(LTRIM(RTRIM(@EMAIL)));
 
-        -- Check duplicate email among active (non-deleted) accounts
         IF EXISTS (SELECT 1 FROM dbo.ADMIN_USERS WHERE EMAIL = @EMAIL AND IS_DELETED = 0)
         BEGIN
             THROW 50002, 'An active admin user with this email already exists.', 1;
         END;
 
-        -- Allocate next DOC_NO
+        -- FIX: Use @DOCTYPE (no underscore) to match PR_GET_NEXT_DOC_NO parameter name
         EXEC dbo.PR_GET_NEXT_DOC_NO 
             @DOCTYPE = @DOC_TYPE,
             @DOC_NO = @NEW_DOC_NO OUTPUT;
@@ -136,7 +88,6 @@ BEGIN
 
         SET @ADMIN_USER_ID = SCOPE_IDENTITY();
 
-        -- Assign Single Role
         IF @ROLE_CODE IS NOT NULL AND LTRIM(RTRIM(@ROLE_CODE)) <> ''
         BEGIN
             DECLARE @ASSIGNED_ROLE_ID INT;
@@ -153,22 +104,11 @@ BEGIN
 
         COMMIT TRANSACTION;
 
-        -- Return the created user
         SELECT 
-            u.ADMIN_USER_ID,
-            u.DOCTYPE,
-            u.DOC_NO,
-            u.EMAIL,
-            u.FIRST_NAME,
-            u.LAST_NAME,
-            u.COUNTRY_CODE,
-            u.MOBILE_NUMBER,
-            u.PROFILE_IMAGE_URL,
-            u.ADMIN_STATUS,
-            u.IS_DELETED,
-            u.DELETED_AT,
-            u.CREATED_AT,
-            u.UPDATED_AT,
+            u.ADMIN_USER_ID, u.DOCTYPE, u.DOC_NO, u.EMAIL,
+            u.FIRST_NAME, u.LAST_NAME, u.COUNTRY_CODE, u.MOBILE_NUMBER,
+            u.PROFILE_IMAGE_URL, u.ADMIN_STATUS, u.IS_DELETED, u.DELETED_AT,
+            u.CREATED_AT, u.UPDATED_AT,
             ISNULL((
                 SELECT TOP 1 r.ROLE_CODE
                 FROM dbo.ADMIN_USER_ROLES ur
@@ -196,7 +136,6 @@ BEGIN
             THROW 50004, 'Admin user not found.', 1;
         END;
 
-        -- If email changed, check uniqueness
         IF @EMAIL IS NOT NULL AND LTRIM(RTRIM(@EMAIL)) <> ''
         BEGIN
             SET @EMAIL = LOWER(LTRIM(RTRIM(@EMAIL)));
@@ -222,7 +161,6 @@ BEGIN
             UPDATED_AT = SYSUTCDATETIME()
         WHERE ADMIN_USER_ID = @ADMIN_USER_ID;
 
-        -- Update Single Role if specified
         IF @ROLE_CODE IS NOT NULL AND LTRIM(RTRIM(@ROLE_CODE)) <> ''
         BEGIN
             DELETE FROM dbo.ADMIN_USER_ROLES WHERE ADMIN_USER_ID = @ADMIN_USER_ID;
@@ -241,22 +179,11 @@ BEGIN
 
         COMMIT TRANSACTION;
 
-        -- Return the updated user
         SELECT 
-            u.ADMIN_USER_ID,
-            u.DOCTYPE,
-            u.DOC_NO,
-            u.EMAIL,
-            u.FIRST_NAME,
-            u.LAST_NAME,
-            u.COUNTRY_CODE,
-            u.MOBILE_NUMBER,
-            u.PROFILE_IMAGE_URL,
-            u.ADMIN_STATUS,
-            u.IS_DELETED,
-            u.DELETED_AT,
-            u.CREATED_AT,
-            u.UPDATED_AT,
+            u.ADMIN_USER_ID, u.DOCTYPE, u.DOC_NO, u.EMAIL,
+            u.FIRST_NAME, u.LAST_NAME, u.COUNTRY_CODE, u.MOBILE_NUMBER,
+            u.PROFILE_IMAGE_URL, u.ADMIN_STATUS, u.IS_DELETED, u.DELETED_AT,
+            u.CREATED_AT, u.UPDATED_AT,
             ISNULL((
                 SELECT TOP 1 r.ROLE_CODE
                 FROM dbo.ADMIN_USER_ROLES ur
@@ -279,7 +206,6 @@ BEGIN
             THROW 50006, 'AdminUserId is required for deletion.', 1;
         END;
 
-        -- Prevent self-deletion
         IF @ACTIONED_BY_ADMIN_ID IS NOT NULL AND @ADMIN_USER_ID = @ACTIONED_BY_ADMIN_ID
         BEGIN
             THROW 50007, 'Super Admin cannot delete their own active account.', 1;
@@ -294,20 +220,10 @@ BEGIN
         WHERE ADMIN_USER_ID = @ADMIN_USER_ID;
 
         SELECT 
-            u.ADMIN_USER_ID,
-            u.DOCTYPE,
-            u.DOC_NO,
-            u.EMAIL,
-            u.FIRST_NAME,
-            u.LAST_NAME,
-            u.COUNTRY_CODE,
-            u.MOBILE_NUMBER,
-            u.PROFILE_IMAGE_URL,
-            u.ADMIN_STATUS,
-            u.IS_DELETED,
-            u.DELETED_AT,
-            u.CREATED_AT,
-            u.UPDATED_AT,
+            u.ADMIN_USER_ID, u.DOCTYPE, u.DOC_NO, u.EMAIL,
+            u.FIRST_NAME, u.LAST_NAME, u.COUNTRY_CODE, u.MOBILE_NUMBER,
+            u.PROFILE_IMAGE_URL, u.ADMIN_STATUS, u.IS_DELETED, u.DELETED_AT,
+            u.CREATED_AT, u.UPDATED_AT,
             ISNULL((
                 SELECT TOP 1 r.ROLE_CODE
                 FROM dbo.ADMIN_USER_ROLES ur
@@ -321,110 +237,5 @@ BEGIN
     END;
 
     THROW 50008, 'Invalid operation mode. Expected ADD, EDIT, or DELETE.', 1;
-END;
-GO
-
--- -----------------------------------------------------------------------------
--- 3. STORED PROCEDURE: dbo.PR_GET_ADMIN_USERS
--- -----------------------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.PR_GET_ADMIN_USERS
-    @ADMIN_USER_ID      BIGINT = NULL,
-    @ROLE_CODE          VARCHAR(50) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT 
-        u.ADMIN_USER_ID,
-        u.DOCTYPE,
-        u.DOC_NO,
-        u.EMAIL,
-        u.FIRST_NAME,
-        u.LAST_NAME,
-        u.COUNTRY_CODE,
-        u.MOBILE_NUMBER,
-        u.PROFILE_IMAGE_URL,
-        u.ADMIN_STATUS,
-        u.IS_DELETED,
-        u.DELETED_AT,
-        u.LAST_LOGIN_AT,
-        u.CREATED_AT,
-        u.UPDATED_AT,
-        ISNULL((
-            SELECT TOP 1 r.ROLE_CODE
-            FROM dbo.ADMIN_USER_ROLES ur
-            INNER JOIN dbo.ROLES r ON ur.ROLE_ID = r.ROLE_ID
-            WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
-        ), '') AS ROLE
-    FROM dbo.ADMIN_USERS u
-    WHERE (@ADMIN_USER_ID IS NULL OR u.ADMIN_USER_ID = @ADMIN_USER_ID)
-      AND (u.IS_DELETED = 0 OR u.IS_DELETED IS NULL)
-      AND (
-          @ROLE_CODE IS NULL OR LTRIM(RTRIM(@ROLE_CODE)) = ''
-          OR EXISTS (
-              SELECT 1 
-              FROM dbo.ADMIN_USER_ROLES ur2
-              INNER JOIN dbo.ROLES r2 ON ur2.ROLE_ID = r2.ROLE_ID
-              WHERE ur2.ADMIN_USER_ID = u.ADMIN_USER_ID
-                AND r2.ROLE_CODE = UPPER(LTRIM(RTRIM(@ROLE_CODE)))
-          )
-      )
-    ORDER BY u.ADMIN_USER_ID DESC;
-END;
-GO
-
--- -----------------------------------------------------------------------------
--- 4. STORED PROCEDURE: dbo.PR_GET_ADMIN_USER_BY_ID
--- -----------------------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.PR_GET_ADMIN_USER_BY_ID
-    @ADMIN_USER_ID BIGINT
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT 
-        u.ADMIN_USER_ID,
-        u.DOCTYPE,
-        u.DOC_NO,
-        u.EMAIL,
-        u.FIRST_NAME,
-        u.LAST_NAME,
-        u.COUNTRY_CODE,
-        u.MOBILE_NUMBER,
-        u.PROFILE_IMAGE_URL,
-        u.ADMIN_STATUS,
-        u.IS_DELETED,
-        u.DELETED_AT,
-        u.LAST_LOGIN_AT,
-        u.CREATED_AT,
-        u.UPDATED_AT,
-        ISNULL((
-            SELECT TOP 1 r.ROLE_CODE
-            FROM dbo.ADMIN_USER_ROLES ur
-            INNER JOIN dbo.ROLES r ON ur.ROLE_ID = r.ROLE_ID
-            WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
-        ), '') AS ROLE
-    FROM dbo.ADMIN_USERS u
-    WHERE u.ADMIN_USER_ID = @ADMIN_USER_ID;
-END;
-GO
-
--- -----------------------------------------------------------------------------
--- 5. STORED PROCEDURE: dbo.PR_GET_ADMIN_ROLES
--- -----------------------------------------------------------------------------
-CREATE OR ALTER PROCEDURE dbo.PR_GET_ADMIN_ROLES
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    SELECT 
-        ROLE_ID,
-        ROLE_CODE,
-        ROLE_NAME,
-        DESCRIPTION,
-        IS_ACTIVE
-    FROM dbo.ROLES
-    WHERE IS_ACTIVE = 1
-    ORDER BY ROLE_ID ASC;
 END;
 GO
