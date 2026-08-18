@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -64,10 +65,33 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             }
         }
 
-        public async Task<PagedResponse<ProductDto>> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
+        public async Task<PagedResponse<List<ProductDto>>> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(query);
-            return await _productRepository.GetProductsAsync(query, cancellationToken);
+
+            try
+            {
+                var (items, totalRecords) = await _productRepository.GetProductsAsync(query, cancellationToken);
+
+                return new PagedResponse<List<ProductDto>>
+                {
+                    Success = true,
+                    Message = "Products retrieved successfully.",
+                    Data = items,
+                    PageNumber = query.PageNumber < 1 ? 1 : query.PageNumber,
+                    PageSize = query.PageSize < 1 ? 10 : query.PageSize,
+                    TotalRecords = totalRecords
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PagedResponse<List<ProductDto>>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = new List<ProductDto>()
+                };
+            }
         }
     }
 }

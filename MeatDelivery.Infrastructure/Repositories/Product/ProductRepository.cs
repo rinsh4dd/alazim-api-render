@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading;
@@ -8,7 +9,6 @@ using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Data;
 using MeatDelivery.Application.Interfaces.Repositories.Product;
 using MeatDelivery.Domain.Enums;
-using MeatDelivery.Shared.Responses;
 
 namespace MeatDelivery.Infrastructure.Repositories.Catalog
 {
@@ -125,108 +125,108 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                                     },
                                     transaction,
                                     commandType: CommandType.StoredProcedure);
+                            }
                         }
-                    }
 
-                    transaction.Commit();
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
                 }
-                catch
-                {
-                    transaction.Rollback();
-                    throw;
-                }
+
+                // 4. Read back saved WeightOptions and Images to populate productMaster response
+                const string querySql = @"
+                    SELECT
+                        w.PRODUCT_WEIGHT_OPTION_ID AS ProductWeightOptionId,
+                        w.PRODUCT_ID AS ProductId,
+                        w.UNIT_ID AS UnitId,
+                        u.UNIT AS Unit,
+                        u.UNIT_DESCRIPTION AS UnitDescription,
+                        w.UNIT_VALUE AS UnitValue,
+                        w.IS_CUSTOM_WEIGHT AS IsCustomWeight,
+                        w.MIN_WEIGHT AS MinWeight,
+                        w.MAX_WEIGHT AS MaxWeight,
+                        w.MIN_ORDER_QUANTITY AS MinOrderQuantity,
+                        w.MAX_ORDER_QUANTITY AS MaxOrderQuantity,
+                        w.QUANTITY_INCREMENT AS QuantityIncrement,
+                        w.IS_DEFAULT AS IsDefault,
+                        w.DISPLAY_ORDER AS DisplayOrder,
+                        w.IS_ACTIVE AS IsActive,
+                        pr.PRODUCT_PRICE_ID AS ProductPriceId,
+                        pr.PRICE_TYPE AS PriceType,
+                        pr.REGULAR_PRICE AS RegularPrice,
+                        pr.DISCOUNT_PRICE AS DiscountPrice,
+                        pr.CURRENCY_CODE AS CurrencyCode
+                    FROM dbo.PRODUCT_WEIGHT_OPTIONS w
+                    INNER JOIN dbo.MEASUREMENT_UNITS u ON w.UNIT_ID = u.UNIT_ID
+                    LEFT JOIN dbo.PRODUCT_PRICES pr ON w.PRODUCT_WEIGHT_OPTION_ID = pr.PRODUCT_WEIGHT_OPTION_ID
+                    WHERE w.PRODUCT_ID = @ProductId
+                    ORDER BY w.DISPLAY_ORDER ASC, w.PRODUCT_WEIGHT_OPTION_ID ASC;
+
+                    SELECT
+                        PRODUCT_IMAGE_ID AS ProductImageId,
+                        PRODUCT_ID AS ProductId,
+                        IMAGE_URL AS ImageUrl,
+                        IS_PRIMARY AS IsPrimary,
+                        DISPLAY_ORDER AS DisplayOrder,
+                        IS_ACTIVE AS IsActive
+                    FROM dbo.PRODUCT_IMAGES
+                    WHERE PRODUCT_ID = @ProductId
+                    ORDER BY IS_PRIMARY DESC, DISPLAY_ORDER ASC;";
+
+                using var multi = await connection.QueryMultipleAsync(querySql, new { ProductId = productId });
+                productMaster.WeightOptions = (await multi.ReadAsync<ProductWeightOptionDto>()).ToList();
+                productMaster.Images = (await multi.ReadAsync<ProductImageDto>()).ToList();
             }
 
-            // 4. Read back saved WeightOptions and Images to populate productMaster response
-            const string querySql = @"
-                SELECT
-                    w.PRODUCT_WEIGHT_OPTION_ID AS ProductWeightOptionId,
-                    w.PRODUCT_ID AS ProductId,
-                    w.UNIT_ID AS UnitId,
-                    u.UNIT AS Unit,
-                    u.UNIT_DESCRIPTION AS UnitDescription,
-                    w.UNIT_VALUE AS UnitValue,
-                    w.IS_CUSTOM_WEIGHT AS IsCustomWeight,
-                    w.MIN_WEIGHT AS MinWeight,
-                    w.MAX_WEIGHT AS MaxWeight,
-                    w.MIN_ORDER_QUANTITY AS MinOrderQuantity,
-                    w.MAX_ORDER_QUANTITY AS MaxOrderQuantity,
-                    w.QUANTITY_INCREMENT AS QuantityIncrement,
-                    w.IS_DEFAULT AS IsDefault,
-                    w.DISPLAY_ORDER AS DisplayOrder,
-                    w.IS_ACTIVE AS IsActive,
-                    pr.PRODUCT_PRICE_ID AS ProductPriceId,
-                    pr.PRICE_TYPE AS PriceType,
-                    pr.REGULAR_PRICE AS RegularPrice,
-                    pr.DISCOUNT_PRICE AS DiscountPrice,
-                    pr.CURRENCY_CODE AS CurrencyCode
-                FROM dbo.PRODUCT_WEIGHT_OPTIONS w
-                INNER JOIN dbo.MEASUREMENT_UNITS u ON w.UNIT_ID = u.UNIT_ID
-                LEFT JOIN dbo.PRODUCT_PRICES pr ON w.PRODUCT_WEIGHT_OPTION_ID = pr.PRODUCT_WEIGHT_OPTION_ID
-                WHERE w.PRODUCT_ID = @ProductId
-                ORDER BY w.DISPLAY_ORDER ASC, w.PRODUCT_WEIGHT_OPTION_ID ASC;
-
-                SELECT
-                    PRODUCT_IMAGE_ID AS ProductImageId,
-                    PRODUCT_ID AS ProductId,
-                    IMAGE_URL AS ImageUrl,
-                    IS_PRIMARY AS IsPrimary,
-                    DISPLAY_ORDER AS DisplayOrder,
-                    IS_ACTIVE AS IsActive
-                FROM dbo.PRODUCT_IMAGES
-                WHERE PRODUCT_ID = @ProductId
-                ORDER BY IS_PRIMARY DESC, DISPLAY_ORDER ASC;";
-
-            using var multi = await connection.QueryMultipleAsync(querySql, new { ProductId = productId });
-            productMaster.WeightOptions = (await multi.ReadAsync<ProductWeightOptionDto>()).ToList();
-            productMaster.Images = (await multi.ReadAsync<ProductImageDto>()).ToList();
+            return productMaster;
         }
 
-        return productMaster;
-    }
-
-    public async Task<PagedResponse<ProductDto>> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
-    {
-        using var connection = _connectionFactory.CreateConnection();
-        using var multi = await connection.QueryMultipleAsync(
-            "dbo.PR_GET_PRODUCTS",
-            new
-            {
-                USER_TYPE = string.IsNullOrWhiteSpace(query.UserType) ? "GUEST" : query.UserType,
-                USER_ID = query.UserId,
-                PRODUCT_ID = query.ProductId,
-                CATEGORY_ID = query.CategoryId,
-                SEARCH_TERM = query.SearchTerm,
-                IS_FEATURED = query.IsFeatured,
-                IS_BESTSELLER = query.IsBestseller,
-                IS_ACTIVE = query.IsActive,
-                IS_DELETED = query.IsDeleted,
-                IS_WISHLISTED_ONLY = query.IsWishlistedOnly,
-                IS_RECENTLY_ORDERED_ONLY = query.IsRecentlyOrderedOnly,
-                MIN_PRICE = query.MinPrice,
-                MAX_PRICE = query.MaxPrice,
-                SORT_BY = string.IsNullOrWhiteSpace(query.SortBy) ? "DisplayOrder" : query.SortBy,
-                SORT_ORDER = string.IsNullOrWhiteSpace(query.SortOrder) ? "ASC" : query.SortOrder,
-                PAGE_NUMBER = query.PageNumber < 1 ? 1 : query.PageNumber,
-                PAGE_SIZE = query.PageSize < 1 ? 10 : query.PageSize
-            },
-            commandType: CommandType.StoredProcedure);
-
-        int totalRecords = await multi.ReadFirstOrDefaultAsync<int>();
-        var products = (await multi.ReadAsync<ProductDto>()).ToList();
-        var weightOptions = (await multi.ReadAsync<ProductWeightOptionDto>()).ToList();
-        var images = (await multi.ReadAsync<ProductImageDto>()).ToList();
-
-        var weightOptionLookup = weightOptions.ToLookup(w => w.ProductId);
-        var imageLookup = images.ToLookup(img => img.ProductId);
-
-        foreach (var product in products)
+        public async Task<(List<ProductDto> Items, int TotalRecords)> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
         {
-            product.WeightOptions = weightOptionLookup[product.ProductId].ToList();
-            product.Images = imageLookup[product.ProductId].ToList();
-        }
+            using var connection = _connectionFactory.CreateConnection();
+            using var multi = await connection.QueryMultipleAsync(
+                "dbo.PR_GET_PRODUCTS",
+                new
+                {
+                    USER_TYPE = string.IsNullOrWhiteSpace(query.UserType) ? "GUEST" : query.UserType,
+                    USER_ID = query.UserId,
+                    PRODUCT_ID = query.ProductId,
+                    CATEGORY_ID = query.CategoryId,
+                    SEARCH_TERM = query.SearchTerm,
+                    IS_FEATURED = query.IsFeatured,
+                    IS_BESTSELLER = query.IsBestseller,
+                    IS_ACTIVE = query.IsActive,
+                    IS_DELETED = query.IsDeleted,
+                    IS_WISHLISTED_ONLY = query.IsWishlistedOnly,
+                    IS_RECENTLY_ORDERED_ONLY = query.IsRecentlyOrderedOnly,
+                    MIN_PRICE = query.MinPrice,
+                    MAX_PRICE = query.MaxPrice,
+                    SORT_BY = string.IsNullOrWhiteSpace(query.SortBy) ? "DisplayOrder" : query.SortBy,
+                    SORT_ORDER = string.IsNullOrWhiteSpace(query.SortOrder) ? "ASC" : query.SortOrder,
+                    PAGE_NUMBER = query.PageNumber < 1 ? 1 : query.PageNumber,
+                    PAGE_SIZE = query.PageSize < 1 ? 10 : query.PageSize
+                },
+                commandType: CommandType.StoredProcedure);
 
-        return PagedResponse<ProductDto>.Create(products, totalRecords, query.PageNumber, query.PageSize);
+            int totalRecords = await multi.ReadFirstOrDefaultAsync<int>();
+            var products = (await multi.ReadAsync<ProductDto>()).ToList();
+            var weightOptions = (await multi.ReadAsync<ProductWeightOptionDto>()).ToList();
+            var images = (await multi.ReadAsync<ProductImageDto>()).ToList();
+
+            var weightOptionLookup = weightOptions.ToLookup(w => w.ProductId);
+            var imageLookup = images.ToLookup(img => img.ProductId);
+
+            foreach (var product in products)
+            {
+                product.WeightOptions = weightOptionLookup[product.ProductId].ToList();
+                product.Images = imageLookup[product.ProductId].ToList();
+            }
+
+            return (products, totalRecords);
+        }
     }
-}
 }
