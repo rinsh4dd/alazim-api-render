@@ -21,6 +21,5 @@ namespace MeatDelivery.Application.DTOs.Category
         public int? DisplayOrder { get; set; }
 
         public bool? IsActive { get; set; }
-        public bool? IsVisible { get; set; }
     }
 }

@@ -13,8 +13,7 @@ CREATE OR ALTER PROCEDURE dbo.PR_SAVE_CATEGORY
     @DESCRIPTION_AR       NVARCHAR(500) = NULL,
     @IMAGE_URL            VARCHAR(500) = NULL,
     @DISPLAY_ORDER        INT = NULL,
-    @IS_ACTIVE            BIT = NULL,
-    @IS_VISIBLE           BIT = NULL
+    @IS_ACTIVE            BIT = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -35,7 +34,6 @@ BEGIN
             IMAGE_URL,
             DISPLAY_ORDER,
             IS_ACTIVE,
-            IS_VISIBLE,
             CREATED_AT
         )
         VALUES
@@ -48,7 +46,6 @@ BEGIN
             @IMAGE_URL,
             ISNULL(@DISPLAY_ORDER, 0),
             ISNULL(@IS_ACTIVE, 1),
-            ISNULL(@IS_VISIBLE, 1),
             SYSUTCDATETIME()
         );
 
@@ -64,7 +61,6 @@ BEGIN
             IMAGE_URL          AS ImageUrl,
             DISPLAY_ORDER      AS DisplayOrder,
             IS_ACTIVE          AS IsActive,
-            IS_VISIBLE         AS IsVisible,
             CREATED_AT         AS CreatedAt,
             UPDATED_AT         AS UpdatedAt
         FROM dbo.CATEGORIES
@@ -88,7 +84,6 @@ BEGIN
             IMAGE_URL = ISNULL(@IMAGE_URL, IMAGE_URL),
             DISPLAY_ORDER = ISNULL(@DISPLAY_ORDER, DISPLAY_ORDER),
             IS_ACTIVE = ISNULL(@IS_ACTIVE, IS_ACTIVE),
-            IS_VISIBLE = ISNULL(@IS_VISIBLE, IS_VISIBLE),
             UPDATED_AT = SYSUTCDATETIME()
         WHERE CATEGORY_ID = @CATEGORY_ID;
 
@@ -102,7 +97,6 @@ BEGIN
             IMAGE_URL          AS ImageUrl,
             DISPLAY_ORDER      AS DisplayOrder,
             IS_ACTIVE          AS IsActive,
-            IS_VISIBLE         AS IsVisible,
             CREATED_AT         AS CreatedAt,
             UPDATED_AT         AS UpdatedAt
         FROM dbo.CATEGORIES

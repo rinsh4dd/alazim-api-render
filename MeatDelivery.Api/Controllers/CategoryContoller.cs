@@ -29,8 +29,8 @@ namespace MeatDelivery.Api.Controllers.V1.Catalog
             return Ok(response);
         }
 
-        [HttpPost("list")]
-        public async Task<IActionResult> GetCategories([FromBody] GetCategoriesQueryDto query,CancellationToken cancellationToken)
+        [HttpGet("list")]
+        public async Task<IActionResult> GetCategories([FromQuery] GetCategoriesQueryDto query, CancellationToken cancellationToken)
         {
             var response = await _categoryService.GetCategoriesAsync(query,cancellationToken);
             return Ok(response);

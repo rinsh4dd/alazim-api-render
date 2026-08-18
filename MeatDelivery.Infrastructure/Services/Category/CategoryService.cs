@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
-using Microsoft.Extensions.Caching.Memory;
 using MeatDelivery.Application.DTOs.Category;
 using MeatDelivery.Application.Interfaces.Category;
 using MeatDelivery.Application.Interfaces.Repositories.Category;
@@ -18,19 +17,15 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
         private readonly ICategoryRepository _categoryRepository;
         private readonly IValidator<SaveCategoryDto> _saveValidator;
         private readonly IValidator<GetCategoriesQueryDto> _getValidator;
-        private readonly IMemoryCache _cache;
-        private static readonly List<string> CacheKeys = new();
 
         public CategoryService(
             ICategoryRepository categoryRepository,
             IValidator<SaveCategoryDto> saveValidator,
-            IValidator<GetCategoriesQueryDto> getValidator,
-            IMemoryCache cache)
+            IValidator<GetCategoriesQueryDto> getValidator)
         {
             _categoryRepository = categoryRepository;
             _saveValidator = saveValidator;
             _getValidator = getValidator;
-            _cache = cache;
         }
 
         public async Task<ApiResponse<CategoryDto>> SaveCategoryAsync(SaveCategoryDto request, CancellationToken cancellationToken = default)
@@ -52,9 +47,6 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                 {
                     return ApiResponse<CategoryDto>.FailureResponse("Failed to process category request.");
                 }
-
-                // Invalidate category listing cache on mutation
-                InvalidateCategoryCache();
 
                 string message = request.Mode switch
                 {
@@ -89,18 +81,11 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                 };
             }
 
-            string cacheKey = $"cat_list_p{query.PageNumber}_s{query.PageSize}_q{query.SearchTerm}_cid{query.CategoryId}_a{query.IsActive}_v{query.IsVisible}_sb{query.SortBy}_so{query.SortOrder}";
-
-            if (_cache.TryGetValue(cacheKey, out PagedResponse<List<CategoryDto>>? cachedResponse) && cachedResponse != null)
-            {
-                return cachedResponse;
-            }
-
             try
             {
                 var (items, totalRecords) = await _categoryRepository.GetCategoriesAsync(query, cancellationToken);
 
-                var response = new PagedResponse<List<CategoryDto>>
+                return new PagedResponse<List<CategoryDto>>
                 {
                     Success = true,
                     Message = "Categories retrieved successfully.",
@@ -109,18 +94,6 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     PageSize = query.PageSize,
                     TotalRecords = totalRecords
                 };
-
-                var cacheOptions = new MemoryCacheEntryOptions()
-                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(15))
-                    .SetSlidingExpiration(TimeSpan.FromMinutes(5));
-
-                _cache.Set(cacheKey, response, cacheOptions);
-                lock (CacheKeys)
-                {
-                    if (!CacheKeys.Contains(cacheKey)) CacheKeys.Add(cacheKey);
-                }
-
-                return response;
             }
             catch (Exception ex)
             {
@@ -130,14 +103,6 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     Message = ex.Message,
                     Data = new List<CategoryDto>()
                 };
-            }
-        }
-
-        private static void InvalidateCategoryCache()
-        {
-            lock (CacheKeys)
-            {
-                CacheKeys.Clear();
             }
         }
     }

@@ -40,8 +40,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     DESCRIPTION_AR = request.DescriptionAr,
                     IMAGE_URL = request.ImageUrl,
                     DISPLAY_ORDER = request.DisplayOrder,
-                    IS_ACTIVE = request.IsActive,
-                    IS_VISIBLE = request.IsVisible
+                    IS_ACTIVE = request.IsActive
                 }
             );
         }
@@ -59,10 +58,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     PAGE_SIZE = query.PageSize,
                     SEARCH_TERM = query.SearchTerm,
                     CATEGORY_ID = query.CategoryId,
-                    IS_ACTIVE = query.IsActive,
-                    IS_VISIBLE = query.IsVisible,
-                    SORT_BY = query.SortBy,
-                    SORT_ORDER = query.SortOrder
+                    IS_ACTIVE = query.IsActive
                 },
                 commandType: CommandType.StoredProcedure);
 

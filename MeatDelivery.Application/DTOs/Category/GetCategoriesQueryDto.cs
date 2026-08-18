@@ -7,8 +7,5 @@ namespace MeatDelivery.Application.DTOs.Category
         public string? SearchTerm { get; set; }
         public long? CategoryId { get; set; }
         public bool? IsActive { get; set; }
-        public bool? IsVisible { get; set; }
-        public string? SortBy { get; set; } = "DisplayOrder";
-        public string? SortOrder { get; set; } = "ASC";
     }
 }
