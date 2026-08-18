@@ -49,7 +49,7 @@ namespace MeatDelivery.Infrastructure.Services.Storage
             var uniqueFileName = $"{Guid.NewGuid():N}_{DateTime.UtcNow.Ticks}{extension}";
             var fullPath = Path.Combine(targetFolder, uniqueFileName);
 
-            using (var destinationStream = new FileStream(fullPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true))
+            using (var destinationStream = File.Create(fullPath))
             {
                 await fileStream.CopyToAsync(destinationStream, cancellationToken);
             }
