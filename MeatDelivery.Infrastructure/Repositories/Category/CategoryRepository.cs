@@ -1,5 +1,9 @@
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
 using MeatDelivery.Application.DTOs.Category;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Repositories.Category;
@@ -9,10 +13,14 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
     public class CategoryRepository : ICategoryRepository
     {
         private readonly IDapperRepository _dapperRepository;
+        private readonly IDbConnectionFactory _connectionFactory;
 
-        public CategoryRepository(IDapperRepository dapperRepository)
+        public CategoryRepository(
+            IDapperRepository dapperRepository,
+            IDbConnectionFactory connectionFactory)
         {
             _dapperRepository = dapperRepository;
+            _connectionFactory = connectionFactory;
         }
 
         public async Task<CategoryDto?> SaveCategoryAsync(
@@ -25,7 +33,6 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                 {
                     MODE = request.Mode.ToString(),
                     CATEGORY_ID = request.CategoryId,
-                    PARENT_CATEGORY_ID = request.ParentCategoryId,
                     CATEGORY_CODE = request.CategoryCode,
                     CATEGORY_NAME_EN = request.CategoryNameEn,
                     CATEGORY_NAME_AR = request.CategoryNameAr,
@@ -37,6 +44,32 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     IS_VISIBLE = request.IsVisible
                 }
             );
+        }
+
+        public async Task<(List<CategoryDto> Items, int TotalRecords)> GetCategoriesAsync(
+            GetCategoriesQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            using var multi = await connection.QueryMultipleAsync(
+                "dbo.PR_GET_CATEGORIES",
+                new
+                {
+                    PAGE_NUMBER = query.PageNumber,
+                    PAGE_SIZE = query.PageSize,
+                    SEARCH_TERM = query.SearchTerm,
+                    CATEGORY_ID = query.CategoryId,
+                    IS_ACTIVE = query.IsActive,
+                    IS_VISIBLE = query.IsVisible,
+                    SORT_BY = query.SortBy,
+                    SORT_ORDER = query.SortOrder
+                },
+                commandType: CommandType.StoredProcedure);
+
+            int totalRecords = await multi.ReadSingleAsync<int>();
+            var items = (await multi.ReadAsync<CategoryDto>()).ToList();
+
+            return (items, totalRecords);
         }
     }
 }

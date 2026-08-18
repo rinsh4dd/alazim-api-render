@@ -3,7 +3,6 @@ namespace MeatDelivery.Application.DTOs.Category
     public class CategoryDto
     {
         public long CategoryId { get; set; }
-        public long? ParentCategoryId { get; set; }
 
         public string CategoryCode { get; set; } = string.Empty;
 

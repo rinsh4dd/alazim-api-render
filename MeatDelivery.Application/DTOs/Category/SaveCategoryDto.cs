@@ -7,7 +7,6 @@ namespace MeatDelivery.Application.DTOs.Category
         public Mode Mode { get; set; }
 
         public long? CategoryId { get; set; }
-        public long? ParentCategoryId { get; set; }
 
         public string? CategoryCode { get; set; }
 

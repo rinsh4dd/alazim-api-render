@@ -42,11 +42,7 @@ namespace MeatDelivery.Application.Validators.Category
                         .MaximumLength(500).WithMessage("Arabic description must not exceed 500 characters.");
                 });
 
-                When(x => x.ParentCategoryId.HasValue, () =>
-                {
-                    RuleFor(x => x.ParentCategoryId!.Value)
-                        .GreaterThan(0).WithMessage("Valid ParentCategoryId is required.");
-                });
+
 
                 When(x => x.DisplayOrder.HasValue, () =>
                 {
@@ -74,11 +70,7 @@ namespace MeatDelivery.Application.Validators.Category
                         .MaximumLength(150).WithMessage("Category name (AR) must not exceed 150 characters.");
                 });
 
-                When(x => x.ParentCategoryId.HasValue, () =>
-                {
-                    RuleFor(x => x.ParentCategoryId!.Value)
-                        .GreaterThan(0).WithMessage("Valid ParentCategoryId is required.");
-                });
+
 
                 When(x => x.DisplayOrder.HasValue, () =>
                 {

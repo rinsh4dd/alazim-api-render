@@ -144,8 +144,10 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customer.ICustomerRepository, MeatDelivery.Infrastructure.Repositories.Customer.CustomerRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Customer.ICustomerService, MeatDelivery.Infrastructure.Services.Customer.CustomerService>();
 
-            // Test Domain Repository
-            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Test.ITestRepository, MeatDelivery.Infrastructure.Repositories.Test.TestRepository>();
+            // Category Domain Services & Repositories
+            services.AddMemoryCache();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Category.ICategoryRepository, MeatDelivery.Infrastructure.Repositories.Catalog.CategoryRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Category.ICategoryService, MeatDelivery.Infrastructure.Services.Catalog.CategoryService>();
 
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();

@@ -1,13 +1,11 @@
 -- =============================================================================
--- Migration: 0017_Create_PR_SAVE_CATEGORY
--- Date: 2026-08-17
--- Description: Creates PR_SAVE_CATEGORY with ADD, EDIT and DELETE modes.
+-- STORED PROCEDURE: dbo.PR_SAVE_CATEGORY
+-- Description: Unified CUD procedure for categories (ADD, EDIT, DELETE modes).
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_CATEGORY
     @MODE                 VARCHAR(10),
     @CATEGORY_ID          BIGINT = NULL,
-    @PARENT_CATEGORY_ID   BIGINT = NULL,
     @CATEGORY_CODE        VARCHAR(50) = NULL,
     @CATEGORY_NAME_EN     VARCHAR(150) = NULL,
     @CATEGORY_NAME_AR     NVARCHAR(150) = NULL,
@@ -29,7 +27,6 @@ BEGIN
     BEGIN
         INSERT INTO dbo.CATEGORIES
         (
-            PARENT_CATEGORY_ID,
             CATEGORY_CODE,
             CATEGORY_NAME_EN,
             CATEGORY_NAME_AR,
@@ -43,7 +40,6 @@ BEGIN
         )
         VALUES
         (
-            @PARENT_CATEGORY_ID,
             @CATEGORY_CODE,
             @CATEGORY_NAME_EN,
             @CATEGORY_NAME_AR,
@@ -60,7 +56,6 @@ BEGIN
 
         SELECT
             CATEGORY_ID        AS CategoryId,
-            PARENT_CATEGORY_ID AS ParentCategoryId,
             CATEGORY_CODE      AS CategoryCode,
             CATEGORY_NAME_EN   AS CategoryNameEn,
             CATEGORY_NAME_AR   AS CategoryNameAr,
@@ -85,7 +80,6 @@ BEGIN
     BEGIN
         UPDATE dbo.CATEGORIES
         SET
-            PARENT_CATEGORY_ID = @PARENT_CATEGORY_ID,
             CATEGORY_CODE = ISNULL(@CATEGORY_CODE, CATEGORY_CODE),
             CATEGORY_NAME_EN = ISNULL(@CATEGORY_NAME_EN, CATEGORY_NAME_EN),
             CATEGORY_NAME_AR = ISNULL(@CATEGORY_NAME_AR, CATEGORY_NAME_AR),
@@ -100,7 +94,6 @@ BEGIN
 
         SELECT
             CATEGORY_ID        AS CategoryId,
-            PARENT_CATEGORY_ID AS ParentCategoryId,
             CATEGORY_CODE      AS CategoryCode,
             CATEGORY_NAME_EN   AS CategoryNameEn,
             CATEGORY_NAME_AR   AS CategoryNameAr,

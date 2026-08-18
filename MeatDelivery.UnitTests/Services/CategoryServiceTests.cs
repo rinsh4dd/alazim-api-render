@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Moq;
 using MeatDelivery.Application.DTOs.Category;
 using MeatDelivery.Application.Interfaces.Repositories.Category;
@@ -13,12 +15,18 @@ namespace MeatDelivery.UnitTests.Services
     public class CategoryServiceTests
     {
         private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
-        private readonly SaveCategoryDtoValidator _validator = new();
+        private readonly SaveCategoryDtoValidator _saveValidator = new();
+        private readonly GetCategoriesQueryDtoValidator _getValidator = new();
+        private readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
         private readonly CategoryService _service;
 
         public CategoryServiceTests()
         {
-            _service = new CategoryService(_categoryRepoMock.Object, _validator);
+            _service = new CategoryService(
+                _categoryRepoMock.Object,
+                _saveValidator,
+                _getValidator,
+                _cache);
         }
 
         [Fact]
@@ -96,6 +104,32 @@ namespace MeatDelivery.UnitTests.Services
             Assert.False(result.Success);
             Assert.Equal("Validation failed.", result.Message);
             Assert.Contains(result.Errors, e => e.Contains("Valid CategoryId is required", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public async Task GetCategoriesAsync_ValidQuery_ReturnsPagedResult()
+        {
+            // Arrange
+            var query = new GetCategoriesQueryDto { PageNumber = 1, PageSize = 10, SearchTerm = "Meat" };
+            var list = new List<CategoryDto>
+            {
+                new() { CategoryId = 1, CategoryCode = "FRESH_MEAT", CategoryNameEn = "Fresh Meat" }
+            };
+
+            _categoryRepoMock.Setup(r => r.GetCategoriesAsync(query, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((list, 1));
+
+            // Act
+            var result = await _service.GetCategoriesAsync(query);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Success);
+            Assert.Equal(1, result.TotalRecords);
+            Assert.Equal(1, result.PageNumber);
+            Assert.Equal(10, result.PageSize);
+            Assert.Single(result.Data!);
+            Assert.Equal("Fresh Meat", result.Data?[0].CategoryNameEn);
         }
     }
 }
