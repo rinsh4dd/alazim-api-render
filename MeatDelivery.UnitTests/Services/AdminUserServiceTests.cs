@@ -60,7 +60,6 @@ namespace MeatDelivery.UnitTests.Services
                 Email = "manager.dxb@alazima.com",
                 FirstName = "Ahmed",
                 LastName = "Al Mansoori",
-                FullName = "Ahmed Al Mansoori",
                 CountryCode = "+971",
                 MobileNumber = "501234567",
                 Nationality = "Emirati",
@@ -69,6 +68,7 @@ namespace MeatDelivery.UnitTests.Services
                 AdminStatus = "ACTIVE",
                 IsDeleted = false,
                 Role = "ORDER_MANAGER",
+                RoleId = 2,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -88,11 +88,11 @@ namespace MeatDelivery.UnitTests.Services
             Assert.Equal("ADM1", result.Data?.DocType);
             Assert.Equal("ADM0000002", result.Data?.DocNo);
             Assert.Equal(2, result.Data?.AdminUserId);
-            Assert.Equal("Ahmed Al Mansoori", result.Data?.FullName);
             Assert.Equal("Emirati", result.Data?.Nationality);
             Assert.Equal(new DateTime(1990, 5, 15), result.Data?.Dob);
             Assert.Equal("Dubai, UAE", result.Data?.Address);
             Assert.Equal("ORDER_MANAGER", result.Data?.Role);
+            Assert.Equal(2, result.Data?.RoleId);
         }
 
         [Fact]
@@ -116,10 +116,10 @@ namespace MeatDelivery.UnitTests.Services
                 Email = "manager.dxb@alazima.com",
                 FirstName = "Ahmed Updated",
                 LastName = "Al Mansoori",
-                FullName = "Ahmed Updated Al Mansoori",
                 AdminStatus = "ACTIVE",
                 IsDeleted = false,
-                Role = "INVENTORY_MANAGER"
+                Role = "INVENTORY_MANAGER",
+                RoleId = (int)AdminRole.INVENTORY_MANAGER
             };
 
             _adminUserRepoMock.Setup(r => r.SaveAdminUserAsync(
@@ -135,7 +135,6 @@ namespace MeatDelivery.UnitTests.Services
             // Assert
             Assert.NotNull(result);
             Assert.True(result.Success);
-            Assert.Equal("Ahmed Updated Al Mansoori", result.Data?.FullName);
             Assert.Equal("INVENTORY_MANAGER", result.Data?.Role);
         }
 

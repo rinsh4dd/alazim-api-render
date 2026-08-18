@@ -31,7 +31,6 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string Email { get; set; } = string.Empty;
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
         public string? CountryCode { get; set; }
         public string? MobileNumber { get; set; }
         public string? ProfileImageUrl { get; set; }
@@ -41,6 +40,7 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string AdminStatus { get; set; } = string.Empty;
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
+        public int? RoleId { get; set; }
         public string Role { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

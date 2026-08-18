@@ -1,9 +1,12 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_ADMIN_USER
--- Description: Unified CUD procedure for creating, updating, or soft-deleting admin accounts.
---              Accepts @ROLE_ID (INT) instead of @ROLE_CODE (string).
+-- Migration: 0021_Add_RoleId_To_Admin_User_Responses.sql
+-- Description: Updates stored procedures PR_SAVE_ADMIN_USER and PR_GET_ADMIN_USERS
+--              to include ROLE_ID in response result sets alongside ROLE (code).
 -- =============================================================================
 
+-- -----------------------------------------------------------------------------
+-- 1. UPDATE PR_SAVE_ADMIN_USER
+-- -----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_ADMIN_USER
     @MODE                   VARCHAR(10),        -- 'ADD', 'EDIT', 'DELETE'
     @ADMIN_USER_ID          BIGINT = NULL,
@@ -29,9 +32,7 @@ BEGIN
     DECLARE @NEW_DOC_NO VARCHAR(50);
     DECLARE @DOC_TYPE VARCHAR(20) = 'ADM1';
 
-    -- =========================================================================
     -- MODE: ADD
-    -- =========================================================================
     IF @OP_MODE = 'ADD'
     BEGIN
         IF @EMAIL IS NULL OR LTRIM(RTRIM(@EMAIL)) = ''
@@ -46,7 +47,6 @@ BEGIN
             THROW 50002, 'An active admin user with this email already exists.', 1;
         END;
 
-        -- Allocate next DOC_NO
         EXEC dbo.PR_GET_NEXT_DOC_NO 
             @DOCTYPE = @DOC_TYPE,
             @DOC_NO = @NEW_DOC_NO OUTPUT;
@@ -55,46 +55,19 @@ BEGIN
 
         INSERT INTO dbo.ADMIN_USERS
         (
-            DOCTYPE,
-            DOC_NO,
-            EMAIL,
-            PASSWORD_HASH,
-            FIRST_NAME,
-            LAST_NAME,
-            COUNTRY_CODE,
-            MOBILE_NUMBER,
-            PROFILE_IMAGE_URL,
-            NATIONALITY,
-            DOB,
-            ADDRESS,
-            ADMIN_STATUS,
-            IS_DELETED,
-            CREATED_BY_ADMIN_USER_ID,
-            CREATED_AT
+            DOCTYPE, DOC_NO, EMAIL, PASSWORD_HASH, FIRST_NAME, LAST_NAME,
+            COUNTRY_CODE, MOBILE_NUMBER, PROFILE_IMAGE_URL, NATIONALITY, DOB, ADDRESS,
+            ADMIN_STATUS, IS_DELETED, CREATED_BY_ADMIN_USER_ID, CREATED_AT
         )
         VALUES
         (
-            @DOC_TYPE,
-            @NEW_DOC_NO,
-            @EMAIL,
-            @PASSWORD_HASH,
-            @FIRST_NAME,
-            @LAST_NAME,
-            @COUNTRY_CODE,
-            @MOBILE_NUMBER,
-            @PROFILE_IMAGE_URL,
-            @NATIONALITY,
-            @DOB,
-            @ADDRESS,
-            ISNULL(@ADMIN_STATUS, 'ACTIVE'),
-            0,
-            @ACTIONED_BY_ADMIN_ID,
-            SYSUTCDATETIME()
+            @DOC_TYPE, @NEW_DOC_NO, @EMAIL, @PASSWORD_HASH, @FIRST_NAME, @LAST_NAME,
+            @COUNTRY_CODE, @MOBILE_NUMBER, @PROFILE_IMAGE_URL, @NATIONALITY, @DOB, @ADDRESS,
+            ISNULL(@ADMIN_STATUS, 'ACTIVE'), 0, @ACTIONED_BY_ADMIN_ID, SYSUTCDATETIME()
         );
 
         SET @ADMIN_USER_ID = SCOPE_IDENTITY();
 
-        -- Assign role by ID
         IF @ROLE_ID IS NOT NULL AND @ROLE_ID > 0
         BEGIN
             IF EXISTS (SELECT 1 FROM dbo.ROLES WHERE ROLE_ID = @ROLE_ID AND IS_ACTIVE = 1)
@@ -129,9 +102,7 @@ BEGIN
         RETURN;
     END;
 
-    -- =========================================================================
     -- MODE: EDIT
-    -- =========================================================================
     IF @OP_MODE = 'EDIT'
     BEGIN
         IF @ADMIN_USER_ID IS NULL OR @ADMIN_USER_ID <= 0
@@ -172,7 +143,6 @@ BEGIN
             UPDATED_AT = SYSUTCDATETIME()
         WHERE ADMIN_USER_ID = @ADMIN_USER_ID;
 
-        -- Update role by ID if specified
         IF @ROLE_ID IS NOT NULL AND @ROLE_ID > 0
         BEGIN
             DELETE FROM dbo.ADMIN_USER_ROLES WHERE ADMIN_USER_ID = @ADMIN_USER_ID;
@@ -209,9 +179,7 @@ BEGIN
         RETURN;
     END;
 
-    -- =========================================================================
     -- MODE: DELETE
-    -- =========================================================================
     IF @OP_MODE = 'DELETE'
     BEGIN
         IF @ADMIN_USER_ID IS NULL OR @ADMIN_USER_ID <= 0
@@ -256,5 +224,61 @@ BEGIN
     END;
 
     THROW 50008, 'Invalid operation mode. Expected ADD, EDIT, or DELETE.', 1;
+END;
+GO
+
+-- -----------------------------------------------------------------------------
+-- 2. UPDATE PR_GET_ADMIN_USERS
+-- -----------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.PR_GET_ADMIN_USERS
+    @ADMIN_USER_ID      BIGINT = NULL,
+    @ROLE_ID            INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        u.ADMIN_USER_ID,
+        u.DOCTYPE,
+        u.DOC_NO,
+        u.EMAIL,
+        u.FIRST_NAME,
+        u.LAST_NAME,
+        u.COUNTRY_CODE,
+        u.MOBILE_NUMBER,
+        u.PROFILE_IMAGE_URL,
+        u.NATIONALITY,
+        u.DOB,
+        u.ADDRESS,
+        u.ADMIN_STATUS,
+        u.IS_DELETED,
+        u.DELETED_AT,
+        u.LAST_LOGIN_AT,
+        u.CREATED_AT,
+        u.UPDATED_AT,
+        (
+            SELECT TOP 1 ur.ROLE_ID
+            FROM dbo.ADMIN_USER_ROLES ur
+            WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
+        ) AS ROLE_ID,
+        ISNULL((
+            SELECT TOP 1 r.ROLE_CODE
+            FROM dbo.ADMIN_USER_ROLES ur
+            INNER JOIN dbo.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
+        ), '') AS ROLE
+    FROM dbo.ADMIN_USERS u
+    WHERE (@ADMIN_USER_ID IS NULL OR u.ADMIN_USER_ID = @ADMIN_USER_ID)
+      AND (u.IS_DELETED = 0 OR u.IS_DELETED IS NULL)
+      AND (
+          @ROLE_ID IS NULL
+          OR EXISTS (
+              SELECT 1 
+              FROM dbo.ADMIN_USER_ROLES ur2
+              WHERE ur2.ADMIN_USER_ID = u.ADMIN_USER_ID
+                AND ur2.ROLE_ID = @ROLE_ID
+          )
+      )
+    ORDER BY u.ADMIN_USER_ID DESC;
 END;
 GO

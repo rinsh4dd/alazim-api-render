@@ -136,7 +136,6 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 Email = (string)row.EMAIL,
                 FirstName = (string)row.FIRST_NAME,
                 LastName = (string?)row.LAST_NAME ?? string.Empty,
-                FullName = $"{row.FIRST_NAME} {row.LAST_NAME}".Trim(),
                 CountryCode = (string?)row.COUNTRY_CODE,
                 MobileNumber = (string?)row.MOBILE_NUMBER,
                 ProfileImageUrl = (string?)row.PROFILE_IMAGE_URL,
@@ -146,6 +145,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 AdminStatus = (string)row.ADMIN_STATUS,
                 IsDeleted = (bool)row.IS_DELETED,
                 DeletedAt = (DateTime?)row.DELETED_AT,
+                RoleId = row.ROLE_ID != null ? (int?)row.ROLE_ID : null,
                 Role = (string?)row.ROLE ?? string.Empty,
                 CreatedAt = (DateTime)row.CREATED_AT,
                 UpdatedAt = (DateTime?)row.UPDATED_AT
@@ -162,7 +162,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 new
                 {
                     ADMIN_USER_ID = query.AdminUserId,
-                    ROLE_CODE = (string?)null
+                    ROLE_ID = query.RoleId
                 },
                 commandType: CommandType.StoredProcedure)).ToList();
 
@@ -178,7 +178,6 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                     Email = (string)row.EMAIL,
                     FirstName = (string)row.FIRST_NAME,
                     LastName = (string?)row.LAST_NAME ?? string.Empty,
-                    FullName = $"{row.FIRST_NAME} {row.LAST_NAME}".Trim(),
                     CountryCode = (string?)row.COUNTRY_CODE,
                     MobileNumber = (string?)row.MOBILE_NUMBER,
                     ProfileImageUrl = (string?)row.PROFILE_IMAGE_URL,
@@ -188,6 +187,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                     AdminStatus = (string)row.ADMIN_STATUS,
                     IsDeleted = (bool)row.IS_DELETED,
                     DeletedAt = (DateTime?)row.DELETED_AT,
+                    RoleId = row.ROLE_ID != null ? (int?)row.ROLE_ID : null,
                     Role = (string?)row.ROLE ?? string.Empty,
                     CreatedAt = (DateTime)row.CREATED_AT,
                     UpdatedAt = (DateTime?)row.UPDATED_AT

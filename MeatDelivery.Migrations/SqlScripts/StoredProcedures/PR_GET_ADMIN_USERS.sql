@@ -29,6 +29,11 @@ BEGIN
         u.LAST_LOGIN_AT,
         u.CREATED_AT,
         u.UPDATED_AT,
+        (
+            SELECT TOP 1 ur.ROLE_ID
+            FROM dbo.ADMIN_USER_ROLES ur
+            WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
+        ) AS ROLE_ID,
         ISNULL((
             SELECT TOP 1 r.ROLE_CODE
             FROM dbo.ADMIN_USER_ROLES ur
