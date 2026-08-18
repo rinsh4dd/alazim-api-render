@@ -152,6 +152,8 @@ namespace MeatDelivery.Infrastructure
             // Product & Measurement Unit Services & Repositories
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Product.IMeasurementUnitRepository, MeatDelivery.Infrastructure.Repositories.Catalog.MeasurementUnitRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Product.IMeasurementUnitService, MeatDelivery.Infrastructure.Services.Catalog.MeasurementUnitService>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Product.IProductRepository, MeatDelivery.Infrastructure.Repositories.Catalog.ProductRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Product.IProductService, MeatDelivery.Infrastructure.Services.Catalog.ProductService>();
 
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();
