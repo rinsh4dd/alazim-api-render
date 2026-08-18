@@ -1,7 +1,6 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_PRODUCT
--- Description: Unified CUD procedure for products (ADD, EDIT, and DELETE modes),
---              with soft deletion and child cleanup.
+-- Migration: 0036_Update_PR_SAVE_PRODUCT_Clear_Children.sql
+-- Description: Updates PR_SAVE_PRODUCT to handle child cleanup directly.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT
@@ -50,7 +49,7 @@ BEGIN
                 @DOC_NO = @DOC_NO OUTPUT;
         END;
 
-        IF EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE DOC_NO = @DOC_NO AND IS_DELETED = 0)
+        IF EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE DOC_NO = @DOC_NO)
         BEGIN
             RAISERROR('Product document number (DocNo) already exists.', 16, 1);
             RETURN;
@@ -64,7 +63,7 @@ BEGIN
             NUTRITION_INFORMATION_EN, NUTRITION_INFORMATION_AR,
             STORAGE_INSTRUCTIONS_EN, STORAGE_INSTRUCTIONS_AR,
             IS_CUSTOMIZABLE, CUSTOMIZATION_TEMPLATE_ID, DISPLAY_ORDER,
-            IS_FEATURED, IS_BESTSELLER, IS_ACTIVE, IS_DELETED, CREATED_AT
+            IS_FEATURED, IS_BESTSELLER, IS_ACTIVE, CREATED_AT
         )
         VALUES
         (
@@ -74,7 +73,7 @@ BEGIN
             @NUTRITION_INFORMATION_EN, @NUTRITION_INFORMATION_AR,
             @STORAGE_INSTRUCTIONS_EN, @STORAGE_INSTRUCTIONS_AR,
             ISNULL(@IS_CUSTOMIZABLE, 0), @CUSTOMIZATION_TEMPLATE_ID, ISNULL(@DISPLAY_ORDER, 0),
-            ISNULL(@IS_FEATURED, 0), ISNULL(@IS_BESTSELLER, 0), ISNULL(@IS_ACTIVE, 1), 0, SYSUTCDATETIME()
+            ISNULL(@IS_FEATURED, 0), ISNULL(@IS_BESTSELLER, 0), ISNULL(@IS_ACTIVE, 1), SYSUTCDATETIME()
         );
 
         SET @PRODUCT_ID = CAST(SCOPE_IDENTITY() AS BIGINT);
@@ -94,7 +93,6 @@ BEGIN
             p.IS_CUSTOMIZABLE AS IsCustomizable, p.CUSTOMIZATION_TEMPLATE_ID AS CustomizationTemplateId,
             p.DISPLAY_ORDER AS DisplayOrder, p.IS_FEATURED AS IsFeatured,
             p.IS_BESTSELLER AS IsBestseller, p.IS_ACTIVE AS IsActive,
-            p.IS_DELETED AS IsDeleted, p.DELETED_AT AS DeletedAt,
             p.CREATED_AT AS CreatedAt, p.UPDATED_AT AS UpdatedAt
         FROM dbo.PRODUCTS p
         LEFT JOIN dbo.CATEGORIES c ON p.CATEGORY_ID = c.CATEGORY_ID
@@ -108,7 +106,7 @@ BEGIN
     -- =========================================================================
     IF @MODE = 'EDIT'
     BEGIN
-        IF EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE DOC_NO = @DOC_NO AND PRODUCT_ID <> @PRODUCT_ID AND IS_DELETED = 0)
+        IF EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE DOC_NO = @DOC_NO AND PRODUCT_ID <> @PRODUCT_ID)
         BEGIN
             RAISERROR('Product document number (DocNo) already exists.', 16, 1);
             RETURN;
@@ -138,7 +136,7 @@ BEGIN
             IS_BESTSELLER = ISNULL(@IS_BESTSELLER, IS_BESTSELLER),
             IS_ACTIVE = ISNULL(@IS_ACTIVE, IS_ACTIVE),
             UPDATED_AT = SYSUTCDATETIME()
-        WHERE PRODUCT_ID = @PRODUCT_ID AND IS_DELETED = 0;
+        WHERE PRODUCT_ID = @PRODUCT_ID;
 
         IF ISNULL(@CLEAR_WEIGHTS, 0) = 1
         BEGIN
@@ -166,7 +164,6 @@ BEGIN
             p.IS_CUSTOMIZABLE AS IsCustomizable, p.CUSTOMIZATION_TEMPLATE_ID AS CustomizationTemplateId,
             p.DISPLAY_ORDER AS DisplayOrder, p.IS_FEATURED AS IsFeatured,
             p.IS_BESTSELLER AS IsBestseller, p.IS_ACTIVE AS IsActive,
-            p.IS_DELETED AS IsDeleted, p.DELETED_AT AS DeletedAt,
             p.CREATED_AT AS CreatedAt, p.UPDATED_AT AS UpdatedAt
         FROM dbo.PRODUCTS p
         LEFT JOIN dbo.CATEGORIES c ON p.CATEGORY_ID = c.CATEGORY_ID
@@ -176,16 +173,14 @@ BEGIN
     END;
 
     -- =========================================================================
-    -- MODE: DELETE (SOFT DELETE)
+    -- MODE: DELETE
     -- =========================================================================
     IF @MODE = 'DELETE'
     BEGIN
-        UPDATE dbo.PRODUCTS
-        SET IS_DELETED = 1,
-            IS_ACTIVE = 0,
-            DELETED_AT = SYSUTCDATETIME(),
-            UPDATED_AT = SYSUTCDATETIME()
-        WHERE PRODUCT_ID = @PRODUCT_ID;
+        DELETE FROM dbo.PRODUCT_PRICES WHERE PRODUCT_ID = @PRODUCT_ID;
+        DELETE FROM dbo.PRODUCT_WEIGHT_OPTIONS WHERE PRODUCT_ID = @PRODUCT_ID;
+        DELETE FROM dbo.PRODUCT_IMAGES WHERE PRODUCT_ID = @PRODUCT_ID;
+        DELETE FROM dbo.PRODUCTS WHERE PRODUCT_ID = @PRODUCT_ID;
 
         SELECT @PRODUCT_ID AS ProductId;
         RETURN;

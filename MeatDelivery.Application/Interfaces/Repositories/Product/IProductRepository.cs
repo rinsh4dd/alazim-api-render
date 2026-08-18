@@ -1,11 +1,13 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.DTOs.Product;
+using MeatDelivery.Shared.Responses;
 
 namespace MeatDelivery.Application.Interfaces.Repositories.Product
 {
     public interface IProductRepository
     {
         Task<ProductDto?> SaveProductFullAsync(SaveProductDto request, CancellationToken cancellationToken = default);
+        Task<PagedResponse<ProductDto>> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default);
     }
 }

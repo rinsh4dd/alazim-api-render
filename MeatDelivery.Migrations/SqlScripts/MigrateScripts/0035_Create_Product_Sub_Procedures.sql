@@ -1,0 +1,181 @@
+-- =============================================================================
+-- Migration: 0035_Create_Product_Sub_Procedures.sql
+-- Description: Creates stored procedures PR_GET_PRODUCT_BY_ID, PR_SAVE_PRODUCT_WEIGHT_OPTION,
+--              PR_SAVE_PRODUCT_IMAGE, and PR_CLEAR_PRODUCT_CHILDREN.
+-- =============================================================================
+
+-- 1. PR_GET_PRODUCT_BY_ID
+CREATE OR ALTER PROCEDURE dbo.PR_GET_PRODUCT_BY_ID
+    @PRODUCT_ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        p.PRODUCT_ID AS ProductId,
+        p.CATEGORY_ID AS CategoryId,
+        c.CATEGORY_NAME_EN AS CategoryNameEn,
+        p.DOC_NO AS DocNo,
+        p.DOC_TYPE AS DocType,
+        p.PRODUCT_NAME_EN AS ProductNameEn,
+        p.PRODUCT_NAME_AR AS ProductNameAr,
+        p.DESCRIPTION_EN AS DescriptionEn,
+        p.DESCRIPTION_AR AS DescriptionAr,
+        p.COUNTRY_OF_ORIGIN AS CountryOfOrigin,
+        p.IS_HALAL_CERTIFIED AS IsHalalCertified,
+        p.HALAL_CERTIFICATE_NO AS HalalCertificateNo,
+        p.HALAL_CERTIFICATE_URL AS HalalCertificateUrl,
+        p.NUTRITION_INFORMATION_EN AS NutritionInformationEn,
+        p.NUTRITION_INFORMATION_AR AS NutritionInformationAr,
+        p.STORAGE_INSTRUCTIONS_EN AS StorageInstructionsEn,
+        p.STORAGE_INSTRUCTIONS_AR AS StorageInstructionsAr,
+        p.IS_CUSTOMIZABLE AS IsCustomizable,
+        p.CUSTOMIZATION_TEMPLATE_ID AS CustomizationTemplateId,
+        p.DISPLAY_ORDER AS DisplayOrder,
+        p.IS_FEATURED AS IsFeatured,
+        p.IS_BESTSELLER AS IsBestseller,
+        p.IS_ACTIVE AS IsActive,
+        p.CREATED_AT AS CreatedAt,
+        p.UPDATED_AT AS UpdatedAt
+    FROM dbo.PRODUCTS p
+    LEFT JOIN dbo.CATEGORIES c ON p.CATEGORY_ID = c.CATEGORY_ID
+    WHERE p.PRODUCT_ID = @PRODUCT_ID;
+
+    SELECT
+        w.PRODUCT_WEIGHT_OPTION_ID AS ProductWeightOptionId,
+        w.PRODUCT_ID AS ProductId,
+        w.UNIT_ID AS UnitId,
+        u.UNIT AS Unit,
+        u.UNIT_DESCRIPTION AS UnitDescription,
+        w.UNIT_VALUE AS UnitValue,
+        w.IS_CUSTOM_WEIGHT AS IsCustomWeight,
+        w.MIN_WEIGHT AS MinWeight,
+        w.MAX_WEIGHT AS MaxWeight,
+        w.MIN_ORDER_QUANTITY AS MinOrderQuantity,
+        w.MAX_ORDER_QUANTITY AS MaxOrderQuantity,
+        w.QUANTITY_INCREMENT AS QuantityIncrement,
+        w.IS_DEFAULT AS IsDefault,
+        w.DISPLAY_ORDER AS DisplayOrder,
+        w.IS_ACTIVE AS IsActive,
+        pr.PRODUCT_PRICE_ID AS ProductPriceId,
+        pr.PRICE_TYPE AS PriceType,
+        pr.REGULAR_PRICE AS RegularPrice,
+        pr.DISCOUNT_PRICE AS DiscountPrice,
+        pr.CURRENCY_CODE AS CurrencyCode
+    FROM dbo.PRODUCT_WEIGHT_OPTIONS w
+    INNER JOIN dbo.MEASUREMENT_UNITS u ON w.UNIT_ID = u.UNIT_ID
+    LEFT JOIN dbo.PRODUCT_PRICES pr ON w.PRODUCT_WEIGHT_OPTION_ID = pr.PRODUCT_WEIGHT_OPTION_ID
+    WHERE w.PRODUCT_ID = @PRODUCT_ID
+    ORDER BY w.DISPLAY_ORDER ASC, w.PRODUCT_WEIGHT_OPTION_ID ASC;
+
+    SELECT
+        PRODUCT_IMAGE_ID AS ProductImageId,
+        PRODUCT_ID AS ProductId,
+        IMAGE_URL AS ImageUrl,
+        IS_PRIMARY AS IsPrimary,
+        DISPLAY_ORDER AS DisplayOrder,
+        IS_ACTIVE AS IsActive
+    FROM dbo.PRODUCT_IMAGES
+    WHERE PRODUCT_ID = @PRODUCT_ID
+    ORDER BY IS_PRIMARY DESC, DISPLAY_ORDER ASC;
+END;
+GO
+
+-- 2. PR_SAVE_PRODUCT_WEIGHT_OPTION
+CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT_WEIGHT_OPTION
+    @PRODUCT_ID                 BIGINT,
+    @UNIT_ID                    INT,
+    @UNIT_VALUE                 DECIMAL(10,3) = NULL,
+    @IS_CUSTOM_WEIGHT           BIT = 0,
+    @MIN_WEIGHT                 DECIMAL(10,3) = NULL,
+    @MAX_WEIGHT                 DECIMAL(10,3) = NULL,
+    @MIN_ORDER_QUANTITY         DECIMAL(18,3) = 1.0,
+    @MAX_ORDER_QUANTITY         DECIMAL(18,3) = NULL,
+    @QUANTITY_INCREMENT         DECIMAL(18,3) = 1.0,
+    @IS_DEFAULT                 BIT = 0,
+    @DISPLAY_ORDER              INT = 0,
+    @IS_ACTIVE                  BIT = 1,
+    @PRICE_TYPE                 VARCHAR(20) = 'FIXED',
+    @REGULAR_PRICE              DECIMAL(18,2),
+    @DISCOUNT_PRICE             DECIMAL(18,2) = NULL,
+    @CURRENCY_CODE              VARCHAR(10) = 'AED'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    DECLARE @WEIGHT_OPTION_ID BIGINT;
+
+    INSERT INTO dbo.PRODUCT_WEIGHT_OPTIONS
+    (
+        PRODUCT_ID, UNIT_ID, UNIT_VALUE, IS_CUSTOM_WEIGHT, MIN_WEIGHT, MAX_WEIGHT,
+        MIN_ORDER_QUANTITY, MAX_ORDER_QUANTITY, QUANTITY_INCREMENT, IS_DEFAULT, DISPLAY_ORDER, IS_ACTIVE, CREATED_AT
+    )
+    VALUES
+    (
+        @PRODUCT_ID, @UNIT_ID, @UNIT_VALUE, ISNULL(@IS_CUSTOM_WEIGHT, 0), @MIN_WEIGHT, @MAX_WEIGHT,
+        ISNULL(@MIN_ORDER_QUANTITY, 1.0), @MAX_ORDER_QUANTITY, ISNULL(@QUANTITY_INCREMENT, 1.0),
+        ISNULL(@IS_DEFAULT, 0), ISNULL(@DISPLAY_ORDER, 0), ISNULL(@IS_ACTIVE, 1), SYSUTCDATETIME()
+    );
+
+    SET @WEIGHT_OPTION_ID = SCOPE_IDENTITY();
+
+    INSERT INTO dbo.PRODUCT_PRICES
+    (
+        PRODUCT_ID, PRODUCT_WEIGHT_OPTION_ID, PRICE_TYPE, REGULAR_PRICE, DISCOUNT_PRICE, CURRENCY_CODE, IS_ACTIVE, CREATED_AT
+    )
+    VALUES
+    (
+        @PRODUCT_ID, @WEIGHT_OPTION_ID, ISNULL(@PRICE_TYPE, 'FIXED'), @REGULAR_PRICE, @DISCOUNT_PRICE, ISNULL(@CURRENCY_CODE, 'AED'), ISNULL(@IS_ACTIVE, 1), SYSUTCDATETIME()
+    );
+
+    SELECT @WEIGHT_OPTION_ID AS ProductWeightOptionId;
+END;
+GO
+
+-- 3. PR_SAVE_PRODUCT_IMAGE
+CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT_IMAGE
+    @PRODUCT_ID     BIGINT,
+    @IMAGE_URL      VARCHAR(500),
+    @IS_PRIMARY     BIT = 0,
+    @DISPLAY_ORDER  INT = 0,
+    @IS_ACTIVE      BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO dbo.PRODUCT_IMAGES
+    (
+        PRODUCT_ID, IMAGE_URL, IS_PRIMARY, DISPLAY_ORDER, IS_ACTIVE, CREATED_AT
+    )
+    VALUES
+    (
+        @PRODUCT_ID, @IMAGE_URL, ISNULL(@IS_PRIMARY, 0), ISNULL(@DISPLAY_ORDER, 0), ISNULL(@IS_ACTIVE, 1), SYSUTCDATETIME()
+    );
+
+    SELECT SCOPE_IDENTITY() AS ProductImageId;
+END;
+GO
+
+-- 4. PR_CLEAR_PRODUCT_CHILDREN
+CREATE OR ALTER PROCEDURE dbo.PR_CLEAR_PRODUCT_CHILDREN
+    @PRODUCT_ID     BIGINT,
+    @CLEAR_WEIGHTS  BIT = 1,
+    @CLEAR_IMAGES   BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    IF ISNULL(@CLEAR_WEIGHTS, 1) = 1
+    BEGIN
+        DELETE FROM dbo.PRODUCT_PRICES WHERE PRODUCT_ID = @PRODUCT_ID;
+        DELETE FROM dbo.PRODUCT_WEIGHT_OPTIONS WHERE PRODUCT_ID = @PRODUCT_ID;
+    END;
+
+    IF ISNULL(@CLEAR_IMAGES, 1) = 1
+    BEGIN
+        DELETE FROM dbo.PRODUCT_IMAGES WHERE PRODUCT_ID = @PRODUCT_ID;
+    END;
+END;
+GO

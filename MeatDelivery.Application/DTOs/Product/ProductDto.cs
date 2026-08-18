@@ -28,6 +28,10 @@ namespace MeatDelivery.Application.DTOs.Product
         public bool IsFeatured { get; set; }
         public bool IsBestseller { get; set; }
         public bool IsActive { get; set; }
+        public bool IsDeleted { get; set; }
+        public DateTime? DeletedAt { get; set; }
+        public bool IsWishlisted { get; set; }
+        public bool IsRecentlyOrdered { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
 

@@ -1,9 +1,24 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_PRODUCT
--- Description: Unified CUD procedure for products (ADD, EDIT, and DELETE modes),
---              with soft deletion and child cleanup.
+-- Migration: 0038_Add_Soft_Delete_To_Products.sql
+-- Description: Adds IS_DELETED and DELETED_AT columns to dbo.PRODUCTS and
+--              updates PR_SAVE_PRODUCT to perform soft delete.
 -- =============================================================================
 
+-- 1. Add IS_DELETED column if not exists
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.PRODUCTS') AND name = 'IS_DELETED')
+BEGIN
+    ALTER TABLE dbo.PRODUCTS ADD IS_DELETED BIT NOT NULL DEFAULT 0;
+END;
+GO
+
+-- 2. Add DELETED_AT column if not exists
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.PRODUCTS') AND name = 'DELETED_AT')
+BEGIN
+    ALTER TABLE dbo.PRODUCTS ADD DELETED_AT DATETIME2 NULL;
+END;
+GO
+
+-- 3. Update PR_SAVE_PRODUCT with soft delete for MODE = 'DELETE'
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT
     @MODE                       VARCHAR(10),
     @PRODUCT_ID                 BIGINT = NULL,

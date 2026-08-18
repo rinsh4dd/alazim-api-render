@@ -1,7 +1,6 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_CATEGORY
--- Description: Unified CUD procedure for categories (ADD, EDIT, DELETE modes),
---              with active product validation prior to deletion.
+-- Migration: 0039_Prevent_Category_Delete_With_Products.sql
+-- Description: Updates PR_SAVE_CATEGORY to prevent deleting a category if active products exist.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_CATEGORY
@@ -20,9 +19,7 @@ BEGIN
     SET NOCOUNT ON;
     SET XACT_ABORT ON;
 
-    -- =========================================================================
     -- MODE: ADD
-    -- =========================================================================
     IF @MODE = 'ADD'
     BEGIN
         INSERT INTO dbo.CATEGORIES
@@ -70,9 +67,7 @@ BEGIN
         RETURN;
     END;
 
-    -- =========================================================================
     -- MODE: EDIT
-    -- =========================================================================
     IF @MODE = 'EDIT'
     BEGIN
         UPDATE dbo.CATEGORIES
@@ -106,9 +101,7 @@ BEGIN
         RETURN;
     END;
 
-    -- =========================================================================
     -- MODE: DELETE
-    -- =========================================================================
     IF @MODE = 'DELETE'
     BEGIN
         IF EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE CATEGORY_ID = @CATEGORY_ID AND (IS_DELETED = 0 OR IS_DELETED IS NULL))

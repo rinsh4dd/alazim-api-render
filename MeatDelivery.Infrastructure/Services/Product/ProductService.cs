@@ -43,8 +43,8 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     return ApiResponse<ProductDto>.SuccessResponse(null!, "Product deleted successfully.");
                 }
 
-                var fullProduct = await _productRepository.SaveProductFullAsync(request, cancellationToken);
-                if (fullProduct == null)
+                var productMaster = await _productRepository.SaveProductFullAsync(request, cancellationToken);
+                if (productMaster == null)
                 {
                     return ApiResponse<ProductDto>.FailureResponse("Failed to save product record.");
                 }
@@ -56,12 +56,18 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     _ => "Operation completed successfully."
                 };
 
-                return ApiResponse<ProductDto>.SuccessResponse(fullProduct, message);
+                return ApiResponse<ProductDto>.SuccessResponse(productMaster, message);
             }
             catch (Exception ex)
             {
                 return ApiResponse<ProductDto>.FailureResponse(ex.Message);
             }
+        }
+
+        public async Task<PagedResponse<ProductDto>> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(query);
+            return await _productRepository.GetProductsAsync(query, cancellationToken);
         }
     }
 }
