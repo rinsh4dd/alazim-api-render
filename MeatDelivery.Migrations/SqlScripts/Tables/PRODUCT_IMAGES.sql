@@ -1,0 +1,24 @@
+-- =============================================================================
+-- TABLE: dbo.PRODUCT_IMAGES
+-- Description: Multi-image gallery storage for product media.
+-- =============================================================================
+
+CREATE TABLE dbo.PRODUCT_IMAGES
+(
+    PRODUCT_IMAGE_ID    BIGINT IDENTITY(1,1) NOT NULL,
+    PRODUCT_ID          BIGINT NOT NULL,
+    IMAGE_URL           VARCHAR(500) NOT NULL,
+    IS_PRIMARY          BIT NOT NULL DEFAULT 0,
+    DISPLAY_ORDER       INT NOT NULL DEFAULT 0,
+    IS_ACTIVE           BIT NOT NULL DEFAULT 1,
+    CREATED_AT          DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UPDATED_AT          DATETIME2 NULL,
+
+    CONSTRAINT PK_PRODUCT_IMAGES PRIMARY KEY CLUSTERED (PRODUCT_IMAGE_ID),
+    CONSTRAINT FK_PRODUCT_IMAGES_PRODUCT FOREIGN KEY (PRODUCT_ID) 
+        REFERENCES dbo.PRODUCTS (PRODUCT_ID) ON DELETE CASCADE
+);
+
+CREATE NONCLUSTERED INDEX IX_PRODUCT_IMAGES_PRODUCT 
+    ON dbo.PRODUCT_IMAGES (PRODUCT_ID, IS_ACTIVE, DISPLAY_ORDER);
+GO

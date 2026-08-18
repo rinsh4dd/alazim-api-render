@@ -1,0 +1,33 @@
+-- =============================================================================
+-- TABLE: dbo.PRODUCT_WEIGHT_OPTIONS
+-- Description: Predefined and custom weight/packaging options for products.
+-- =============================================================================
+
+CREATE TABLE dbo.PRODUCT_WEIGHT_OPTIONS
+(
+    PRODUCT_WEIGHT_OPTION_ID    BIGINT IDENTITY(1,1) NOT NULL,
+    PRODUCT_ID                  BIGINT NOT NULL,
+    UNIT_ID                     INT NOT NULL,
+    UNIT_VALUE                  DECIMAL(10,3) NULL,          -- e.g., 500, 750, 1, 2
+    IS_CUSTOM_WEIGHT            BIT NOT NULL DEFAULT 0,
+    MIN_WEIGHT                  DECIMAL(10,3) NULL,          -- Allowed range for custom weight
+    MAX_WEIGHT                  DECIMAL(10,3) NULL,
+    MIN_ORDER_QUANTITY          DECIMAL(18,3) NOT NULL DEFAULT 1.0,
+    MAX_ORDER_QUANTITY          DECIMAL(18,3) NULL,
+    QUANTITY_INCREMENT          DECIMAL(18,3) NOT NULL DEFAULT 1.0,
+    IS_DEFAULT                  BIT NOT NULL DEFAULT 0,
+    DISPLAY_ORDER               INT NOT NULL DEFAULT 0,
+    IS_ACTIVE                   BIT NOT NULL DEFAULT 1,
+    CREATED_AT                  DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UPDATED_AT                  DATETIME2 NULL,
+
+    CONSTRAINT PK_PRODUCT_WEIGHT_OPTIONS PRIMARY KEY CLUSTERED (PRODUCT_WEIGHT_OPTION_ID),
+    CONSTRAINT FK_PRODUCT_WEIGHT_OPTIONS_PRODUCT FOREIGN KEY (PRODUCT_ID) 
+        REFERENCES dbo.PRODUCTS (PRODUCT_ID) ON DELETE CASCADE,
+    CONSTRAINT FK_PRODUCT_WEIGHT_OPTIONS_UNIT FOREIGN KEY (UNIT_ID) 
+        REFERENCES dbo.MEASUREMENT_UNITS (UNIT_ID)
+);
+
+CREATE NONCLUSTERED INDEX IX_PRODUCT_WEIGHT_OPTIONS_PRODUCT 
+    ON dbo.PRODUCT_WEIGHT_OPTIONS (PRODUCT_ID, IS_ACTIVE);
+GO
