@@ -1,9 +1,50 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_ADMIN_USER
--- Description: Unified CUD procedure for creating, updating, or soft-deleting admin accounts.
---              Accepts @ROLE_ID (INT) instead of @ROLE_CODE (string).
+-- Migration: 0020_Add_Nationality_Dob_Address_To_Admin_Users.sql
+-- Description:
+-- 1. Adds NATIONALITY, DOB, and ADDRESS columns to dbo.ADMIN_USERS
+-- 2. Updates stored procedures PR_SAVE_ADMIN_USER, PR_GET_ADMIN_USERS,
+--    PR_ADMIN_GET_PROFILE, and PR_ADMIN_AUTH_GET_BY_EMAIL to support new columns.
 -- =============================================================================
 
+-- -----------------------------------------------------------------------------
+-- 1. ADD NEW COLUMNS TO dbo.ADMIN_USERS
+-- -----------------------------------------------------------------------------
+IF NOT EXISTS (
+    SELECT 1 
+    FROM sys.columns 
+    WHERE object_id = OBJECT_ID('dbo.ADMIN_USERS') 
+      AND name = 'NATIONALITY'
+)
+BEGIN
+    ALTER TABLE dbo.ADMIN_USERS ADD NATIONALITY VARCHAR(100) NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT 1 
+    FROM sys.columns 
+    WHERE object_id = OBJECT_ID('dbo.ADMIN_USERS') 
+      AND name = 'DOB'
+)
+BEGIN
+    ALTER TABLE dbo.ADMIN_USERS ADD DOB DATE NULL;
+END;
+GO
+
+IF NOT EXISTS (
+    SELECT 1 
+    FROM sys.columns 
+    WHERE object_id = OBJECT_ID('dbo.ADMIN_USERS') 
+      AND name = 'ADDRESS'
+)
+BEGIN
+    ALTER TABLE dbo.ADMIN_USERS ADD ADDRESS NVARCHAR(MAX) NULL;
+END;
+GO
+
+-- -----------------------------------------------------------------------------
+-- 2. UPDATE PR_SAVE_ADMIN_USER
+-- -----------------------------------------------------------------------------
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_ADMIN_USER
     @MODE                   VARCHAR(10),        -- 'ADD', 'EDIT', 'DELETE'
     @ADMIN_USER_ID          BIGINT = NULL,
@@ -241,5 +282,148 @@ BEGIN
     END;
 
     THROW 50008, 'Invalid operation mode. Expected ADD, EDIT, or DELETE.', 1;
+END;
+GO
+
+-- -----------------------------------------------------------------------------
+-- 3. UPDATE PR_GET_ADMIN_USERS
+-- -----------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.PR_GET_ADMIN_USERS
+    @ADMIN_USER_ID      BIGINT = NULL,
+    @ROLE_ID            INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT 
+        u.ADMIN_USER_ID,
+        u.DOCTYPE,
+        u.DOC_NO,
+        u.EMAIL,
+        u.FIRST_NAME,
+        u.LAST_NAME,
+        u.COUNTRY_CODE,
+        u.MOBILE_NUMBER,
+        u.PROFILE_IMAGE_URL,
+        u.NATIONALITY,
+        u.DOB,
+        u.ADDRESS,
+        u.ADMIN_STATUS,
+        u.IS_DELETED,
+        u.DELETED_AT,
+        u.LAST_LOGIN_AT,
+        u.CREATED_AT,
+        u.UPDATED_AT,
+        ISNULL((
+            SELECT TOP 1 r.ROLE_CODE
+            FROM dbo.ADMIN_USER_ROLES ur
+            INNER JOIN dbo.ROLES r ON ur.ROLE_ID = r.ROLE_ID
+            WHERE ur.ADMIN_USER_ID = u.ADMIN_USER_ID
+        ), '') AS ROLE
+    FROM dbo.ADMIN_USERS u
+    WHERE (@ADMIN_USER_ID IS NULL OR u.ADMIN_USER_ID = @ADMIN_USER_ID)
+      AND (u.IS_DELETED = 0 OR u.IS_DELETED IS NULL)
+      AND (
+          @ROLE_ID IS NULL
+          OR EXISTS (
+              SELECT 1 
+              FROM dbo.ADMIN_USER_ROLES ur2
+              WHERE ur2.ADMIN_USER_ID = u.ADMIN_USER_ID
+                AND ur2.ROLE_ID = @ROLE_ID
+          )
+      )
+    ORDER BY u.ADMIN_USER_ID DESC;
+END;
+GO
+
+-- -----------------------------------------------------------------------------
+-- 4. UPDATE PR_ADMIN_GET_PROFILE
+-- -----------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.PR_ADMIN_GET_PROFILE
+    @ADMIN_USER_ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Return Admin Profile
+    SELECT 
+        u.ADMIN_USER_ID AS AdminUserId,
+        u.DOCTYPE AS DocType,
+        u.DOC_NO AS DocNo,
+        u.EMAIL AS Email,
+        u.FIRST_NAME AS FirstName,
+        u.LAST_NAME AS LastName,
+        ISNULL(LTRIM(RTRIM(ISNULL(u.FIRST_NAME, '') + ' ' + ISNULL(u.LAST_NAME, ''))), '') AS FullName,
+        u.COUNTRY_CODE AS CountryCode,
+        u.MOBILE_NUMBER AS MobileNumber,
+        u.PROFILE_IMAGE_URL AS ProfileImageUrl,
+        u.NATIONALITY AS Nationality,
+        u.DOB AS Dob,
+        u.ADDRESS AS Address,
+        u.ADMIN_STATUS AS AdminStatus,
+        u.LAST_LOGIN_AT AS LastLoginAt,
+        u.CREATED_AT AS CreatedAt,
+        u.UPDATED_AT AS UpdatedAt
+    FROM dbo.ADMIN_USERS u
+    WHERE u.ADMIN_USER_ID = @ADMIN_USER_ID;
+
+    -- Return Roles
+    SELECT 
+        r.ROLE_CODE AS RoleCode,
+        r.ROLE_NAME AS RoleName,
+        r.DESCRIPTION AS Description
+    FROM dbo.ADMIN_USER_ROLES ur
+    INNER JOIN dbo.ROLES r ON r.ROLE_ID = ur.ROLE_ID AND r.IS_ACTIVE = 1
+    WHERE ur.ADMIN_USER_ID = @ADMIN_USER_ID AND ur.IS_ACTIVE = 1;
+END;
+GO
+
+-- -----------------------------------------------------------------------------
+-- 5. UPDATE PR_ADMIN_AUTH_GET_BY_EMAIL
+-- -----------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE dbo.PR_ADMIN_AUTH_GET_BY_EMAIL
+    @EMAIL VARCHAR(150)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- Return Admin User Data
+    SELECT 
+        u.ADMIN_USER_ID AS AdminUserId,
+        u.DOCTYPE AS DocType,
+        u.DOC_NO AS DocNo,
+        u.EMAIL AS Email,
+        u.PASSWORD_HASH AS PasswordHash,
+        u.FIRST_NAME AS FirstName,
+        u.LAST_NAME AS LastName,
+        ISNULL(LTRIM(RTRIM(ISNULL(u.FIRST_NAME, '') + ' ' + ISNULL(u.LAST_NAME, ''))), '') AS FullName,
+        u.COUNTRY_CODE AS CountryCode,
+        u.MOBILE_NUMBER AS MobileNumber,
+        u.PROFILE_IMAGE_URL AS ProfileImageUrl,
+        u.NATIONALITY AS Nationality,
+        u.DOB AS Dob,
+        u.ADDRESS AS Address,
+        u.ADMIN_STATUS AS AdminStatus,
+        u.FAILED_LOGIN_COUNT AS FailedLoginCount,
+        u.LOCKED_UNTIL AS LockedUntil,
+        u.LAST_LOGIN_AT AS LastLoginAt,
+        u.PASSWORD_CHANGED_AT AS PasswordChangedAt,
+        u.IS_DELETED AS IsDeleted,
+        u.DELETED_AT AS DeletedAt,
+        u.CREATED_AT AS CreatedAt,
+        u.UPDATED_AT AS UpdatedAt
+    FROM dbo.ADMIN_USERS u
+    WHERE u.EMAIL = @EMAIL
+      AND (u.IS_DELETED = 0 OR u.IS_DELETED IS NULL);
+
+    -- Return Assigned Roles
+    SELECT 
+        r.ROLE_CODE AS RoleCode,
+        r.ROLE_NAME AS RoleName
+    FROM dbo.ADMIN_USERS u
+    INNER JOIN dbo.ADMIN_USER_ROLES ur ON ur.ADMIN_USER_ID = u.ADMIN_USER_ID AND ur.IS_ACTIVE = 1
+    INNER JOIN dbo.ROLES r ON r.ROLE_ID = ur.ROLE_ID AND r.IS_ACTIVE = 1
+    WHERE u.EMAIL = @EMAIL
+      AND (u.IS_DELETED = 0 OR u.IS_DELETED IS NULL);
 END;
 GO

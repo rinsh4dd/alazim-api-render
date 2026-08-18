@@ -1,6 +1,8 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_GET_ADMIN_USERS
--- Description: Retrieves admin/staff users (optionally filtered by AdminUserId or RoleId).
+-- Migration: 0019_Fix_PR_GET_ADMIN_USERS_RoleId
+-- Date: 2026-08-18
+-- Description: Changes PR_GET_ADMIN_USERS to accept @ROLE_ID (INT) instead 
+--              of @ROLE_CODE (VARCHAR). Filters by role ID directly.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_GET_ADMIN_USERS
@@ -20,9 +22,6 @@ BEGIN
         u.COUNTRY_CODE,
         u.MOBILE_NUMBER,
         u.PROFILE_IMAGE_URL,
-        u.NATIONALITY,
-        u.DOB,
-        u.ADDRESS,
         u.ADMIN_STATUS,
         u.IS_DELETED,
         u.DELETED_AT,

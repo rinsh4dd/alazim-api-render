@@ -42,8 +42,11 @@ namespace MeatDelivery.UnitTests.Services
                 LastName = "Al Mansoori",
                 CountryCode = "+971",
                 MobileNumber = "501234567",
-                AdminStatus = AdminStatus.ACTIVE,
-                Role = AdminRole.ORDER_MANAGER
+                Nationality = "Emirati",
+                Dob = new DateTime(1990, 5, 15),
+                Address = "Dubai, UAE",
+                AdminStatus = "ACTIVE",
+                RoleId = 2
             };
 
             _passwordHasherMock.Setup(h => h.Hash("Manager@2026!"))
@@ -60,6 +63,9 @@ namespace MeatDelivery.UnitTests.Services
                 FullName = "Ahmed Al Mansoori",
                 CountryCode = "+971",
                 MobileNumber = "501234567",
+                Nationality = "Emirati",
+                Dob = new DateTime(1990, 5, 15),
+                Address = "Dubai, UAE",
                 AdminStatus = "ACTIVE",
                 IsDeleted = false,
                 Role = "ORDER_MANAGER",
@@ -83,6 +89,9 @@ namespace MeatDelivery.UnitTests.Services
             Assert.Equal("ADM0000002", result.Data?.DocNo);
             Assert.Equal(2, result.Data?.AdminUserId);
             Assert.Equal("Ahmed Al Mansoori", result.Data?.FullName);
+            Assert.Equal("Emirati", result.Data?.Nationality);
+            Assert.Equal(new DateTime(1990, 5, 15), result.Data?.Dob);
+            Assert.Equal("Dubai, UAE", result.Data?.Address);
             Assert.Equal("ORDER_MANAGER", result.Data?.Role);
         }
 
@@ -96,7 +105,7 @@ namespace MeatDelivery.UnitTests.Services
                 AdminUserId = 2,
                 FirstName = "Ahmed Updated",
                 LastName = "Al Mansoori",
-                Role = AdminRole.INVENTORY_MANAGER
+                RoleId = (int)AdminRole.INVENTORY_MANAGER
             };
 
             var expectedResponse = new SaveAdminUserResponseDto
@@ -178,7 +187,7 @@ namespace MeatDelivery.UnitTests.Services
                 Email = "not-an-email",
                 Password = "Manager@2026!",
                 FirstName = "Ahmed",
-                Role = AdminRole.INVENTORY_MANAGER
+                RoleId = (int)AdminRole.INVENTORY_MANAGER
             };
 
             // Act
@@ -194,7 +203,7 @@ namespace MeatDelivery.UnitTests.Services
         public async Task GetAdminUsersAsync_ValidQuery_ReturnsList()
         {
             // Arrange
-            var query = new GetAdminUsersQueryDto { Role = AdminRole.SUPER_ADMIN };
+            var query = new GetAdminUsersQueryDto { RoleId = (int)AdminRole.SUPER_ADMIN };
             var list = new List<SaveAdminUserResponseDto>
             {
                 new() { AdminUserId = 1, DocType = "ADM1", DocNo = "ADM0000001", Email = "admin@alazima.com", Role = "SUPER_ADMIN" },

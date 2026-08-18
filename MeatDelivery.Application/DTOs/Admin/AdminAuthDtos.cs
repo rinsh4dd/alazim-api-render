@@ -35,6 +35,9 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string? CountryCode { get; set; }
         public string? MobileNumber { get; set; }
         public string? ProfileImageUrl { get; set; }
+        public string? Nationality { get; set; }
+        public DateTime? Dob { get; set; }
+        public string? Address { get; set; }
         public string AdminStatus { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new();
         public DateTime? LastLoginAt { get; set; }

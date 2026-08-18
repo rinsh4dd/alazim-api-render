@@ -17,6 +17,9 @@ namespace MeatDelivery.Domain.Entities.Authentication
         public string? CountryCode { get; set; }
         public string? MobileNumber { get; set; }
         public string? ProfileImageUrl { get; set; }
+        public string? Nationality { get; set; }
+        public DateTime? Dob { get; set; }
+        public string? Address { get; set; }
         public AdminStatus AdminStatus { get; set; } = AdminStatus.ACTIVE;
         public int FailedLoginCount { get; set; } = 0;
         public DateTime? LockedUntil { get; set; }

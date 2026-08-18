@@ -103,16 +103,10 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
             await connection.ExecuteAsync(sql, new { AdminUserId = adminUserId, PasswordHash = newPasswordHash });
         }
 
-        public async Task<SaveAdminUserResponseDto?> SaveAdminUserAsync(
-            MeatDelivery.Application.DTOs.Admin.SaveAdminUserDto request,
-            string? passwordHash,
-            long? actionedByAdminId,
-            CancellationToken cancellationToken = default)
+        public async Task<SaveAdminUserResponseDto?> SaveAdminUserAsync(SaveAdminUserDto request,string? passwordHash,long? actionedByAdminId,CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var row = await connection.QuerySingleOrDefaultAsync<dynamic>(
-                "dbo.PR_SAVE_ADMIN_USER",
-                new
+            var row = await connection.QuerySingleOrDefaultAsync<dynamic>("dbo.PR_SAVE_ADMIN_USER",new
                 {
                     MODE = request.Mode.ToString(),
                     ADMIN_USER_ID = request.AdminUserId,
@@ -123,6 +117,9 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                     COUNTRY_CODE = request.CountryCode,
                     MOBILE_NUMBER = request.MobileNumber,
                     PROFILE_IMAGE_URL = request.ProfileImageUrl,
+                    NATIONALITY = request.Nationality,
+                    DOB = request.Dob,
+                    ADDRESS = request.Address,
                     ADMIN_STATUS = request.AdminStatus ?? "ACTIVE",
                     ROLE_ID = request.RoleId,
                     ACTIONED_BY_ADMIN_ID = actionedByAdminId
@@ -143,6 +140,9 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                 CountryCode = (string?)row.COUNTRY_CODE,
                 MobileNumber = (string?)row.MOBILE_NUMBER,
                 ProfileImageUrl = (string?)row.PROFILE_IMAGE_URL,
+                Nationality = (string?)row.NATIONALITY,
+                Dob = (DateTime?)row.DOB,
+                Address = (string?)row.ADDRESS,
                 AdminStatus = (string)row.ADMIN_STATUS,
                 IsDeleted = (bool)row.IS_DELETED,
                 DeletedAt = (DateTime?)row.DELETED_AT,
@@ -182,6 +182,9 @@ namespace MeatDelivery.Infrastructure.Repositories.Authentication
                     CountryCode = (string?)row.COUNTRY_CODE,
                     MobileNumber = (string?)row.MOBILE_NUMBER,
                     ProfileImageUrl = (string?)row.PROFILE_IMAGE_URL,
+                    Nationality = (string?)row.NATIONALITY,
+                    Dob = (DateTime?)row.DOB,
+                    Address = (string?)row.ADDRESS,
                     AdminStatus = (string)row.ADMIN_STATUS,
                     IsDeleted = (bool)row.IS_DELETED,
                     DeletedAt = (DateTime?)row.DELETED_AT,

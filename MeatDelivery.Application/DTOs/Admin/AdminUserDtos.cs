@@ -16,6 +16,9 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string? CountryCode { get; set; }
         public string? MobileNumber { get; set; }
         public string? ProfileImageUrl { get; set; }
+        public string? Nationality { get; set; }
+        public DateTime? Dob { get; set; }
+        public string? Address { get; set; }
         public string? AdminStatus { get; set; } = "ACTIVE";
         public int? RoleId { get; set; }
     }
@@ -32,6 +35,9 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string? CountryCode { get; set; }
         public string? MobileNumber { get; set; }
         public string? ProfileImageUrl { get; set; }
+        public string? Nationality { get; set; }
+        public DateTime? Dob { get; set; }
+        public string? Address { get; set; }
         public string AdminStatus { get; set; } = string.Empty;
         public bool IsDeleted { get; set; }
         public DateTime? DeletedAt { get; set; }
