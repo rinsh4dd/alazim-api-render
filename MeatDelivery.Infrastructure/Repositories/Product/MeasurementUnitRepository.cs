@@ -30,5 +30,21 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
 
             return units.ToList();
         }
+
+        public async Task<MeasurementUnitDto?> SaveMeasurementUnitAsync(
+            SaveMeasurementUnitDto request,
+            CancellationToken cancellationToken = default)
+        {
+            return await _dapperRepository.QueryFirstOrDefaultAsync<MeasurementUnitDto>(
+                "dbo.PR_SAVE_MEASUREMENT_UNIT",
+                new
+                {
+                    MODE = request.Mode.ToString(),
+                    UNIT_ID = request.UnitId,
+                    UNIT_DESCRIPTION = request.UnitDescription,
+                    IS_ACTIVE = request.IsActive
+                }
+            );
+        }
     }
 }

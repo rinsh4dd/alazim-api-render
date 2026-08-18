@@ -8,5 +8,6 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Product
     public interface IMeasurementUnitRepository
     {
         Task<List<MeasurementUnitDto>> GetMeasurementUnitsAsync(bool? onlyActive = true, CancellationToken cancellationToken = default);
+        Task<MeasurementUnitDto?> SaveMeasurementUnitAsync(SaveMeasurementUnitDto request, CancellationToken cancellationToken = default);
     }
 }

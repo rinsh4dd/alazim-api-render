@@ -9,5 +9,6 @@ namespace MeatDelivery.Application.Interfaces.Product
     public interface IMeasurementUnitService
     {
         Task<ApiResponse<List<MeasurementUnitDto>>> GetMeasurementUnitsAsync(bool? onlyActive = true, CancellationToken cancellationToken = default);
+        Task<ApiResponse<MeasurementUnitDto>> SaveMeasurementUnitAsync(SaveMeasurementUnitDto request, CancellationToken cancellationToken = default);
     }
 }

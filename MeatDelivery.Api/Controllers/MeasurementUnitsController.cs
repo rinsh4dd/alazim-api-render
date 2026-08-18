@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using MeatDelivery.Application.DTOs.Product;
 using MeatDelivery.Application.Interfaces.Product;
 
 namespace MeatDelivery.Api.Controllers
@@ -22,6 +23,15 @@ namespace MeatDelivery.Api.Controllers
             CancellationToken cancellationToken = default)
         {
             var response = await _measurementUnitService.GetMeasurementUnitsAsync(onlyActive, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpPost("save")]
+        public async Task<IActionResult> SaveMeasurementUnit(
+            [FromBody] SaveMeasurementUnitDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _measurementUnitService.SaveMeasurementUnitAsync(request, cancellationToken);
             return Ok(response);
         }
     }
