@@ -1,8 +1,46 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_MEASUREMENT_UNIT
--- Description: Creates or updates a measurement unit (ADD and EDIT modes).
+-- Migration: 0028_Add_Unit_Column_To_Measurement_Units.sql
+-- Description: Adds UNIT column (e.g., 'Kg', 'g', 'Pcs', 'Pack') to dbo.MEASUREMENT_UNITS
+--              and updates PR_GET_MEASUREMENT_UNITS & PR_SAVE_MEASUREMENT_UNIT.
 -- =============================================================================
 
+-- 1. ADD UNIT COLUMN IF NOT EXISTS
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.MEASUREMENT_UNITS') AND name = 'UNIT')
+BEGIN
+    ALTER TABLE dbo.MEASUREMENT_UNITS ADD UNIT VARCHAR(20) NULL;
+END;
+GO
+
+-- 2. POPULATE INITIAL UNITS
+UPDATE dbo.MEASUREMENT_UNITS SET UNIT = 'g' WHERE UNIT_DESCRIPTION = 'Gram' AND (UNIT IS NULL OR UNIT = '');
+UPDATE dbo.MEASUREMENT_UNITS SET UNIT = 'Kg' WHERE UNIT_DESCRIPTION = 'Kilogram' AND (UNIT IS NULL OR UNIT = '');
+UPDATE dbo.MEASUREMENT_UNITS SET UNIT = 'Pcs' WHERE UNIT_DESCRIPTION = 'Piece' AND (UNIT IS NULL OR UNIT = '');
+UPDATE dbo.MEASUREMENT_UNITS SET UNIT = 'Pack' WHERE UNIT_DESCRIPTION = 'Pack' AND (UNIT IS NULL OR UNIT = '');
+UPDATE dbo.MEASUREMENT_UNITS SET UNIT = UNIT_DESCRIPTION WHERE UNIT IS NULL;
+GO
+
+ALTER TABLE dbo.MEASUREMENT_UNITS ALTER COLUMN UNIT VARCHAR(20) NOT NULL;
+GO
+
+-- 3. UPDATE PR_GET_MEASUREMENT_UNITS
+CREATE OR ALTER PROCEDURE dbo.PR_GET_MEASUREMENT_UNITS
+    @ONLY_ACTIVE BIT = 1
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT
+        UNIT_ID          AS UnitId,
+        UNIT             AS Unit,
+        UNIT_DESCRIPTION AS UnitDescription,
+        IS_ACTIVE        AS IsActive
+    FROM dbo.MEASUREMENT_UNITS
+    WHERE (@ONLY_ACTIVE IS NULL OR IS_ACTIVE = @ONLY_ACTIVE)
+    ORDER BY UNIT_ID ASC;
+END;
+GO
+
+-- 4. UPDATE PR_SAVE_MEASUREMENT_UNIT
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_MEASUREMENT_UNIT
     @MODE             VARCHAR(10),
     @UNIT_ID          INT = NULL,

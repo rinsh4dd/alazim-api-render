@@ -41,6 +41,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                 {
                     MODE = request.Mode.ToString(),
                     UNIT_ID = request.UnitId,
+                    UNIT = request.Unit,
                     UNIT_DESCRIPTION = request.UnitDescription,
                     IS_ACTIVE = request.IsActive
                 }

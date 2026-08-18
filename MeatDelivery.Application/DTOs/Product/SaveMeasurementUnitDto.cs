@@ -6,6 +6,7 @@ namespace MeatDelivery.Application.DTOs.Product
     {
         public Mode Mode { get; set; }
         public int? UnitId { get; set; }
+        public string? Unit { get; set; }
         public string? UnitDescription { get; set; }
         public bool? IsActive { get; set; }
     }

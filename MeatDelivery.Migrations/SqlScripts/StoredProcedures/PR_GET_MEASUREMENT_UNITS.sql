@@ -11,6 +11,7 @@ BEGIN
 
     SELECT
         UNIT_ID          AS UnitId,
+        UNIT             AS Unit,
         UNIT_DESCRIPTION AS UnitDescription,
         IS_ACTIVE        AS IsActive
     FROM dbo.MEASUREMENT_UNITS
