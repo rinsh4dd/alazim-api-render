@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 using MeatDelivery.Application.DTOs.Category;
 using MeatDelivery.Application.Interfaces.Category;
 using MeatDelivery.Application.Interfaces.Repositories.Category;
@@ -12,17 +14,24 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
     public class CategoryService : ICategoryService
     {
         private readonly ICategoryRepository _categoryRepository;
+        private readonly IValidator<SaveCategoryDto> _validator;
 
-        public CategoryService(ICategoryRepository categoryRepository)
+        public CategoryService(ICategoryRepository categoryRepository,IValidator<SaveCategoryDto> validator)
         {
             _categoryRepository = categoryRepository;
+            _validator = validator;
         }
 
-        public async Task<ApiResponse<CategoryDto>> SaveCategoryAsync(
-            SaveCategoryDto request,
-            CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<CategoryDto>> SaveCategoryAsync(SaveCategoryDto request,CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
+
+            var validationResult = await _validator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<CategoryDto>.FailureResponse("Validation failed.", errors);
+            }
 
             try
             {
