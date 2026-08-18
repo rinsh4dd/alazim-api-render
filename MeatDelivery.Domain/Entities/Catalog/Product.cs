@@ -6,12 +6,12 @@ namespace MeatDelivery.Domain.Entities.Catalog
     {
         public long ProductId { get; set; }
         public long CategoryId { get; set; }
-        public string ProductCode { get; set; } = string.Empty;
+        public string DocNo { get; set; } = string.Empty;
+        public string DocType { get; set; } = "PRD1";
         public string ProductNameEn { get; set; } = string.Empty;
         public string ProductNameAr { get; set; } = string.Empty;
         public string? DescriptionEn { get; set; }
         public string? DescriptionAr { get; set; }
-        public string FreshnessType { get; set; } = "FRESH"; // 'FRESH' or 'FROZEN'
         public string? CountryOfOrigin { get; set; }
         public bool IsHalalCertified { get; set; } = true;
         public string? HalalCertificateNo { get; set; }

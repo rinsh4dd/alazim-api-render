@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading;
@@ -7,6 +6,7 @@ using Dapper;
 using MeatDelivery.Application.DTOs.Product;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Repositories.Product;
+using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Infrastructure.Repositories.Catalog
 {
@@ -19,21 +19,22 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             _dapperRepository = dapperRepository;
         }
 
-        public async Task<ProductDto?> SaveProductMasterAsync(SaveProductDto request, CancellationToken cancellationToken = default)
+        public async Task<ProductDto?> SaveProductFullAsync(SaveProductDto request, CancellationToken cancellationToken = default)
         {
-            return await _dapperRepository.QueryFirstOrDefaultAsync<ProductDto>(
+            // 1. Save Master Product via Stored Procedure
+            var productMaster = await _dapperRepository.QueryFirstOrDefaultAsync<ProductDto>(
                 "dbo.PR_SAVE_PRODUCT",
                 new
                 {
                     MODE = request.Mode.ToString(),
                     PRODUCT_ID = request.ProductId,
                     CATEGORY_ID = request.CategoryId,
-                    PRODUCT_CODE = request.ProductCode,
+                    DOC_NO = request.DocNo,
+                    DOC_TYPE = string.IsNullOrWhiteSpace(request.DocType) ? "PRD1" : request.DocType,
                     PRODUCT_NAME_EN = request.ProductNameEn,
                     PRODUCT_NAME_AR = request.ProductNameAr,
                     DESCRIPTION_EN = request.DescriptionEn,
                     DESCRIPTION_AR = request.DescriptionAr,
-                    FRESHNESS_TYPE = request.FreshnessType,
                     COUNTRY_OF_ORIGIN = request.CountryOfOrigin,
                     IS_HALAL_CERTIFIED = request.IsHalalCertified,
                     HALAL_CERTIFICATE_NO = request.HalalCertificateNo,
@@ -50,10 +51,14 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     IS_ACTIVE = request.IsActive
                 }
             );
-        }
 
-        public async Task SyncProductWeightOptionsAndPricesAsync(long productId, List<SaveProductWeightOptionDto> weightOptions, CancellationToken cancellationToken = default)
-        {
+            if (request.Mode == Mode.DELETE || productMaster == null)
+            {
+                return productMaster;
+            }
+
+            long productId = productMaster.ProductId;
+
             using var connection = _dapperRepository.CreateConnection();
             if (connection.State != ConnectionState.Open)
                 connection.Open();
@@ -61,16 +66,16 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             using var transaction = connection.BeginTransaction();
             try
             {
-                // Delete existing weight options & prices for clean sync if provided
-                const string deletePricesSql = "DELETE FROM dbo.PRODUCT_PRICES WHERE PRODUCT_ID = @ProductId;";
-                const string deleteWeightOptionsSql = "DELETE FROM dbo.PRODUCT_WEIGHT_OPTIONS WHERE PRODUCT_ID = @ProductId;";
-
-                await connection.ExecuteAsync(deletePricesSql, new { ProductId = productId }, transaction);
-                await connection.ExecuteAsync(deleteWeightOptionsSql, new { ProductId = productId }, transaction);
-
-                if (weightOptions != null && weightOptions.Any())
+                // 2. Sync Weight Options & Prices if provided
+                if (request.WeightOptions != null)
                 {
-                    foreach (var option in weightOptions)
+                    const string deletePricesSql = "DELETE FROM dbo.PRODUCT_PRICES WHERE PRODUCT_ID = @ProductId;";
+                    const string deleteWeightOptionsSql = "DELETE FROM dbo.PRODUCT_WEIGHT_OPTIONS WHERE PRODUCT_ID = @ProductId;";
+
+                    await connection.ExecuteAsync(deletePricesSql, new { ProductId = productId }, transaction);
+                    await connection.ExecuteAsync(deleteWeightOptionsSql, new { ProductId = productId }, transaction);
+
+                    foreach (var option in request.WeightOptions)
                     {
                         const string insertWeightSql = @"
                             INSERT INTO dbo.PRODUCT_WEIGHT_OPTIONS
@@ -107,39 +112,22 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                         {
                             ProductId = productId,
                             ProductWeightOptionId = weightOptionId,
-                            option.PriceType,
+                            PriceType = string.IsNullOrWhiteSpace(option.PriceType) ? "FIXED" : option.PriceType,
                             option.RegularPrice,
                             option.DiscountPrice,
-                            option.CurrencyCode,
+                            CurrencyCode = string.IsNullOrWhiteSpace(option.CurrencyCode) ? "AED" : option.CurrencyCode,
                             option.IsActive
                         }, transaction);
                     }
                 }
 
-                transaction.Commit();
-            }
-            catch
-            {
-                transaction.Rollback();
-                throw;
-            }
-        }
-
-        public async Task SyncProductImagesAsync(long productId, List<SaveProductImageDto> images, CancellationToken cancellationToken = default)
-        {
-            using var connection = _dapperRepository.CreateConnection();
-            if (connection.State != ConnectionState.Open)
-                connection.Open();
-
-            using var transaction = connection.BeginTransaction();
-            try
-            {
-                const string deleteImagesSql = "DELETE FROM dbo.PRODUCT_IMAGES WHERE PRODUCT_ID = @ProductId;";
-                await connection.ExecuteAsync(deleteImagesSql, new { ProductId = productId }, transaction);
-
-                if (images != null && images.Any())
+                // 3. Sync Product Images if provided
+                if (request.Images != null)
                 {
-                    foreach (var img in images)
+                    const string deleteImagesSql = "DELETE FROM dbo.PRODUCT_IMAGES WHERE PRODUCT_ID = @ProductId;";
+                    await connection.ExecuteAsync(deleteImagesSql, new { ProductId = productId }, transaction);
+
+                    foreach (var img in request.Images)
                     {
                         const string insertImageSql = @"
                             INSERT INTO dbo.PRODUCT_IMAGES
@@ -165,17 +153,15 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                 transaction.Rollback();
                 throw;
             }
-        }
 
-        public async Task<ProductDto?> GetProductByIdAsync(long productId, CancellationToken cancellationToken = default)
-        {
+            // 4. Fetch Full Product Details with WeightOptions, Prices, and Images
             const string sql = @"
                 SELECT
                     p.PRODUCT_ID AS ProductId, p.CATEGORY_ID AS CategoryId,
-                    c.CATEGORY_NAME_EN AS CategoryNameEn, p.PRODUCT_CODE AS ProductCode,
+                    c.CATEGORY_NAME_EN AS CategoryNameEn, p.DOC_NO AS DocNo, p.DOC_TYPE AS DocType,
                     p.PRODUCT_NAME_EN AS ProductNameEn, p.PRODUCT_NAME_AR AS ProductNameAr,
                     p.DESCRIPTION_EN AS DescriptionEn, p.DESCRIPTION_AR AS DescriptionAr,
-                    p.FRESHNESS_TYPE AS FreshnessType, p.COUNTRY_OF_ORIGIN AS CountryOfOrigin,
+                    p.COUNTRY_OF_ORIGIN AS CountryOfOrigin,
                     p.IS_HALAL_CERTIFIED AS IsHalalCertified, p.HALAL_CERTIFICATE_NO AS HalalCertificateNo,
                     p.HALAL_CERTIFICATE_URL AS HalalCertificateUrl,
                     p.NUTRITION_INFORMATION_EN AS NutritionInformationEn,
@@ -216,17 +202,17 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                 WHERE PRODUCT_ID = @ProductId
                 ORDER BY IS_PRIMARY DESC, DISPLAY_ORDER ASC;";
 
-            using var connection = _dapperRepository.CreateConnection();
-            using var multi = await connection.QueryMultipleAsync(sql, new { ProductId = productId });
+            using var getConn = _dapperRepository.CreateConnection();
+            using var multi = await getConn.QueryMultipleAsync(sql, new { ProductId = productId });
 
-            var product = await multi.ReadFirstOrDefaultAsync<ProductDto>();
-            if (product != null)
+            var fullProduct = await multi.ReadFirstOrDefaultAsync<ProductDto>();
+            if (fullProduct != null)
             {
-                product.WeightOptions = (await multi.ReadAsync<ProductWeightOptionDto>()).ToList();
-                product.Images = (await multi.ReadAsync<ProductImageDto>()).ToList();
+                fullProduct.WeightOptions = (await multi.ReadAsync<ProductWeightOptionDto>()).ToList();
+                fullProduct.Images = (await multi.ReadAsync<ProductImageDto>()).ToList();
             }
 
-            return product;
+            return fullProduct;
         }
     }
 }

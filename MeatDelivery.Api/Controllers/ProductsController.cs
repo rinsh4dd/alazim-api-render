@@ -25,14 +25,5 @@ namespace MeatDelivery.Api.Controllers
             var response = await _productService.SaveProductAsync(request, cancellationToken);
             return Ok(response);
         }
-
-        [HttpGet("{id:long}")]
-        public async Task<IActionResult> GetProductById(
-            long id,
-            CancellationToken cancellationToken = default)
-        {
-            var response = await _productService.GetProductByIdAsync(id, cancellationToken);
-            return Ok(response);
-        }
     }
 }

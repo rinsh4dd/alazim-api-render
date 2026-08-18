@@ -39,32 +39,15 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             {
                 if (request.Mode == Mode.DELETE)
                 {
-                    await _productRepository.SaveProductMasterAsync(request, cancellationToken);
+                    await _productRepository.SaveProductFullAsync(request, cancellationToken);
                     return ApiResponse<ProductDto>.SuccessResponse(null!, "Product deleted successfully.");
                 }
 
-                var productMaster = await _productRepository.SaveProductMasterAsync(request, cancellationToken);
-                if (productMaster == null)
+                var fullProduct = await _productRepository.SaveProductFullAsync(request, cancellationToken);
+                if (fullProduct == null)
                 {
-                    return ApiResponse<ProductDto>.FailureResponse("Failed to save product master record.");
+                    return ApiResponse<ProductDto>.FailureResponse("Failed to save product record.");
                 }
-
-                long productId = productMaster.ProductId;
-
-                // Sync Weight Options & Prices
-                if (request.WeightOptions != null)
-                {
-                    await _productRepository.SyncProductWeightOptionsAndPricesAsync(productId, request.WeightOptions, cancellationToken);
-                }
-
-                // Sync Images
-                if (request.Images != null)
-                {
-                    await _productRepository.SyncProductImagesAsync(productId, request.Images, cancellationToken);
-                }
-
-                // Retrieve updated full product object with options and images
-                var fullProduct = await _productRepository.GetProductByIdAsync(productId, cancellationToken);
 
                 string message = request.Mode switch
                 {
@@ -73,25 +56,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     _ => "Operation completed successfully."
                 };
 
-                return ApiResponse<ProductDto>.SuccessResponse(fullProduct!, message);
-            }
-            catch (Exception ex)
-            {
-                return ApiResponse<ProductDto>.FailureResponse(ex.Message);
-            }
-        }
-
-        public async Task<ApiResponse<ProductDto>> GetProductByIdAsync(long productId, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var product = await _productRepository.GetProductByIdAsync(productId, cancellationToken);
-                if (product == null)
-                {
-                    return ApiResponse<ProductDto>.FailureResponse("Product not found.");
-                }
-
-                return ApiResponse<ProductDto>.SuccessResponse(product, "Product details retrieved successfully.");
+                return ApiResponse<ProductDto>.SuccessResponse(fullProduct, message);
             }
             catch (Exception ex)
             {

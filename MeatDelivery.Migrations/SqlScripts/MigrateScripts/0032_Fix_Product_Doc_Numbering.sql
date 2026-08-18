@@ -1,8 +1,21 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_PRODUCT
--- Description: Unified CUD procedure for products (ADD, EDIT, and DELETE modes).
+-- Migration: 0032_Fix_Product_Doc_Numbering.sql
+-- Description: Seeds PRD1 DOCTYPE into dbo.M_DOC_NO and updates dbo.PR_SAVE_PRODUCT
+--              to use dbo.PR_GET_NEXT_DOC_NO.
 -- =============================================================================
 
+-- 1. SEED PRD1 DOCTYPE IN M_DOC_NO IF NOT EXISTS
+IF NOT EXISTS (SELECT 1 FROM dbo.M_DOC_NO WHERE DOCTYPE = 'PRD1')
+BEGIN
+    DECLARE @DefaultCompanyId BIGINT;
+    SELECT TOP 1 @DefaultCompanyId = COMPANY_CONFIG_ID FROM dbo.COMPANY_CONFIG WHERE COMPANY_CODE = 'AL_AZIMA';
+
+    INSERT INTO dbo.M_DOC_NO (MDOC, DOCTYPE, DESCRIPTION, COMPANY_CONFIG_ID, PREFIX, SUFFIX, DIGIT_NO, START_DOCNO, PERIODWISE_YN, PERIOD_TYPE, IS_ACTIVE)
+    VALUES ('PRD', 'PRD1', 'Product Document Number', @DefaultCompanyId, 'PRD', NULL, 10, 0, 'N', 'NONE', 1);
+END;
+GO
+
+-- 2. UPDATE STORED PROCEDURE PR_SAVE_PRODUCT
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT
     @MODE                       VARCHAR(10),
     @PRODUCT_ID                 BIGINT = NULL,

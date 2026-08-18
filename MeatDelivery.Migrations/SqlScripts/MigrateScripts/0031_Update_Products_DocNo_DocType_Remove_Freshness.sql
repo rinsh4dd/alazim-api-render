@@ -1,14 +1,81 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_PRODUCT
--- Description: Unified CUD procedure for products (ADD, EDIT, and DELETE modes).
+-- Migration: 0031_Update_Products_DocNo_DocType_Remove_Freshness.sql
+-- Description: Replaces PRODUCT_CODE with DOC_NO & DOC_TYPE in dbo.PRODUCTS,
+--              removes FRESHNESS_TYPE, and updates dbo.PR_SAVE_PRODUCT.
 -- =============================================================================
 
+-- 1. ADD DOC_NO AND DOC_TYPE COLUMNS
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.PRODUCTS') AND name = 'DOC_NO')
+BEGIN
+    ALTER TABLE dbo.PRODUCTS ADD DOC_NO VARCHAR(50) NULL;
+END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.PRODUCTS') AND name = 'DOC_TYPE')
+BEGIN
+    ALTER TABLE dbo.PRODUCTS ADD DOC_TYPE VARCHAR(20) NOT NULL DEFAULT 'PROD';
+END;
+GO
+
+-- POPULATE DOC_NO FROM PRODUCT_CODE IF IT EXISTS
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.PRODUCTS') AND name = 'PRODUCT_CODE')
+BEGIN
+    EXEC sp_executesql N'UPDATE dbo.PRODUCTS SET DOC_NO = PRODUCT_CODE WHERE DOC_NO IS NULL;';
+END;
+GO
+
+UPDATE dbo.PRODUCTS SET DOC_NO = 'PRD-' + CAST(PRODUCT_ID AS VARCHAR) WHERE DOC_NO IS NULL;
+GO
+
+ALTER TABLE dbo.PRODUCTS ALTER COLUMN DOC_NO VARCHAR(50) NOT NULL;
+GO
+
+-- DROP OLD UNIQUE CONSTRAINT OR INDEX ON PRODUCT_CODE IF EXISTS
+IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_PRODUCTS_CODE' AND object_id = OBJECT_ID('dbo.PRODUCTS'))
+BEGIN
+    ALTER TABLE dbo.PRODUCTS DROP CONSTRAINT UQ_PRODUCTS_CODE;
+END;
+GO
+
+-- ADD UNIQUE CONSTRAINT ON DOC_NO IF NOT EXISTS
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UQ_PRODUCTS_DOC_NO' AND object_id = OBJECT_ID('dbo.PRODUCTS'))
+BEGIN
+    ALTER TABLE dbo.PRODUCTS ADD CONSTRAINT UQ_PRODUCTS_DOC_NO UNIQUE NONCLUSTERED (DOC_NO);
+END;
+GO
+
+-- DROP PRODUCT_CODE COLUMN IF EXISTS
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.PRODUCTS') AND name = 'PRODUCT_CODE')
+BEGIN
+    ALTER TABLE dbo.PRODUCTS DROP COLUMN PRODUCT_CODE;
+END;
+GO
+
+-- 2. DROP FRESHNESS_TYPE COLUMN IF EXISTS (HANDLE DEFAULT CONSTRAINT)
+IF EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.PRODUCTS') AND name = 'FRESHNESS_TYPE')
+BEGIN
+    DECLARE @ConstraintName NVARCHAR(200);
+    SELECT @ConstraintName = d.name
+    FROM sys.default_constraints d
+    INNER JOIN sys.columns c ON d.parent_column_id = c.column_id AND d.parent_object_id = c.object_id
+    WHERE c.name = 'FRESHNESS_TYPE' AND c.object_id = OBJECT_ID('dbo.PRODUCTS');
+
+    IF @ConstraintName IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE dbo.PRODUCTS DROP CONSTRAINT ' + @ConstraintName);
+    END;
+
+    ALTER TABLE dbo.PRODUCTS DROP COLUMN FRESHNESS_TYPE;
+END;
+GO
+
+-- 3. UPDATE STORED PROCEDURE PR_SAVE_PRODUCT
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT
     @MODE                       VARCHAR(10),
     @PRODUCT_ID                 BIGINT = NULL,
     @CATEGORY_ID                BIGINT = NULL,
     @DOC_NO                     VARCHAR(50) = NULL,
-    @DOC_TYPE                   VARCHAR(20) = 'PRD1',
+    @DOC_TYPE                   VARCHAR(20) = 'PROD',
     @PRODUCT_NAME_EN            NVARCHAR(200) = NULL,
     @PRODUCT_NAME_AR            NVARCHAR(200) = NULL,
     @DESCRIPTION_EN             NVARCHAR(2000) = NULL,
@@ -33,19 +100,20 @@ BEGIN
     SET XACT_ABORT ON;
 
     IF ISNULL(@DOC_TYPE, '') = ''
-        SET @DOC_TYPE = 'PRD1';
+        SET @DOC_TYPE = 'PROD';
 
     -- =========================================================================
     -- MODE: ADD
     -- =========================================================================
     IF @MODE = 'ADD'
     BEGIN
-        -- Auto-generate document number if not provided using PR_GET_NEXT_DOC_NO
+        -- Auto-generate document number if not provided
         IF ISNULL(@DOC_NO, '') = ''
         BEGIN
-            EXEC dbo.PR_GET_NEXT_DOC_NO 
-                @DOCTYPE = @DOC_TYPE, 
-                @DOC_NO = @DOC_NO OUTPUT;
+            EXEC dbo.PR_GENERATE_DOCUMENT_NUMBER 
+                @DOC_TYPE = @DOC_TYPE, 
+                @PREFIX = NULL, 
+                @DOCUMENT_NUMBER = @DOC_NO OUTPUT;
         END;
 
         IF EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE DOC_NO = @DOC_NO)
