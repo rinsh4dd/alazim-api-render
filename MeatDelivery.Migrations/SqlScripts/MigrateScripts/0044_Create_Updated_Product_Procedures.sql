@@ -1,10 +1,37 @@
--- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_PRODUCT
--- Description: Unified procedure for ADD, EDIT, and DELETE operations for Products.
---              Allocates DOC_NO via PR_GET_NEXT_DOC_NO on ADD mode.
--- =============================================================================
+-- Migration: 0044_Create_Updated_Product_Procedures.sql
+-- Description: Seeds DOCTYPE = 'PROD' in dbo.M_DOC_NO and creates stored procedure PR_SAVE_PRODUCT
 
-CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT
+IF NOT EXISTS (SELECT 1 FROM dbo.M_DOC_NO WHERE DOCTYPE = 'PROD')
+BEGIN
+    DECLARE @CompanyId BIGINT = (SELECT TOP 1 COMPANY_CONFIG_ID FROM dbo.COMPANY_CONFIG WHERE COMPANY_CODE = 'AL_AZIMA');
+
+    INSERT INTO dbo.M_DOC_NO
+    (
+        MDOC, DOCTYPE, DESCRIPTION, COMPANY_CONFIG_ID,
+        PREFIX, SUFFIX, DIGIT_NO, START_DOCNO,
+        PERIODWISE_YN, PERIOD_TYPE, IS_ACTIVE
+    )
+    VALUES
+    (
+        'PROD', 'PROD', 'Product Document Number', @CompanyId,
+        'PROD', NULL, 10, 0,
+        'N', 'NONE', 1
+    );
+END
+ELSE
+BEGIN
+    UPDATE dbo.M_DOC_NO
+    SET IS_ACTIVE = 1
+    WHERE DOCTYPE = 'PROD';
+END;
+GO
+
+IF OBJECT_ID('dbo.PR_SAVE_PRODUCT', 'P') IS NOT NULL
+    DROP PROCEDURE dbo.PR_SAVE_PRODUCT;
+GO
+
+EXEC('
+CREATE PROCEDURE dbo.PR_SAVE_PRODUCT
 (
     @MODE                       VARCHAR(10),
 
@@ -34,18 +61,14 @@ BEGIN
     SET @MODE = UPPER(LTRIM(RTRIM(@MODE)));
 
     BEGIN TRY
-        -- ---------------------------------------------------------------------
-        -- MODE: ADD
-        -- ---------------------------------------------------------------------
-        IF @MODE = 'ADD'
+        IF @MODE = ''ADD''
         BEGIN
             BEGIN TRANSACTION;
 
             DECLARE @AllocatedDocNo VARCHAR(50) = NULL;
 
-            -- Auto-generate document number using PR_GET_NEXT_DOC_NO for DOCTYPE = 'PROD'
             EXEC dbo.PR_GET_NEXT_DOC_NO
-                @DOCTYPE = 'PROD',
+                @DOCTYPE = ''PROD'',
                 @DOC_NO = @AllocatedDocNo OUTPUT;
 
             INSERT INTO dbo.PRODUCTS
@@ -71,7 +94,7 @@ BEGIN
             (
                 @CATEGORY_ID,
                 @AllocatedDocNo,
-                'PROD',
+                ''PROD'',
                 @PRODUCT_NAME_EN,
                 @PRODUCT_NAME_AR,
                 @DESCRIPTION_EN,
@@ -89,14 +112,12 @@ BEGIN
 
             SET @PRODUCT_ID = SCOPE_IDENTITY();
 
-            -- Insert initial active Price
             IF @PRICE IS NOT NULL
             BEGIN
                 INSERT INTO dbo.PRODUCT_PRICES (PRODUCT_ID, PRICE, IS_ACTIVE, CREATED_AT)
                 VALUES (@PRODUCT_ID, @PRICE, 1, SYSUTCDATETIME());
             END
 
-            -- Insert Images (1:1 row per product)
             IF @PRIMARY_URL IS NOT NULL
             BEGIN
                 INSERT INTO dbo.PRODUCT_IMAGES (PRODUCT_ID, PRIMARY_URL, SECONDARY_URL, TERTIARY_URL)
@@ -145,14 +166,11 @@ BEGIN
             RETURN;
         END;
 
-        -- ---------------------------------------------------------------------
-        -- MODE: EDIT (Note: EDIT does not modify stock)
-        -- ---------------------------------------------------------------------
-        IF @MODE = 'EDIT'
+        IF @MODE = ''EDIT''
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE PRODUCT_ID = @PRODUCT_ID AND IS_DELETED = 0)
             BEGIN
-                THROW 50031, 'Product not found.', 1;
+                THROW 50031, ''Product not found.'', 1;
             END
 
             BEGIN TRANSACTION;
@@ -172,7 +190,6 @@ BEGIN
                 UPDATED_AT = SYSUTCDATETIME()
             WHERE PRODUCT_ID = @PRODUCT_ID AND IS_DELETED = 0;
 
-            -- Handle Price Update (if changed, mark previous inactive and insert new)
             IF @PRICE IS NOT NULL
             BEGIN
                 DECLARE @CurrentPrice DECIMAL(18,2);
@@ -189,7 +206,6 @@ BEGIN
                 END
             END
 
-            -- Handle Image Update
             IF @PRIMARY_URL IS NOT NULL
             BEGIN
                 IF EXISTS (SELECT 1 FROM dbo.PRODUCT_IMAGES WHERE PRODUCT_ID = @PRODUCT_ID)
@@ -249,14 +265,11 @@ BEGIN
             RETURN;
         END;
 
-        -- ---------------------------------------------------------------------
-        -- MODE: DELETE (SOFT DELETE)
-        -- ---------------------------------------------------------------------
-        IF @MODE = 'DELETE'
+        IF @MODE = ''DELETE''
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE PRODUCT_ID = @PRODUCT_ID AND IS_DELETED = 0)
             BEGIN
-                THROW 50031, 'Product not found.', 1;
+                THROW 50031, ''Product not found.'', 1;
             END
 
             BEGIN TRANSACTION;
@@ -274,7 +287,7 @@ BEGIN
                 p.PRODUCT_ID AS ProductId,
                 p.DOC_TYPE AS DocType,
                 p.DOC_NO AS DocNo,
-                'DELETE' AS Mode
+                ''DELETE'' AS Mode
             FROM dbo.PRODUCTS p
             WHERE p.PRODUCT_ID = @PRODUCT_ID;
 
@@ -288,4 +301,5 @@ BEGIN
         THROW;
     END CATCH
 END;
+');
 GO
