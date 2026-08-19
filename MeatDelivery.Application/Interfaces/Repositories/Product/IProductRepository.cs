@@ -7,7 +7,5 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Product
 {
     public interface IProductRepository
     {
-        Task<ProductDto?> SaveProductFullAsync(SaveProductDto request, CancellationToken cancellationToken = default);
-        Task<(List<ProductDto> Items, int TotalRecords)> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default);
     }
 }

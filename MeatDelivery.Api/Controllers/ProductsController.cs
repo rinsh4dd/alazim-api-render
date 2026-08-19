@@ -16,23 +16,5 @@ namespace MeatDelivery.Api.Controllers
         {
             _productService = productService;
         }
-
-        [HttpPost("save")]
-        public async Task<IActionResult> SaveProduct(
-            [FromBody] SaveProductDto request,
-            CancellationToken cancellationToken = default)
-        {
-            var response = await _productService.SaveProductAsync(request, cancellationToken);
-            return Ok(response);
-        }
-
-        [HttpPost("get")]
-        public async Task<IActionResult> GetProducts(
-            [FromBody] GetProductsQueryDto query,
-            CancellationToken cancellationToken = default)
-        {
-            var response = await _productService.GetProductsAsync(query ?? new GetProductsQueryDto(), cancellationToken);
-            return Ok(response);
-        }
     }
 }

@@ -8,7 +8,5 @@ namespace MeatDelivery.Application.Interfaces.Product
 {
     public interface IProductService
     {
-        Task<ApiResponse<ProductDto>> SaveProductAsync(SaveProductDto request, CancellationToken cancellationToken = default);
-        Task<PagedResponse<List<ProductDto>>> GetProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default);
     }
 }
