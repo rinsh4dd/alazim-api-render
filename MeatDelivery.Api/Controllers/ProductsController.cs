@@ -34,5 +34,14 @@ namespace MeatDelivery.Api.Controllers
             var response = await _productService.GetProductsAsync(query, cancellationToken);
             return Ok(response);
         }
+
+        [HttpPost("status")]
+        public async Task<IActionResult> UpdateProductStatus(
+            [FromBody] UpdateProductStatusDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _productService.UpdateProductStatusAsync(request, cancellationToken);
+            return Ok(response);
+        }
     }
 }

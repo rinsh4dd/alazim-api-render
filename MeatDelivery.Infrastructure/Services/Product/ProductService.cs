@@ -16,13 +16,16 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
     {
         private readonly IProductRepository _productRepository;
         private readonly IValidator<SaveProductDto> _saveProductValidator;
+        private readonly IValidator<UpdateProductStatusDto> _updateStatusValidator;
 
         public ProductService(
             IProductRepository productRepository,
-            IValidator<SaveProductDto> saveProductValidator)
+            IValidator<SaveProductDto> saveProductValidator,
+            IValidator<UpdateProductStatusDto> updateStatusValidator)
         {
             _productRepository = productRepository;
             _saveProductValidator = saveProductValidator;
+            _updateStatusValidator = updateStatusValidator;
         }
 
         public async Task<ApiResponse<ProductDto>> SaveProductAsync(SaveProductDto request, CancellationToken cancellationToken = default)
@@ -90,6 +93,34 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     Message = ex.Message,
                     Data = new List<ProductDto>()
                 };
+            }
+        }
+
+        public async Task<ApiResponse<ProductDto>> UpdateProductStatusAsync(UpdateProductStatusDto request, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var validationResult = await _updateStatusValidator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<ProductDto>.FailureResponse("Validation failed.", errors);
+            }
+
+            try
+            {
+                var result = await _productRepository.UpdateProductStatusAsync(request, cancellationToken);
+                if (result == null)
+                {
+                    return ApiResponse<ProductDto>.FailureResponse("Product not found or failed to update status.");
+                }
+
+                string statusText = result.IsActive ? "activated" : "deactivated";
+                return ApiResponse<ProductDto>.SuccessResponse(result, $"Product {statusText} successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ProductDto>.FailureResponse(ex.Message);
             }
         }
     }
