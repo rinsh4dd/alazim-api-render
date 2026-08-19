@@ -87,5 +87,25 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                 }
             );
         }
+
+        public async Task<ProductDto?> UpdateProductImageAsync(UpdateProductImageDto request, CancellationToken cancellationToken = default)
+        {
+            return await _dapperRepository.QueryMultipleAsync(
+                "dbo.PR_UPDATE_PRODUCT_IMAGE",
+                async grid =>
+                {
+                    var totalRecords = (await grid.ReadAsync<int>()).FirstOrDefault();
+                    var items = (await grid.ReadAsync<ProductDto>()).ToList();
+                    return items.FirstOrDefault();
+                },
+                new
+                {
+                    PRODUCT_ID = request.ProductId,
+                    PRIMARY_URL = request.PrimaryUrl,
+                    SECONDARY_URL = request.SecondaryUrl,
+                    TERTIARY_URL = request.TertiaryUrl
+                }
+            );
+        }
     }
 }

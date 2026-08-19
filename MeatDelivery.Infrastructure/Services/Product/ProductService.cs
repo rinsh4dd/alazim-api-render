@@ -17,15 +17,18 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
         private readonly IProductRepository _productRepository;
         private readonly IValidator<SaveProductDto> _saveProductValidator;
         private readonly IValidator<UpdateProductStatusDto> _updateStatusValidator;
+        private readonly IValidator<UpdateProductImageDto> _updateImageValidator;
 
         public ProductService(
             IProductRepository productRepository,
             IValidator<SaveProductDto> saveProductValidator,
-            IValidator<UpdateProductStatusDto> updateStatusValidator)
+            IValidator<UpdateProductStatusDto> updateStatusValidator,
+            IValidator<UpdateProductImageDto> updateImageValidator)
         {
             _productRepository = productRepository;
             _saveProductValidator = saveProductValidator;
             _updateStatusValidator = updateStatusValidator;
+            _updateImageValidator = updateImageValidator;
         }
 
         public async Task<ApiResponse<ProductDto>> SaveProductAsync(SaveProductDto request, CancellationToken cancellationToken = default)
@@ -117,6 +120,33 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
 
                 string statusText = result.IsActive ? "activated" : "deactivated";
                 return ApiResponse<ProductDto>.SuccessResponse(result, $"Product {statusText} successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ProductDto>.FailureResponse(ex.Message);
+            }
+        }
+
+        public async Task<ApiResponse<ProductDto>> UpdateProductImageAsync(UpdateProductImageDto request, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var validationResult = await _updateImageValidator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<ProductDto>.FailureResponse("Validation failed.", errors);
+            }
+
+            try
+            {
+                var result = await _productRepository.UpdateProductImageAsync(request, cancellationToken);
+                if (result == null)
+                {
+                    return ApiResponse<ProductDto>.FailureResponse("Product not found or failed to update image.");
+                }
+
+                return ApiResponse<ProductDto>.SuccessResponse(result, "Product images updated successfully.");
             }
             catch (Exception ex)
             {

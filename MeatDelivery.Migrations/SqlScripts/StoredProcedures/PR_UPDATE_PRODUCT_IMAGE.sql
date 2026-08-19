@@ -1,0 +1,37 @@
+-- =============================================================================
+-- STORED PROCEDURE: dbo.PR_UPDATE_PRODUCT_IMAGE
+-- Description: Updates or inserts product image URLs (Primary, Secondary, Tertiary) for a given product.
+-- =============================================================================
+
+CREATE OR ALTER PROCEDURE dbo.PR_UPDATE_PRODUCT_IMAGE
+    @PRODUCT_ID     BIGINT,
+    @PRIMARY_URL    VARCHAR(500),
+    @SECONDARY_URL  VARCHAR(500) = NULL,
+    @TERTIARY_URL   VARCHAR(500) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE PRODUCT_ID = @PRODUCT_ID AND IS_DELETED = 0)
+    BEGIN
+        RAISERROR('Product not found.', 16, 1);
+        RETURN;
+    END
+
+    IF EXISTS (SELECT 1 FROM dbo.PRODUCT_IMAGES WHERE PRODUCT_ID = @PRODUCT_ID)
+    BEGIN
+        UPDATE dbo.PRODUCT_IMAGES
+        SET PRIMARY_URL = @PRIMARY_URL,
+            SECONDARY_URL = @SECONDARY_URL,
+            TERTIARY_URL = @TERTIARY_URL
+        WHERE PRODUCT_ID = @PRODUCT_ID;
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.PRODUCT_IMAGES (PRODUCT_ID, PRIMARY_URL, SECONDARY_URL, TERTIARY_URL)
+        VALUES (@PRODUCT_ID, @PRIMARY_URL, @SECONDARY_URL, @TERTIARY_URL);
+    END
+
+    EXEC dbo.PR_GET_PRODUCTS @PRODUCT_ID = @PRODUCT_ID;
+END;
+GO
