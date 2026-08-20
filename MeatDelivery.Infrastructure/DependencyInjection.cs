@@ -155,6 +155,10 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Product.IProductRepository, MeatDelivery.Infrastructure.Repositories.Catalog.ProductRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Product.IProductService, MeatDelivery.Infrastructure.Services.Catalog.ProductService>();
 
+            // Wishlist Services & Repositories
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Wishlist.IWishlistRepository, MeatDelivery.Infrastructure.Repositories.Wishlist.WishlistRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Wishlist.IWishlistService, MeatDelivery.Infrastructure.Services.Wishlist.WishlistService>();
+
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();
 

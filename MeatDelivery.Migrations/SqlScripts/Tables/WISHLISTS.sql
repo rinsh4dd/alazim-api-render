@@ -1,0 +1,21 @@
+-- =============================================================================
+-- TABLE: dbo.WISHLISTS
+-- Description: Header table for customer wishlists (1 wishlist per customer rule).
+-- =============================================================================
+
+CREATE TABLE dbo.WISHLISTS
+(
+    WISHLIST_ID         BIGINT IDENTITY(1,1) NOT NULL,
+    CUSTOMER_USER_ID    BIGINT NOT NULL,
+    CREATED_AT          DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UPDATED_AT          DATETIME2 NULL,
+
+    CONSTRAINT PK_WISHLISTS PRIMARY KEY CLUSTERED (WISHLIST_ID),
+    CONSTRAINT FK_WISHLISTS_CUSTOMER FOREIGN KEY (CUSTOMER_USER_ID) 
+        REFERENCES dbo.CUSTOMER_USERS (USER_ID) ON DELETE CASCADE,
+    CONSTRAINT UQ_WISHLISTS_CUSTOMER UNIQUE NONCLUSTERED (CUSTOMER_USER_ID)
+);
+
+CREATE NONCLUSTERED INDEX IX_WISHLISTS_CUSTOMER 
+    ON dbo.WISHLISTS (CUSTOMER_USER_ID);
+GO

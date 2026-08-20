@@ -68,7 +68,9 @@ namespace MeatDelivery.Api.Extensions
             if (context?.User == null) return 0;
 
             var claim = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
-                     ?? context.User.FindFirst("sub")?.Value;
+                     ?? context.User.FindFirst("sub")?.Value
+                     ?? context.User.FindFirst("userId")?.Value
+                     ?? context.User.FindFirst("nameid")?.Value;
 
             return long.TryParse(claim, out var userId) ? userId : 0;
         }
