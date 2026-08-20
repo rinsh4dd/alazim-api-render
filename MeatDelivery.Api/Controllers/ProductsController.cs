@@ -59,7 +59,7 @@ namespace MeatDelivery.Api.Controllers
             return Ok(response);
         }
 
-        [HttpPost("image")]
+        [HttpPost("updateImage")]
         public async Task<IActionResult> UpdateProductImage(
             [FromBody] UpdateProductImageDto request,
             CancellationToken cancellationToken = default)
@@ -68,12 +68,21 @@ namespace MeatDelivery.Api.Controllers
             return Ok(response);
         }
 
-        [HttpPost("price")]
+        [HttpPost("updatePrice")]
         public async Task<IActionResult> UpdateProductPrice(
             [FromBody] UpdateProductPriceDto request,
             CancellationToken cancellationToken = default)
         {
             var response = await _productService.UpdateProductPriceAsync(request, cancellationToken);
+            return Ok(response);
+        }
+
+        [HttpGet("priceHistory")]
+        public async Task<IActionResult> GetPriceHistory(
+            [FromQuery] GetPriceHistoryQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _productService.GetPriceHistoryAsync(query, cancellationToken);
             return Ok(response);
         }
 

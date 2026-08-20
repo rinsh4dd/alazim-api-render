@@ -143,6 +143,25 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             return items.FirstOrDefault();
         }
 
+        public async Task<(List<ProductPriceHistoryDto> Items, int TotalRecords)> GetPriceHistoryAsync(GetPriceHistoryQueryDto query, CancellationToken cancellationToken = default)
+        {
+            return await _dapperRepository.QueryMultipleAsync(
+                "dbo.PR_GET_PRODUCT_PRICE_HISTORY",
+                async grid =>
+                {
+                    var totalRecords = (await grid.ReadAsync<int>()).FirstOrDefault();
+                    var items = (await grid.ReadAsync<ProductPriceHistoryDto>()).ToList();
+                    return (items, totalRecords);
+                },
+                new
+                {
+                    PRODUCT_ID = query.ProductId,
+                    PAGE_NUMBER = query.PageNumber,
+                    PAGE_SIZE = query.PageSize
+                }
+            );
+        }
+
         public async Task<List<ProductDto>> ManageProductAttributesAsync(ManageAttributesDto request, CancellationToken cancellationToken = default)
         {
             var dataTable = new DataTable();

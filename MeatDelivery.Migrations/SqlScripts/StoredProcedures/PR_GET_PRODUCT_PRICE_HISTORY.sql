@@ -1,0 +1,48 @@
+-- =============================================================================
+-- STORED PROCEDURE: dbo.PR_GET_PRODUCT_PRICE_HISTORY
+-- Description: Retrieves paginated price audit history for a product.
+-- =============================================================================
+
+CREATE OR ALTER PROCEDURE dbo.PR_GET_PRODUCT_PRICE_HISTORY
+(
+    @PRODUCT_ID     BIGINT,
+    @PAGE_NUMBER    INT = 1,
+    @PAGE_SIZE      INT = 10
+)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SET @PAGE_NUMBER = ISNULL(@PAGE_NUMBER, 1);
+    IF @PAGE_NUMBER < 1 SET @PAGE_NUMBER = 1;
+
+    SET @PAGE_SIZE = ISNULL(@PAGE_SIZE, 10);
+    IF @PAGE_SIZE < 1 SET @PAGE_SIZE = 10;
+    IF @PAGE_SIZE > 100 SET @PAGE_SIZE = 100;
+
+    DECLARE @OFFSET INT = (@PAGE_NUMBER - 1) * @PAGE_SIZE;
+
+    -- Grid 1: Total records count
+    SELECT COUNT(1) AS TotalRecords
+    FROM dbo.PRODUCT_PRICES pp
+    INNER JOIN dbo.PRODUCTS p ON pp.PRODUCT_ID = p.PRODUCT_ID
+    WHERE pp.PRODUCT_ID = @PRODUCT_ID AND p.IS_DELETED = 0;
+
+    -- Grid 2: Paginated price history items
+    SELECT
+        pp.PRICE_ID AS PriceId,
+        pp.PRODUCT_ID AS ProductId,
+        p.PRODUCT_NAME_EN AS ProductNameEn,
+        p.PRODUCT_NAME_AR AS ProductNameAr,
+        pp.PRICE AS Price,
+        pp.IS_ACTIVE AS IsActive,
+        pp.CREATED_AT AS CreatedAt,
+        pp.UPDATED_AT AS UpdatedAt
+    FROM dbo.PRODUCT_PRICES pp
+    INNER JOIN dbo.PRODUCTS p ON pp.PRODUCT_ID = p.PRODUCT_ID
+    WHERE pp.PRODUCT_ID = @PRODUCT_ID AND p.IS_DELETED = 0
+    ORDER BY pp.CREATED_AT DESC, pp.PRICE_ID DESC
+    OFFSET @OFFSET ROWS
+    FETCH NEXT @PAGE_SIZE ROWS ONLY;
+END;
+GO

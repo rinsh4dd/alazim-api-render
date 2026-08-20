@@ -19,6 +19,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
         private readonly IValidator<UpdateProductStatusDto> _updateStatusValidator;
         private readonly IValidator<UpdateProductImageDto> _updateImageValidator;
         private readonly IValidator<UpdateProductPriceDto> _updatePriceValidator;
+        private readonly IValidator<GetPriceHistoryQueryDto> _getPriceHistoryValidator;
         private readonly IValidator<ManageAttributesDto> _manageAttributesValidator;
 
         public ProductService(
@@ -27,6 +28,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             IValidator<UpdateProductStatusDto> updateStatusValidator,
             IValidator<UpdateProductImageDto> updateImageValidator,
             IValidator<UpdateProductPriceDto> updatePriceValidator,
+            IValidator<GetPriceHistoryQueryDto> getPriceHistoryValidator,
             IValidator<ManageAttributesDto> manageAttributesValidator)
         {
             _productRepository = productRepository;
@@ -34,6 +36,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             _updateStatusValidator = updateStatusValidator;
             _updateImageValidator = updateImageValidator;
             _updatePriceValidator = updatePriceValidator;
+            _getPriceHistoryValidator = getPriceHistoryValidator;
             _manageAttributesValidator = manageAttributesValidator;
         }
 
@@ -210,6 +213,47 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             catch (Exception ex)
             {
                 return ApiResponse<ProductDto>.FailureResponse(ex.Message);
+            }
+        }
+
+        public async Task<PagedResponse<List<ProductPriceHistoryDto>>> GetPriceHistoryAsync(GetPriceHistoryQueryDto query, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(query);
+
+            var validationResult = await _getPriceHistoryValidator.ValidateAsync(query, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return new PagedResponse<List<ProductPriceHistoryDto>>
+                {
+                    Success = false,
+                    Message = "Validation failed.",
+                    Errors = errors,
+                    Data = new List<ProductPriceHistoryDto>()
+                };
+            }
+
+            try
+            {
+                var (items, totalRecords) = await _productRepository.GetPriceHistoryAsync(query, cancellationToken);
+                return new PagedResponse<List<ProductPriceHistoryDto>>
+                {
+                    Success = true,
+                    Message = "Price history retrieved successfully.",
+                    Data = items,
+                    PageNumber = query.PageNumber,
+                    PageSize = query.PageSize,
+                    TotalRecords = totalRecords
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PagedResponse<List<ProductPriceHistoryDto>>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = new List<ProductPriceHistoryDto>()
+                };
             }
         }
 
