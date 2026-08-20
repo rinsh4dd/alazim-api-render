@@ -18,6 +18,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
         private readonly IValidator<SaveProductDto> _saveProductValidator;
         private readonly IValidator<UpdateProductStatusDto> _updateStatusValidator;
         private readonly IValidator<UpdateProductImageDto> _updateImageValidator;
+        private readonly IValidator<UpdateProductPriceDto> _updatePriceValidator;
         private readonly IValidator<ManageAttributesDto> _manageAttributesValidator;
 
         public ProductService(
@@ -25,12 +26,14 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             IValidator<SaveProductDto> saveProductValidator,
             IValidator<UpdateProductStatusDto> updateStatusValidator,
             IValidator<UpdateProductImageDto> updateImageValidator,
+            IValidator<UpdateProductPriceDto> updatePriceValidator,
             IValidator<ManageAttributesDto> manageAttributesValidator)
         {
             _productRepository = productRepository;
             _saveProductValidator = saveProductValidator;
             _updateStatusValidator = updateStatusValidator;
             _updateImageValidator = updateImageValidator;
+            _updatePriceValidator = updatePriceValidator;
             _manageAttributesValidator = manageAttributesValidator;
         }
 
@@ -176,6 +179,33 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                 }
 
                 return ApiResponse<ProductDto>.SuccessResponse(result, "Product images updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ProductDto>.FailureResponse(ex.Message);
+            }
+        }
+
+        public async Task<ApiResponse<ProductDto>> UpdateProductPriceAsync(UpdateProductPriceDto request, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var validationResult = await _updatePriceValidator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<ProductDto>.FailureResponse("Validation failed.", errors);
+            }
+
+            try
+            {
+                var result = await _productRepository.UpdateProductPriceAsync(request, cancellationToken);
+                if (result == null)
+                {
+                    return ApiResponse<ProductDto>.FailureResponse("Product not found or failed to update price.");
+                }
+
+                return ApiResponse<ProductDto>.SuccessResponse(result, "Product price updated successfully.");
             }
             catch (Exception ex)
             {

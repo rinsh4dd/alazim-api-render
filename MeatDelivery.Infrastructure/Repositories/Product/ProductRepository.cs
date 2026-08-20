@@ -129,6 +129,20 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             );
         }
 
+        public async Task<ProductDto?> UpdateProductPriceAsync(UpdateProductPriceDto request, CancellationToken cancellationToken = default)
+        {
+            var items = await _dapperRepository.QueryAsync<ProductDto>(
+                "dbo.PR_UPDATE_PRODUCT_PRICE",
+                new
+                {
+                    PRODUCT_ID = request.ProductId,
+                    PRICE = request.Price,
+                    DISCOUNT_PERCENTAGE = request.DiscountPercentage
+                }
+            );
+            return items.FirstOrDefault();
+        }
+
         public async Task<List<ProductDto>> ManageProductAttributesAsync(ManageAttributesDto request, CancellationToken cancellationToken = default)
         {
             var dataTable = new DataTable();

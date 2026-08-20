@@ -13,6 +13,7 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Product
         Task<List<ProductDto>> GetFeaturedProductsAsync(CancellationToken cancellationToken = default);
         Task<ProductDto?> UpdateProductStatusAsync(UpdateProductStatusDto request, CancellationToken cancellationToken = default);
         Task<ProductDto?> UpdateProductImageAsync(UpdateProductImageDto request, CancellationToken cancellationToken = default);
+        Task<ProductDto?> UpdateProductPriceAsync(UpdateProductPriceDto request, CancellationToken cancellationToken = default);
         Task<List<ProductDto>> ManageProductAttributesAsync(ManageAttributesDto request, CancellationToken cancellationToken = default);
     }
 }
