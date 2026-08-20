@@ -1,7 +1,9 @@
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Dapper;
 using MeatDelivery.Application.DTOs.Product;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Data;
@@ -117,6 +119,31 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     TERTIARY_URL = request.TertiaryUrl
                 }
             );
+        }
+
+        public async Task<List<ProductDto>> ManageProductAttributesAsync(ManageAttributesDto request, CancellationToken cancellationToken = default)
+        {
+            var dataTable = new DataTable();
+            dataTable.Columns.Add("PRODUCT_ID", typeof(long));
+
+            if (request.ProductIds != null)
+            {
+                foreach (var id in request.ProductIds.Distinct())
+                {
+                    dataTable.Rows.Add(id);
+                }
+            }
+
+            var parameters = new DynamicParameters();
+            parameters.Add("MODE", request.Mode);
+            parameters.Add("PRODUCT_IDS", dataTable.AsTableValuedParameter("dbo.PRODUCT_ID_LIST"));
+            parameters.Add("VALUE", request.Value);
+
+            var items = await _dapperRepository.QueryAsync<ProductDto>(
+                "dbo.PR_MANAGE_PRODUCT_ATTRIBUTES",
+                parameters
+            );
+            return items.ToList();
         }
     }
 }

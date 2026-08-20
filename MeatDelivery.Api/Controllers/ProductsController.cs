@@ -60,5 +60,14 @@ namespace MeatDelivery.Api.Controllers
             var response = await _productService.UpdateProductImageAsync(request, cancellationToken);
             return Ok(response);
         }
+
+        [HttpPost("/api/v1/admin/products/manageAttributes")]
+        public async Task<IActionResult> ManageAttributes(
+            [FromBody] ManageAttributesDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _productService.ManageProductAttributesAsync(request, cancellationToken);
+            return Ok(response);
+        }
     }
 }

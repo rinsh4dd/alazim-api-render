@@ -18,17 +18,20 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
         private readonly IValidator<SaveProductDto> _saveProductValidator;
         private readonly IValidator<UpdateProductStatusDto> _updateStatusValidator;
         private readonly IValidator<UpdateProductImageDto> _updateImageValidator;
+        private readonly IValidator<ManageAttributesDto> _manageAttributesValidator;
 
         public ProductService(
             IProductRepository productRepository,
             IValidator<SaveProductDto> saveProductValidator,
             IValidator<UpdateProductStatusDto> updateStatusValidator,
-            IValidator<UpdateProductImageDto> updateImageValidator)
+            IValidator<UpdateProductImageDto> updateImageValidator,
+            IValidator<ManageAttributesDto> manageAttributesValidator)
         {
             _productRepository = productRepository;
             _saveProductValidator = saveProductValidator;
             _updateStatusValidator = updateStatusValidator;
             _updateImageValidator = updateImageValidator;
+            _manageAttributesValidator = manageAttributesValidator;
         }
 
         public async Task<ApiResponse<ProductDto>> SaveProductAsync(SaveProductDto request, CancellationToken cancellationToken = default)
@@ -164,6 +167,28 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             catch (Exception ex)
             {
                 return ApiResponse<ProductDto>.FailureResponse(ex.Message);
+            }
+        }
+
+        public async Task<ApiResponse<List<ProductDto>>> ManageProductAttributesAsync(ManageAttributesDto request, CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var validationResult = await _manageAttributesValidator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<List<ProductDto>>.FailureResponse("Validation failed.", errors);
+            }
+
+            try
+            {
+                var items = await _productRepository.ManageProductAttributesAsync(request, cancellationToken);
+                return ApiResponse<List<ProductDto>>.SuccessResponse(items, $"Product attributes updated successfully for mode '{request.Mode}'.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<List<ProductDto>>.FailureResponse(ex.Message);
             }
         }
     }
