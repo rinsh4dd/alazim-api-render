@@ -21,6 +21,7 @@ namespace MeatDelivery.Application.DTOs.Product
         public string? SecondaryUrl { get; set; }
         public string? TertiaryUrl { get; set; }
         public bool IsFeatured { get; set; }
+        public bool IsPreorderable { get; set; }
         public bool IsActive { get; set; } = true;
     }
 }

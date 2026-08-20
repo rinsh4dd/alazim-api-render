@@ -41,6 +41,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     SECONDARY_URL = request.SecondaryUrl,
                     TERTIARY_URL = request.TertiaryUrl,
                     IS_FEATURED = request.IsFeatured,
+                    IS_PREORDERABLE = request.IsPreorderable,
                     IS_ACTIVE = request.IsActive
                 }
             );
@@ -63,6 +64,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     SEARCH_TERM = query.SearchTerm,
                     IS_FEATURED = query.IsFeatured,
                     IS_NEW_ARRIVAL = query.IsNewArrival,
+                    IS_PREORDERABLE = query.IsPreorderable,
                     IS_ACTIVE = query.IsActive,
                     IS_DELETED = query.IsDeleted,
                     PAGE_NUMBER = query.PageNumber,

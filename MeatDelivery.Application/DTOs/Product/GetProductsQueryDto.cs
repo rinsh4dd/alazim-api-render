@@ -7,6 +7,7 @@ namespace MeatDelivery.Application.DTOs.Product
         public string? SearchTerm { get; set; }
         public bool? IsFeatured { get; set; }
         public bool? IsNewArrival { get; set; }
+        public bool? IsPreorderable { get; set; }
         public bool? IsActive { get; set; }
         public bool? IsDeleted { get; set; }
         public int PageNumber { get; set; } = 1;

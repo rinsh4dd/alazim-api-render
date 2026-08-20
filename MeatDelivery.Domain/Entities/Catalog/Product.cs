@@ -25,6 +25,7 @@ namespace MeatDelivery.Domain.Entities.Catalog
         public int DisplayOrder { get; set; }
         public bool IsFeatured { get; set; }
         public bool IsBestseller { get; set; }
+        public bool IsPreorderable { get; set; }
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
         public DateTime? DeletedAt { get; set; }
