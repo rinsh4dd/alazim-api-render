@@ -99,6 +99,19 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             }
         }
 
+        public async Task<ApiResponse<List<ProductDto>>> GetFreshPicksAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var items = await _productRepository.GetFreshPicksProductsAsync(cancellationToken);
+                return ApiResponse<List<ProductDto>>.SuccessResponse(items, "Fresh picks retrieved successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<List<ProductDto>>.FailureResponse(ex.Message);
+            }
+        }
+
         public async Task<ApiResponse<ProductDto>> UpdateProductStatusAsync(UpdateProductStatusDto request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);

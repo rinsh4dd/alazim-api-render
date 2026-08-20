@@ -35,6 +35,14 @@ namespace MeatDelivery.Api.Controllers
             return Ok(response);
         }
 
+        [HttpGet("/api/v1/FreshPicks")]
+
+        public async Task<IActionResult> GetFreshPicks(CancellationToken cancellationToken = default)
+        {
+            var response = await _productService.GetFreshPicksAsync(cancellationToken);
+            return Ok(response);
+        }
+
         [HttpPost("status")]
         public async Task<IActionResult> UpdateProductStatus(
             [FromBody] UpdateProductStatusDto request,

@@ -42,6 +42,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     TERTIARY_URL = request.TertiaryUrl,
                     IS_FEATURED = request.IsFeatured,
                     IS_PREORDERABLE = request.IsPreorderable,
+                    IS_NEW_ARRIVAL = request.IsNewArrival,
                     IS_ACTIVE = request.IsActive
                 }
             );
@@ -71,6 +72,14 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     PAGE_SIZE = query.PageSize
                 }
             );
+        }
+
+        public async Task<List<ProductDto>> GetFreshPicksProductsAsync(CancellationToken cancellationToken = default)
+        {
+            var items = await _dapperRepository.QueryAsync<ProductDto>(
+                "dbo.PR_GET_FRESH_PICKS_PRODUCTS"
+            );
+            return items.ToList();
         }
 
         public async Task<ProductDto?> UpdateProductStatusAsync(UpdateProductStatusDto request, CancellationToken cancellationToken = default)
