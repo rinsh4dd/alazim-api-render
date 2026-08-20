@@ -36,10 +36,17 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpGet("/api/v1/FreshPicks")]
-
         public async Task<IActionResult> GetFreshPicks(CancellationToken cancellationToken = default)
         {
             var response = await _productService.GetFreshPicksAsync(cancellationToken);
+            return Ok(response);
+        }
+
+
+        [HttpGet("/api/v1/FeaturedProducts")]
+        public async Task<IActionResult> GetFeaturedProducts(CancellationToken cancellationToken = default)
+        {
+            var response = await _productService.GetFeaturedProductsAsync(cancellationToken);
             return Ok(response);
         }
 
@@ -61,7 +68,7 @@ namespace MeatDelivery.Api.Controllers
             return Ok(response);
         }
 
-        [HttpPost("/api/v1/admin/products/manageAttributes")]
+        [HttpPost("manageAttributes")]
         public async Task<IActionResult> ManageAttributes(
             [FromBody] ManageAttributesDto request,
             CancellationToken cancellationToken = default)

@@ -8,7 +8,7 @@ namespace MeatDelivery.Application.Validators.Product
         public ManageAttributesDtoValidator()
         {
             RuleFor(x => x.Mode)
-                .NotEmpty().WithMessage("Mode is required. (Allowed modes: FEATURED, PREORDERABLE, NEW_ARRIVAL)");
+                .IsInEnum().WithMessage("Invalid Mode specified. Allowed modes: FEATURED, PREORDERABLE, NEW_ARRIVAL.");
 
             RuleFor(x => x.ProductIds)
                 .NotEmpty().WithMessage("At least one ProductId is required.");

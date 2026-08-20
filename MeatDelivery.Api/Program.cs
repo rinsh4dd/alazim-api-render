@@ -1,6 +1,7 @@
 using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi;
 using Serilog;
+using Scalar.AspNetCore;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Api.Filters;
 using MeatDelivery.Application;
@@ -44,8 +45,8 @@ builder.Services.AddApiVersioningSupport();
 builder.Services.AddGzipCompressionSupport();
 
 // Add Application Health Checks
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
-    ?? builder.Configuration.GetConnectionString("MasterDb") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("MasterDb")
     ?? throw new InvalidOperationException("DefaultConnection connection string missing.");
 
 builder.Services.AddHealthChecks()
@@ -58,6 +59,10 @@ builder.Services.AddHealthChecks()
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 
 // Register OpenAPI endpoint generation
@@ -107,6 +112,14 @@ app.UseSwaggerUI(options =>
     options.SwaggerEndpoint("/swagger/v1/swagger.json", "MeatDelivery Client API v1");
     options.RoutePrefix = "swagger";
     options.DocumentTitle = "MeatDelivery Client API Documentation";
+});
+
+app.MapScalarApiReference(options =>
+{
+    options.WithTitle("MeatDelivery Client API Reference")
+           .WithTheme(Scalar.AspNetCore.ScalarTheme.Purple)
+           .WithOpenApiRoutePattern("/swagger/v1/swagger.json")
+           .WithDefaultHttpClient(Scalar.AspNetCore.ScalarTarget.Http, Scalar.AspNetCore.ScalarClient.Http11);
 });
 
 app.UseGzipCompressionSupport();

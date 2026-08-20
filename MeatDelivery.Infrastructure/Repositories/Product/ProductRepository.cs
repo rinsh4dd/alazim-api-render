@@ -84,6 +84,14 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             return items.ToList();
         }
 
+        public async Task<List<ProductDto>> GetFeaturedProductsAsync(CancellationToken cancellationToken = default)
+        {
+            var items = await _dapperRepository.QueryAsync<ProductDto>(
+                "dbo.PR_GET_FEATURED_PRODUCTS"
+            );
+            return items.ToList();
+        }
+
         public async Task<ProductDto?> UpdateProductStatusAsync(UpdateProductStatusDto request, CancellationToken cancellationToken = default)
         {
             return await _dapperRepository.QueryMultipleAsync(
@@ -135,7 +143,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             }
 
             var parameters = new DynamicParameters();
-            parameters.Add("MODE", request.Mode);
+            parameters.Add("MODE", request.Mode.ToString());
             parameters.Add("PRODUCT_IDS", dataTable.AsTableValuedParameter("dbo.PRODUCT_ID_LIST"));
             parameters.Add("VALUE", request.Value);
 

@@ -41,7 +41,8 @@ namespace MeatDelivery.Application.Validators.Category
                     RuleFor(x => x.DescriptionAr)
                         .MaximumLength(500).WithMessage("Arabic description must not exceed 500 characters.");
                 });
-
+                RuleFor(x => x.ImageUrl)
+                    .NotEmpty().WithMessage("Category image URL is required.");
 
 
                 When(x => x.DisplayOrder.HasValue, () =>

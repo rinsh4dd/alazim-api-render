@@ -115,6 +115,19 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             }
         }
 
+        public async Task<ApiResponse<List<ProductDto>>> GetFeaturedProductsAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var items = await _productRepository.GetFeaturedProductsAsync(cancellationToken);
+                return ApiResponse<List<ProductDto>>.SuccessResponse(items, "Featured products retrieved successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<List<ProductDto>>.FailureResponse(ex.Message);
+            }
+        }
+
         public async Task<ApiResponse<ProductDto>> UpdateProductStatusAsync(UpdateProductStatusDto request, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(request);
