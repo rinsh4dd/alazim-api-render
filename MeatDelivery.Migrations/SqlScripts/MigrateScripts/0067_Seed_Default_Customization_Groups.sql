@@ -1,0 +1,41 @@
+-- Migration: 0067_Seed_Default_Customization_Groups.sql
+-- Description: Seeds initial standard meat customization groups (Cut Type, Cleaning, Skin Preference, Packaging, Marination) into dbo.CUSTOMIZATION_GROUPS.
+
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CUSTOMIZATION_GROUPS' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    -- 1. Cut Type Group
+    IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMIZATION_GROUPS WHERE GROUP_CODE = 'CUT_TYPE')
+    BEGIN
+        INSERT INTO dbo.CUSTOMIZATION_GROUPS (GROUP_CODE, GROUP_NAME_EN, GROUP_NAME_AR, IS_ADDITIONAL_PRICE_AVAILABLE, IS_ACTIVE)
+        VALUES ('CUT_TYPE', N'Cut Type', N'نوع التقطيع', 1, 1);
+    END;
+
+    -- 2. Cleaning & Washing Group
+    IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMIZATION_GROUPS WHERE GROUP_CODE = 'CLEANING')
+    BEGIN
+        INSERT INTO dbo.CUSTOMIZATION_GROUPS (GROUP_CODE, GROUP_NAME_EN, GROUP_NAME_AR, IS_ADDITIONAL_PRICE_AVAILABLE, IS_ACTIVE)
+        VALUES ('CLEANING', N'Cleaning & Washing', N'التنظيف والغسيل', 0, 1);
+    END;
+
+    -- 3. Skin Preference Group
+    IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMIZATION_GROUPS WHERE GROUP_CODE = 'SKIN_TYPE')
+    BEGIN
+        INSERT INTO dbo.CUSTOMIZATION_GROUPS (GROUP_CODE, GROUP_NAME_EN, GROUP_NAME_AR, IS_ADDITIONAL_PRICE_AVAILABLE, IS_ACTIVE)
+        VALUES ('SKIN_TYPE', N'Skin Preference', N'خيارات الجلد', 0, 1);
+    END;
+
+    -- 4. Packaging Type Group
+    IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMIZATION_GROUPS WHERE GROUP_CODE = 'PACKAGING')
+    BEGIN
+        INSERT INTO dbo.CUSTOMIZATION_GROUPS (GROUP_CODE, GROUP_NAME_EN, GROUP_NAME_AR, IS_ADDITIONAL_PRICE_AVAILABLE, IS_ACTIVE)
+        VALUES ('PACKAGING', N'Packaging Type', N'نوع التغليف', 1, 1);
+    END;
+
+    -- 5. Marination & Seasoning Group
+    IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMIZATION_GROUPS WHERE GROUP_CODE = 'MARINATION')
+    BEGIN
+        INSERT INTO dbo.CUSTOMIZATION_GROUPS (GROUP_CODE, GROUP_NAME_EN, GROUP_NAME_AR, IS_ADDITIONAL_PRICE_AVAILABLE, IS_ACTIVE)
+        VALUES ('MARINATION', N'Marination & Seasoning', N'التتبيلة والبهارات', 1, 1);
+    END;
+END;
+GO
