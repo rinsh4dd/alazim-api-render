@@ -15,17 +15,12 @@ namespace MeatDelivery.Infrastructure.Services.Customization
     public class CustomizationGroupService : ICustomizationGroupService
     {
         private readonly ICustomizationGroupRepository _groupRepository;
-        private readonly SaveCustomizationGroupDtoValidator _saveValidator;
-        private readonly GetCustomizationGroupsQueryDtoValidator _getValidator;
+        private readonly SaveCustomizationGroupDtoValidator _saveValidator = new();
+        private readonly GetCustomizationGroupsQueryDtoValidator _getValidator = new();
 
-        public CustomizationGroupService(
-            ICustomizationGroupRepository groupRepository,
-            SaveCustomizationGroupDtoValidator saveValidator,
-            GetCustomizationGroupsQueryDtoValidator getValidator)
+        public CustomizationGroupService(ICustomizationGroupRepository groupRepository)
         {
             _groupRepository = groupRepository;
-            _saveValidator = saveValidator;
-            _getValidator = getValidator;
         }
 
         public async Task<ApiResponse<CustomizationGroupDto>> SaveCustomizationGroupAsync(

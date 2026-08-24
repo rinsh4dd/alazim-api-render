@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Moq;
 using MeatDelivery.Application.DTOs.Customization;
 using MeatDelivery.Application.Interfaces.Repositories.Customization;
-using MeatDelivery.Application.Validators.Customization;
 using MeatDelivery.Domain.Enums;
 using MeatDelivery.Infrastructure.Services.Customization;
 using Xunit;
@@ -15,16 +14,11 @@ namespace MeatDelivery.UnitTests.Services
     public class CustomizationGroupServiceTests
     {
         private readonly Mock<ICustomizationGroupRepository> _repoMock = new();
-        private readonly SaveCustomizationGroupDtoValidator _saveValidator = new();
-        private readonly GetCustomizationGroupsQueryDtoValidator _getValidator = new();
         private readonly CustomizationGroupService _service;
 
         public CustomizationGroupServiceTests()
         {
-            _service = new CustomizationGroupService(
-                _repoMock.Object,
-                _saveValidator,
-                _getValidator);
+            _service = new CustomizationGroupService(_repoMock.Object);
         }
 
         [Fact]

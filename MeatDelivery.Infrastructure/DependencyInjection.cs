@@ -160,8 +160,6 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Wishlist.IWishlistService, MeatDelivery.Infrastructure.Services.Wishlist.WishlistService>();
 
             // Customization Services & Repositories
-            services.AddScoped<MeatDelivery.Application.Validators.Customization.SaveCustomizationGroupDtoValidator>();
-            services.AddScoped<MeatDelivery.Application.Validators.Customization.GetCustomizationGroupsQueryDtoValidator>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customization.ICustomizationTemplateRepository, MeatDelivery.Infrastructure.Repositories.Customization.CustomizationTemplateRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Customization.ICustomizationTemplateService, MeatDelivery.Infrastructure.Services.Customization.CustomizationTemplateService>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customization.ICustomizationGroupRepository, MeatDelivery.Infrastructure.Repositories.Customization.CustomizationGroupRepository>();
