@@ -15,15 +15,18 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
         private readonly ICustomizationTemplateService _customizationTemplateService;
         private readonly ICustomizationGroupService _customizationGroupService;
         private readonly ICustomizationOptionService _customizationOptionService;
+        private readonly ITemplateGroupMappingService _templateGroupMappingService;
 
         public CustomizationController(
             ICustomizationTemplateService customizationTemplateService,
             ICustomizationGroupService customizationGroupService,
-            ICustomizationOptionService customizationOptionService)
+            ICustomizationOptionService customizationOptionService,
+            ITemplateGroupMappingService templateGroupMappingService)
         {
             _customizationTemplateService = customizationTemplateService;
             _customizationGroupService = customizationGroupService;
             _customizationOptionService = customizationOptionService;
+            _templateGroupMappingService = templateGroupMappingService;
         }
 
         // =====================================================================
@@ -107,6 +110,35 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
             CancellationToken cancellationToken)
         {
             var response = await _customizationOptionService.GetCustomizationOptionsAsync(
+                query,
+                cancellationToken);
+
+            return Ok(response);
+        }
+
+        // =====================================================================
+        // 4. TEMPLATE GROUP MAPPINGS
+        // =====================================================================
+
+        [HttpPost("mappings/save")]
+        public async Task<IActionResult> SaveTemplateGroupMapping(
+            [FromBody] SaveTemplateGroupMappingDto request,
+            CancellationToken cancellationToken)
+        {
+            var response = await _templateGroupMappingService.SaveTemplateGroupMappingAsync(
+                request,
+                cancellationToken);
+
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpGet("mappings/list")]
+        public async Task<IActionResult> GetTemplateGroupMappings(
+            [FromQuery] GetTemplateGroupMappingsQueryDto query,
+            CancellationToken cancellationToken)
+        {
+            var response = await _templateGroupMappingService.GetTemplateGroupMappingsAsync(
                 query,
                 cancellationToken);
 
