@@ -9,7 +9,7 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
 {
     [ApiVersion("1.0")]
     [ApiController]
-    [Route("api/v{version:apiVersion}/customization-templates")]
+    [Route("api/v{version:apiVersion}/CustomizationTemplates")]
     public class CustomizationTemplatesController : ControllerBase
     {
         private readonly ICustomizationTemplateService _customizationTemplateService;
@@ -29,6 +29,18 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
                 cancellationToken);
 
             response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> GetCustomizationTemplates(
+            [FromQuery] GetCustomizationTemplatesQueryDto query,
+            CancellationToken cancellationToken)
+        {
+            var response = await _customizationTemplateService.GetCustomizationTemplatesAsync(
+                query,
+                cancellationToken);
+
             return Ok(response);
         }
     }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.DTOs.Customization;
@@ -9,6 +10,10 @@ namespace MeatDelivery.Application.Interfaces.Customization
     {
         Task<ApiResponse<CustomizationTemplateDto>> SaveCustomizationTemplateAsync(
             SaveCustomizationTemplateDto request,
+            CancellationToken cancellationToken = default);
+
+        Task<PagedResponse<List<CustomizationTemplateDto>>> GetCustomizationTemplatesAsync(
+            GetCustomizationTemplatesQueryDto query,
             CancellationToken cancellationToken = default);
     }
 }

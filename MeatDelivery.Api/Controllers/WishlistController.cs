@@ -35,7 +35,6 @@ namespace MeatDelivery.Api.Controllers
             return Ok(response);
         }
 
-        [HttpGet("get")]
         [HttpGet]
         public async Task<IActionResult> GetCustomerWishlist(
             [FromQuery] GetWishlistQueryDto query,

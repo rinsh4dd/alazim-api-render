@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
@@ -14,14 +15,16 @@ namespace MeatDelivery.UnitTests.Services
     public class CustomizationTemplateServiceTests
     {
         private readonly Mock<ICustomizationTemplateRepository> _repoMock = new();
-        private readonly SaveCustomizationTemplateDtoValidator _validator = new();
+        private readonly SaveCustomizationTemplateDtoValidator _saveValidator = new();
+        private readonly GetCustomizationTemplatesQueryDtoValidator _getValidator = new();
         private readonly CustomizationTemplateService _service;
 
         public CustomizationTemplateServiceTests()
         {
             _service = new CustomizationTemplateService(
                 _repoMock.Object,
-                _validator);
+                _saveValidator,
+                _getValidator);
         }
 
         [Fact]
@@ -123,6 +126,32 @@ namespace MeatDelivery.UnitTests.Services
             Assert.NotNull(result);
             Assert.True(result.Success);
             Assert.Equal("Customization template deleted successfully.", result.Message);
+        }
+
+        [Fact]
+        public async Task GetCustomizationTemplatesAsync_ValidQuery_ReturnsPagedResult()
+        {
+            // Arrange
+            var query = new GetCustomizationTemplatesQueryDto { PageNumber = 1, PageSize = 10, Search = "Chicken" };
+            var list = new List<CustomizationTemplateDto>
+            {
+                new() { CustomizationTemplateId = 1, DocNo = "CTP0000000001", TemplateNameEn = "Chicken Customization" }
+            };
+
+            _repoMock.Setup(r => r.GetCustomizationTemplatesAsync(query, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((list, 1));
+
+            // Act
+            var result = await _service.GetCustomizationTemplatesAsync(query);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Success);
+            Assert.Equal(1, result.TotalRecords);
+            Assert.Equal(1, result.PageNumber);
+            Assert.Equal(10, result.PageSize);
+            Assert.Single(result.Data!);
+            Assert.Equal("Chicken Customization", result.Data?[0].TemplateNameEn);
         }
     }
 }

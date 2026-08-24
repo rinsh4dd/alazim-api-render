@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
@@ -54,6 +55,38 @@ namespace MeatDelivery.UnitTests.Controllers
             var response = Assert.IsType<ApiResponse<CustomizationTemplateDto>>(okResult.Value);
             Assert.True(response.Success);
             Assert.Equal("CTP0000000001", response.Data?.DocNo);
+        }
+
+        [Fact]
+        public async Task GetCustomizationTemplates_WhenCalled_ReturnsOkObjectResult()
+        {
+            // Arrange
+            var query = new GetCustomizationTemplatesQueryDto { PageNumber = 1, PageSize = 10, Search = "Fish" };
+            var pagedResponse = new PagedResponse<List<CustomizationTemplateDto>>
+            {
+                Success = true,
+                Message = "Customization templates retrieved successfully.",
+                Data = new List<CustomizationTemplateDto>
+                {
+                    new() { CustomizationTemplateId = 1, DocNo = "CTP0000000001", TemplateNameEn = "Fish Customization" }
+                },
+                PageNumber = 1,
+                PageSize = 10,
+                TotalRecords = 1
+            };
+
+            _serviceMock.Setup(s => s.GetCustomizationTemplatesAsync(query, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(pagedResponse);
+
+            // Act
+            var actionResult = await _controller.GetCustomizationTemplates(query, CancellationToken.None);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(actionResult);
+            var response = Assert.IsType<PagedResponse<List<CustomizationTemplateDto>>>(okResult.Value);
+            Assert.True(response.Success);
+            Assert.Equal(1, response.TotalRecords);
+            Assert.Single(response.Data!);
         }
     }
 }
