@@ -166,6 +166,8 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Customization.ICustomizationGroupService, MeatDelivery.Infrastructure.Services.Customization.CustomizationGroupService>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customization.ICustomizationOptionRepository, MeatDelivery.Infrastructure.Repositories.Customization.CustomizationOptionRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Customization.ICustomizationOptionService, MeatDelivery.Infrastructure.Services.Customization.CustomizationOptionService>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customization.ITemplateGroupMappingRepository, MeatDelivery.Infrastructure.Repositories.Customization.TemplateGroupMappingRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Customization.ITemplateGroupMappingService, MeatDelivery.Infrastructure.Services.Customization.TemplateGroupMappingService>();
 
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();
