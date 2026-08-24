@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Moq;
@@ -14,12 +15,16 @@ namespace MeatDelivery.UnitTests.Services
     public class CustomizationGroupServiceTests
     {
         private readonly Mock<ICustomizationGroupRepository> _repoMock = new();
-        private readonly SaveCustomizationGroupDtoValidator _validator = new();
+        private readonly SaveCustomizationGroupDtoValidator _saveValidator = new();
+        private readonly GetCustomizationGroupsQueryDtoValidator _getValidator = new();
         private readonly CustomizationGroupService _service;
 
         public CustomizationGroupServiceTests()
         {
-            _service = new CustomizationGroupService(_repoMock.Object, _validator);
+            _service = new CustomizationGroupService(
+                _repoMock.Object,
+                _saveValidator,
+                _getValidator);
         }
 
         [Fact]
@@ -102,6 +107,32 @@ namespace MeatDelivery.UnitTests.Services
             Assert.NotNull(result);
             Assert.True(result.Success);
             Assert.Equal("Customization group deleted successfully.", result.Message);
+        }
+
+        [Fact]
+        public async Task GetCustomizationGroupsAsync_ValidQuery_ReturnsPagedResult()
+        {
+            // Arrange
+            var query = new GetCustomizationGroupsQueryDto { PageNumber = 1, PageSize = 10, Search = "CUT" };
+            var list = new List<CustomizationGroupDto>
+            {
+                new() { CustomizationGroupId = 1, GroupCode = "CUT_TYPE", GroupNameEn = "Cut Type" }
+            };
+
+            _repoMock.Setup(r => r.GetCustomizationGroupsAsync(query, It.IsAny<CancellationToken>()))
+                .ReturnsAsync((list, 1));
+
+            // Act
+            var result = await _service.GetCustomizationGroupsAsync(query);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.True(result.Success);
+            Assert.Equal(1, result.TotalRecords);
+            Assert.Equal(1, result.PageNumber);
+            Assert.Equal(10, result.PageSize);
+            Assert.Single(result.Data!);
+            Assert.Equal("CUT_TYPE", result.Data?[0].GroupCode);
         }
     }
 }

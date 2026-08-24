@@ -31,5 +31,17 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }
+
+        [HttpGet("list")]
+        public async Task<IActionResult> GetCustomizationGroups(
+            [FromQuery] GetCustomizationGroupsQueryDto query,
+            CancellationToken cancellationToken)
+        {
+            var response = await _customizationGroupService.GetCustomizationGroupsAsync(
+                query,
+                cancellationToken);
+
+            return Ok(response);
+        }
     }
 }

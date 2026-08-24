@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -15,13 +16,16 @@ namespace MeatDelivery.Infrastructure.Services.Customization
     {
         private readonly ICustomizationGroupRepository _groupRepository;
         private readonly SaveCustomizationGroupDtoValidator _saveValidator;
+        private readonly GetCustomizationGroupsQueryDtoValidator _getValidator;
 
         public CustomizationGroupService(
             ICustomizationGroupRepository groupRepository,
-            SaveCustomizationGroupDtoValidator saveValidator)
+            SaveCustomizationGroupDtoValidator saveValidator,
+            GetCustomizationGroupsQueryDtoValidator getValidator)
         {
             _groupRepository = groupRepository;
             _saveValidator = saveValidator;
+            _getValidator = getValidator;
         }
 
         public async Task<ApiResponse<CustomizationGroupDto>> SaveCustomizationGroupAsync(
@@ -48,11 +52,50 @@ namespace MeatDelivery.Infrastructure.Services.Customization
                     _ => "Operation completed successfully."
                 };
 
-                return ApiResponse<CustomizationGroupDto>.SuccessResponse(result, message);
+                return ApiResponse<CustomizationGroupDto>.SuccessResponse(result!, message);
             }
             catch (Exception ex)
             {
                 return ApiResponse<CustomizationGroupDto>.FailureResponse(ex.Message);
+            }
+        }
+
+        public async Task<PagedResponse<List<CustomizationGroupDto>>> GetCustomizationGroupsAsync(
+            GetCustomizationGroupsQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            var validationResult = await _getValidator.ValidateAsync(query, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                return new PagedResponse<List<CustomizationGroupDto>>
+                {
+                    Success = false,
+                    Message = "Validation failed.",
+                    Errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList()
+                };
+            }
+
+            try
+            {
+                var (items, totalRecords) = await _groupRepository.GetCustomizationGroupsAsync(query, cancellationToken);
+
+                return new PagedResponse<List<CustomizationGroupDto>>
+                {
+                    Success = true,
+                    Message = "Customization groups retrieved successfully.",
+                    Data = items,
+                    PageNumber = query.PageNumber,
+                    PageSize = query.PageSize,
+                    TotalRecords = totalRecords
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PagedResponse<List<CustomizationGroupDto>>
+                {
+                    Success = false,
+                    Message = ex.Message
+                };
             }
         }
     }
