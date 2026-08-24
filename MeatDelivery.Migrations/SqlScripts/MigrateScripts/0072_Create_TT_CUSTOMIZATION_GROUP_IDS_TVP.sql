@@ -1,7 +1,14 @@
--- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_TEMPLATE_GROUP_MAPPING
--- Description: Handles ADD, EDIT (via TVP @GROUP_IDS), and HARD DELETE for Template Group Mappings (dbo.TEMPLATE_GROUP_MAPPING).
--- =============================================================================
+-- Migration: 0072_Create_TT_CUSTOMIZATION_GROUP_IDS_TVP.sql
+-- Description: Creates SQL Table-Valued Parameter type dbo.TT_CUSTOMIZATION_GROUP_IDS and updates dbo.PR_SAVE_TEMPLATE_GROUP_MAPPING to mirror options SP structure.
+
+IF NOT EXISTS (SELECT 1 FROM sys.types WHERE name = 'TT_CUSTOMIZATION_GROUP_IDS' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    CREATE TYPE dbo.TT_CUSTOMIZATION_GROUP_IDS AS TABLE
+    (
+        GROUP_ID BIGINT NOT NULL
+    );
+END;
+GO
 
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_TEMPLATE_GROUP_MAPPING
 (

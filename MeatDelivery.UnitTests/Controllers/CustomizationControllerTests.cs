@@ -18,6 +18,7 @@ namespace MeatDelivery.UnitTests.Controllers
         private readonly Mock<ICustomizationTemplateService> _templateServiceMock = new();
         private readonly Mock<ICustomizationGroupService> _groupServiceMock = new();
         private readonly Mock<ICustomizationOptionService> _optionServiceMock = new();
+        private readonly Mock<ITemplateGroupMappingService> _mappingServiceMock = new();
         private readonly CustomizationController _controller;
 
         public CustomizationControllerTests()
@@ -25,7 +26,8 @@ namespace MeatDelivery.UnitTests.Controllers
             _controller = new CustomizationController(
                 _templateServiceMock.Object,
                 _groupServiceMock.Object,
-                _optionServiceMock.Object)
+                _optionServiceMock.Object,
+                _mappingServiceMock.Object)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -114,34 +116,6 @@ namespace MeatDelivery.UnitTests.Controllers
         }
 
         [Fact]
-        public async Task GetCustomizationGroups_WhenCalled_ReturnsOkObjectResult()
-        {
-            var query = new GetCustomizationGroupsQueryDto { PageNumber = 1, PageSize = 10, Search = "CUT" };
-            var pagedResponse = new PagedResponse<List<CustomizationGroupDto>>
-            {
-                Success = true,
-                Message = "Customization groups retrieved successfully.",
-                Data = new List<CustomizationGroupDto>
-                {
-                    new() { CustomizationGroupId = 1, GroupCode = "CUT_TYPE", GroupNameEn = "Cut Type" }
-                },
-                PageNumber = 1,
-                PageSize = 10,
-                TotalRecords = 1
-            };
-
-            _groupServiceMock.Setup(s => s.GetCustomizationGroupsAsync(query, It.IsAny<CancellationToken>()))
-                .ReturnsAsync(pagedResponse);
-
-            var actionResult = await _controller.GetCustomizationGroups(query, CancellationToken.None);
-
-            var okResult = Assert.IsType<OkObjectResult>(actionResult);
-            var response = Assert.IsType<PagedResponse<List<CustomizationGroupDto>>>(okResult.Value);
-            Assert.True(response.Success);
-            Assert.Equal(1, response.TotalRecords);
-        }
-
-        [Fact]
         public async Task SaveCustomizationOption_WhenCalled_ReturnsOkObjectResult()
         {
             var request = new SaveCustomizationOptionDto
@@ -169,29 +143,57 @@ namespace MeatDelivery.UnitTests.Controllers
         }
 
         [Fact]
-        public async Task GetCustomizationOptions_WhenCalled_ReturnsOkObjectResult()
+        public async Task SaveTemplateGroupMapping_WhenCalled_ReturnsOkObjectResult()
         {
-            var query = new GetCustomizationOptionsQueryDto { PageNumber = 1, PageSize = 10, Search = "CURRY" };
-            var pagedResponse = new PagedResponse<List<CustomizationOptionDto>>
+            var request = new SaveTemplateGroupMappingDto
+            {
+                CustomizationTemplateId = 1,
+                GroupIds = new List<long> { 1, 2 }
+            };
+
+            var apiResponse = ApiResponse<List<TemplateGroupMappingDto>>.SuccessResponse(
+                new List<TemplateGroupMappingDto>
+                {
+                    new() { TemplateGroupMappingId = 1, CustomizationTemplateId = 1, CustomizationGroupId = 1 },
+                    new() { TemplateGroupMappingId = 2, CustomizationTemplateId = 1, CustomizationGroupId = 2 }
+                },
+                "Template group mappings updated successfully.");
+
+            _mappingServiceMock.Setup(s => s.SaveTemplateGroupMappingAsync(request, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(apiResponse);
+
+            var actionResult = await _controller.SaveTemplateGroupMapping(request, CancellationToken.None);
+
+            var okResult = Assert.IsType<OkObjectResult>(actionResult);
+            var response = Assert.IsType<ApiResponse<List<TemplateGroupMappingDto>>>(okResult.Value);
+            Assert.True(response.Success);
+            Assert.Equal(2, response.Data?.Count);
+        }
+
+        [Fact]
+        public async Task GetTemplateGroupMappings_WhenCalled_ReturnsOkObjectResult()
+        {
+            var query = new GetTemplateGroupMappingsQueryDto { PageNumber = 1, PageSize = 10, CustomizationTemplateId = 1 };
+            var pagedResponse = new PagedResponse<List<TemplateGroupMappingDto>>
             {
                 Success = true,
-                Message = "Customization options retrieved successfully.",
-                Data = new List<CustomizationOptionDto>
+                Message = "Template group mappings retrieved successfully.",
+                Data = new List<TemplateGroupMappingDto>
                 {
-                    new() { CustomizationOptionId = 1, OptionCode = "CURRY_CUT", OptionNameEn = "Curry Cut" }
+                    new() { TemplateGroupMappingId = 1, CustomizationTemplateId = 1, CustomizationGroupId = 1 }
                 },
                 PageNumber = 1,
                 PageSize = 10,
                 TotalRecords = 1
             };
 
-            _optionServiceMock.Setup(s => s.GetCustomizationOptionsAsync(query, It.IsAny<CancellationToken>()))
+            _mappingServiceMock.Setup(s => s.GetTemplateGroupMappingsAsync(query, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(pagedResponse);
 
-            var actionResult = await _controller.GetCustomizationOptions(query, CancellationToken.None);
+            var actionResult = await _controller.GetTemplateGroupMappings(query, CancellationToken.None);
 
             var okResult = Assert.IsType<OkObjectResult>(actionResult);
-            var response = Assert.IsType<PagedResponse<List<CustomizationOptionDto>>>(okResult.Value);
+            var response = Assert.IsType<PagedResponse<List<TemplateGroupMappingDto>>>(okResult.Value);
             Assert.True(response.Success);
             Assert.Equal(1, response.TotalRecords);
         }
