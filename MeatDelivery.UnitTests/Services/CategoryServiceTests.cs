@@ -37,6 +37,7 @@ namespace MeatDelivery.UnitTests.Services
                 CategoryNameEn = "Fresh Meat",
                 CategoryNameAr = "لحم طازج",
                 CategoryCode = "FRESH_MEAT",
+                ImageUrl = "https://example.com/image.jpg",
                 DisplayOrder = 1,
                 IsActive = true
             };

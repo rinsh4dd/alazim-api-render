@@ -1,0 +1,25 @@
+-- =============================================================================
+-- TABLE: dbo.CUSTOMIZATION_TEMPLATES
+-- Description: Reusable customization templates (e.g., Chicken, Fish, Beef, Mutton)
+-- =============================================================================
+
+CREATE TABLE dbo.CUSTOMIZATION_TEMPLATES
+(
+    CUSTOMIZATION_TEMPLATE_ID   BIGINT IDENTITY(1,1) NOT NULL,
+    DOC_NO                      VARCHAR(50) NOT NULL,
+    DOC_TYPE                    VARCHAR(20) NOT NULL DEFAULT 'CTP1',
+    TEMPLATE_NAME_EN            NVARCHAR(150) NOT NULL,
+    TEMPLATE_NAME_AR            NVARCHAR(150) NOT NULL,
+    DESCRIPTION_EN              NVARCHAR(500) NULL,
+    DESCRIPTION_AR              NVARCHAR(500) NULL,
+    IS_ACTIVE                   BIT NOT NULL DEFAULT 1,
+    CREATED_AT                  DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UPDATED_AT                  DATETIME2 NULL,
+
+    CONSTRAINT PK_CUSTOMIZATION_TEMPLATES PRIMARY KEY CLUSTERED (CUSTOMIZATION_TEMPLATE_ID),
+    CONSTRAINT UQ_CUSTOMIZATION_TEMPLATES_DOC_NO UNIQUE NONCLUSTERED (DOC_NO)
+);
+
+CREATE NONCLUSTERED INDEX IX_CUSTOMIZATION_TEMPLATES_ACTIVE 
+    ON dbo.CUSTOMIZATION_TEMPLATES (IS_ACTIVE);
+GO

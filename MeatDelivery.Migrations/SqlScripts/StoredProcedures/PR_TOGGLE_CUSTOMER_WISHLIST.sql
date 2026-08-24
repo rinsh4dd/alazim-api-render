@@ -25,7 +25,6 @@ BEGIN
 
     BEGIN TRANSACTION;
 
-    -- Ensure wishlist header exists for customer (1 wishlist per customer)
     DECLARE @WISHLIST_ID BIGINT;
     SELECT @WISHLIST_ID = WISHLIST_ID FROM dbo.WISHLISTS WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID;
 
@@ -46,9 +45,9 @@ BEGIN
     IF @IN_WISHLIST IS NULL
     BEGIN
         IF @EXISTING_ITEM = 1
-            SET @IN_WISHLIST = 0; -- Existed -> Remove from wishlist
+            SET @IN_WISHLIST = 0;
         ELSE
-            SET @IN_WISHLIST = 1; -- Absent -> Add to wishlist
+            SET @IN_WISHLIST = 1;
     END
 
     IF @IN_WISHLIST = 1
