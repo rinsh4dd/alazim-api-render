@@ -17,13 +17,15 @@ namespace MeatDelivery.UnitTests.Controllers
     {
         private readonly Mock<ICustomizationTemplateService> _templateServiceMock = new();
         private readonly Mock<ICustomizationGroupService> _groupServiceMock = new();
+        private readonly Mock<ICustomizationOptionService> _optionServiceMock = new();
         private readonly CustomizationController _controller;
 
         public CustomizationControllerTests()
         {
             _controller = new CustomizationController(
                 _templateServiceMock.Object,
-                _groupServiceMock.Object)
+                _groupServiceMock.Object,
+                _optionServiceMock.Object)
             {
                 ControllerContext = new ControllerContext
                 {
@@ -35,7 +37,6 @@ namespace MeatDelivery.UnitTests.Controllers
         [Fact]
         public async Task SaveCustomizationTemplate_WhenCalled_ReturnsOkObjectResult()
         {
-            // Arrange
             var request = new SaveCustomizationTemplateDto
             {
                 Mode = Mode.ADD,
@@ -50,10 +51,8 @@ namespace MeatDelivery.UnitTests.Controllers
             _templateServiceMock.Setup(s => s.SaveCustomizationTemplateAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(apiResponse);
 
-            // Act
             var actionResult = await _controller.SaveCustomizationTemplate(request, CancellationToken.None);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(actionResult);
             var response = Assert.IsType<ApiResponse<CustomizationTemplateDto>>(okResult.Value);
             Assert.True(response.Success);
@@ -63,7 +62,6 @@ namespace MeatDelivery.UnitTests.Controllers
         [Fact]
         public async Task GetCustomizationTemplates_WhenCalled_ReturnsOkObjectResult()
         {
-            // Arrange
             var query = new GetCustomizationTemplatesQueryDto { PageNumber = 1, PageSize = 10, Search = "Chicken" };
             var pagedResponse = new PagedResponse<List<CustomizationTemplateDto>>
             {
@@ -81,10 +79,8 @@ namespace MeatDelivery.UnitTests.Controllers
             _templateServiceMock.Setup(s => s.GetCustomizationTemplatesAsync(query, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(pagedResponse);
 
-            // Act
             var actionResult = await _controller.GetCustomizationTemplates(query, CancellationToken.None);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(actionResult);
             var response = Assert.IsType<PagedResponse<List<CustomizationTemplateDto>>>(okResult.Value);
             Assert.True(response.Success);
@@ -94,7 +90,6 @@ namespace MeatDelivery.UnitTests.Controllers
         [Fact]
         public async Task SaveCustomizationGroup_WhenCalled_ReturnsOkObjectResult()
         {
-            // Arrange
             var request = new SaveCustomizationGroupDto
             {
                 Mode = Mode.ADD,
@@ -110,10 +105,8 @@ namespace MeatDelivery.UnitTests.Controllers
             _groupServiceMock.Setup(s => s.SaveCustomizationGroupAsync(request, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(apiResponse);
 
-            // Act
             var actionResult = await _controller.SaveCustomizationGroup(request, CancellationToken.None);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(actionResult);
             var response = Assert.IsType<ApiResponse<CustomizationGroupDto>>(okResult.Value);
             Assert.True(response.Success);
@@ -123,7 +116,6 @@ namespace MeatDelivery.UnitTests.Controllers
         [Fact]
         public async Task GetCustomizationGroups_WhenCalled_ReturnsOkObjectResult()
         {
-            // Arrange
             var query = new GetCustomizationGroupsQueryDto { PageNumber = 1, PageSize = 10, Search = "CUT" };
             var pagedResponse = new PagedResponse<List<CustomizationGroupDto>>
             {
@@ -141,12 +133,65 @@ namespace MeatDelivery.UnitTests.Controllers
             _groupServiceMock.Setup(s => s.GetCustomizationGroupsAsync(query, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(pagedResponse);
 
-            // Act
             var actionResult = await _controller.GetCustomizationGroups(query, CancellationToken.None);
 
-            // Assert
             var okResult = Assert.IsType<OkObjectResult>(actionResult);
             var response = Assert.IsType<PagedResponse<List<CustomizationGroupDto>>>(okResult.Value);
+            Assert.True(response.Success);
+            Assert.Equal(1, response.TotalRecords);
+        }
+
+        [Fact]
+        public async Task SaveCustomizationOption_WhenCalled_ReturnsOkObjectResult()
+        {
+            var request = new SaveCustomizationOptionDto
+            {
+                Mode = Mode.ADD,
+                CustomizationGroupId = 1,
+                OptionCode = "CURRY_CUT",
+                OptionNameEn = "Curry Cut",
+                OptionNameAr = "تقطيع كاري"
+            };
+
+            var apiResponse = ApiResponse<CustomizationOptionDto>.SuccessResponse(
+                new CustomizationOptionDto { CustomizationOptionId = 1, OptionCode = "CURRY_CUT" },
+                "Customization option created successfully.");
+
+            _optionServiceMock.Setup(s => s.SaveCustomizationOptionAsync(request, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(apiResponse);
+
+            var actionResult = await _controller.SaveCustomizationOption(request, CancellationToken.None);
+
+            var okResult = Assert.IsType<OkObjectResult>(actionResult);
+            var response = Assert.IsType<ApiResponse<CustomizationOptionDto>>(okResult.Value);
+            Assert.True(response.Success);
+            Assert.Equal("CURRY_CUT", response.Data?.OptionCode);
+        }
+
+        [Fact]
+        public async Task GetCustomizationOptions_WhenCalled_ReturnsOkObjectResult()
+        {
+            var query = new GetCustomizationOptionsQueryDto { PageNumber = 1, PageSize = 10, Search = "CURRY" };
+            var pagedResponse = new PagedResponse<List<CustomizationOptionDto>>
+            {
+                Success = true,
+                Message = "Customization options retrieved successfully.",
+                Data = new List<CustomizationOptionDto>
+                {
+                    new() { CustomizationOptionId = 1, OptionCode = "CURRY_CUT", OptionNameEn = "Curry Cut" }
+                },
+                PageNumber = 1,
+                PageSize = 10,
+                TotalRecords = 1
+            };
+
+            _optionServiceMock.Setup(s => s.GetCustomizationOptionsAsync(query, It.IsAny<CancellationToken>()))
+                .ReturnsAsync(pagedResponse);
+
+            var actionResult = await _controller.GetCustomizationOptions(query, CancellationToken.None);
+
+            var okResult = Assert.IsType<OkObjectResult>(actionResult);
+            var response = Assert.IsType<PagedResponse<List<CustomizationOptionDto>>>(okResult.Value);
             Assert.True(response.Success);
             Assert.Equal(1, response.TotalRecords);
         }

@@ -14,17 +14,20 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
     {
         private readonly ICustomizationTemplateService _customizationTemplateService;
         private readonly ICustomizationGroupService _customizationGroupService;
+        private readonly ICustomizationOptionService _customizationOptionService;
 
         public CustomizationController(
             ICustomizationTemplateService customizationTemplateService,
-            ICustomizationGroupService customizationGroupService)
+            ICustomizationGroupService customizationGroupService,
+            ICustomizationOptionService customizationOptionService)
         {
             _customizationTemplateService = customizationTemplateService;
             _customizationGroupService = customizationGroupService;
+            _customizationOptionService = customizationOptionService;
         }
 
         // =====================================================================
-        // CUSTOMIZATION TEMPLATES
+        // 1. CUSTOMIZATION TEMPLATES
         // =====================================================================
 
         [HttpPost("templates/save")]
@@ -53,7 +56,7 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
         }
 
         // =====================================================================
-        // CUSTOMIZATION GROUPS
+        // 2. CUSTOMIZATION GROUPS
         // =====================================================================
 
         [HttpPost("groups/save")]
@@ -75,6 +78,35 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
             CancellationToken cancellationToken)
         {
             var response = await _customizationGroupService.GetCustomizationGroupsAsync(
+                query,
+                cancellationToken);
+
+            return Ok(response);
+        }
+
+        // =====================================================================
+        // 3. CUSTOMIZATION OPTIONS
+        // =====================================================================
+
+        [HttpPost("options/save")]
+        public async Task<IActionResult> SaveCustomizationOption(
+            [FromBody] SaveCustomizationOptionDto request,
+            CancellationToken cancellationToken)
+        {
+            var response = await _customizationOptionService.SaveCustomizationOptionAsync(
+                request,
+                cancellationToken);
+
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpGet("options/list")]
+        public async Task<IActionResult> GetCustomizationOptions(
+            [FromQuery] GetCustomizationOptionsQueryDto query,
+            CancellationToken cancellationToken)
+        {
+            var response = await _customizationOptionService.GetCustomizationOptionsAsync(
                 query,
                 cancellationToken);
 
