@@ -15,5 +15,9 @@ namespace MeatDelivery.Application.Interfaces.Customization
         Task<PagedResponse<List<CustomizationTemplateDto>>> GetCustomizationTemplatesAsync(
             GetCustomizationTemplatesQueryDto query,
             CancellationToken cancellationToken = default);
+
+        Task<ApiResponse<ProductCustomizationHierarchyDto>> GetProductCustomizationHierarchyAsync(
+            long productId,
+            CancellationToken cancellationToken = default);
     }
 }

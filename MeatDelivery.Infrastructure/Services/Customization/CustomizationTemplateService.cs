@@ -109,5 +109,33 @@ namespace MeatDelivery.Infrastructure.Services.Customization
                 };
             }
         }
+
+        public async Task<ApiResponse<ProductCustomizationHierarchyDto>> GetProductCustomizationHierarchyAsync(
+            long productId,
+            CancellationToken cancellationToken = default)
+        {
+            if (productId <= 0)
+            {
+                return ApiResponse<ProductCustomizationHierarchyDto>.FailureResponse("Valid ProductId is required.");
+            }
+
+            try
+            {
+                var hierarchy = await _customizationTemplateRepository.GetProductCustomizationHierarchyAsync(productId, cancellationToken);
+
+                if (hierarchy == null)
+                {
+                    return ApiResponse<ProductCustomizationHierarchyDto>.FailureResponse("Product not found.");
+                }
+
+                return ApiResponse<ProductCustomizationHierarchyDto>.SuccessResponse(
+                    hierarchy,
+                    "Product customization hierarchy retrieved successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<ProductCustomizationHierarchyDto>.FailureResponse(ex.Message);
+            }
+        }
     }
 }

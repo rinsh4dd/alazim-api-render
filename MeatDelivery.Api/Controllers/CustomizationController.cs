@@ -144,5 +144,18 @@ namespace MeatDelivery.Api.Controllers.V1.Customization
 
             return Ok(response);
         }
+
+        [HttpGet("product/{productId}")]
+        public async Task<IActionResult> GetProductCustomizationHierarchy(
+            [FromRoute] long productId,
+            CancellationToken cancellationToken)
+        {
+            var response = await _customizationTemplateService.GetProductCustomizationHierarchyAsync(
+                productId,
+                cancellationToken);
+
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
     }
 }
