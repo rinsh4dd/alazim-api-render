@@ -72,13 +72,17 @@ namespace MeatDelivery.Infrastructure.Repositories.Customization
         {
             using var connection = _connectionFactory.CreateConnection();
 
-            // 1. Fetch Product details via PR_GET_PRODUCT_BY_ID
-            using var productMulti = await connection.QueryMultipleAsync(
-                "dbo.PR_GET_PRODUCT_BY_ID",
-                new { PRODUCT_ID = productId },
-                commandType: CommandType.StoredProcedure);
+            const string sql = @"
+                SELECT 
+                    PRODUCT_ID AS ProductId,
+                    PRODUCT_NAME_EN AS ProductNameEn,
+                    PRODUCT_NAME_AR AS ProductNameAr,
+                    IS_CUSTOMIZABLE AS IsCustomizable,
+                    CUSTOMIZATION_TEMPLATE_ID AS CustomizationTemplateId
+                FROM dbo.PRODUCTS
+                WHERE PRODUCT_ID = @productId;";
 
-            var product = (await productMulti.ReadAsync<ProductDto>()).FirstOrDefault();
+            var product = await connection.QueryFirstOrDefaultAsync<ProductDto>(sql, new { productId });
 
             if (product == null)
             {
