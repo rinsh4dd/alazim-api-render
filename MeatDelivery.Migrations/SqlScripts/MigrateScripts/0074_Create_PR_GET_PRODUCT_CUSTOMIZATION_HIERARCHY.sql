@@ -1,3 +1,10 @@
+-- ============================================================================
+-- Migration: 0074_Create_PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY.sql
+-- Description: Creates stored procedure PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY
+--              to fetch complete customization hierarchy (Product -> Template -> Groups -> Options)
+--              in a single query.
+-- ============================================================================
+
 IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY]') AND type in (N'P', N'PC'))
     DROP PROCEDURE [dbo].[PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY];
 GO
