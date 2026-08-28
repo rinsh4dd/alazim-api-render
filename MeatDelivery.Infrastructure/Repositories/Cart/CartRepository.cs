@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
 using Dapper;
@@ -16,23 +17,28 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<bool> AddToCartAsync(long customerUserId, AddCartItemDto dto)
+        private static DataTable CreateOptionTable(IEnumerable<long>? optionIds)
         {
-            using var connection = _connectionFactory.CreateConnection();
+            var dt = new DataTable();
+            dt.Columns.Add("OPTION_ID", typeof(long));
 
-            var optionTable = new DataTable();
-            optionTable.Columns.Add("OPTION_ID", typeof(long));
-
-            if (dto.CustomizationOptionIds != null)
+            if (optionIds != null)
             {
-                foreach (var optionId in dto.CustomizationOptionIds)
+                foreach (var id in optionIds)
                 {
-                    optionTable.Rows.Add(optionId);
+                    dt.Rows.Add(id);
                 }
             }
 
+            return dt;
+        }
+
+        public async Task<bool> AddToCartAsync(long customerUserId, AddCartItemDto dto)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var optionTable = CreateOptionTable(dto.CustomizationOptionIds);
+
             var parameters = new DynamicParameters();
-            parameters.Add("MODE", "ADD");
             parameters.Add("CUSTOMER_USER_ID", customerUserId);
             parameters.Add("PRODUCT_ID", dto.ProductId);
             parameters.Add("QUANTITY", dto.Quantity);
@@ -40,7 +46,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             parameters.Add("OPTION_IDS", optionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_OPTION_IDS"));
 
             await connection.ExecuteAsync(
-                "dbo.PR_SAVE_CART_ITEM",
+                "dbo.PR_ADD_TO_CART",
                 parameters,
                 commandType: CommandType.StoredProcedure
             );
@@ -59,6 +65,43 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
 
             await connection.ExecuteAsync(
                 "dbo.PR_UPDATE_CART_ITEM_QUANTITY",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return true;
+        }
+
+        public async Task<bool> UpdateCartItemCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var optionTable = CreateOptionTable(dto.CustomizationOptionIds);
+
+            var parameters = new DynamicParameters();
+            parameters.Add("CUSTOMER_USER_ID", customerUserId);
+            parameters.Add("CART_ITEM_ID", dto.CartItemId);
+            parameters.Add("SPECIAL_INSTRUCTIONS", dto.SpecialInstructions);
+            parameters.Add("CUSTOMIZATION_OPTION_IDS", optionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_OPTION_IDS"));
+
+            await connection.ExecuteAsync(
+                "dbo.PR_UPDATE_CART_ITEM_CUSTOMIZATION",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return true;
+        }
+
+        public async Task<bool> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("CUSTOMER_USER_ID", customerUserId);
+            parameters.Add("CART_ITEM_ID", dto.CartItemId);
+
+            await connection.ExecuteAsync(
+                "dbo.PR_REMOVE_CART_ITEM",
                 parameters,
                 commandType: CommandType.StoredProcedure
             );

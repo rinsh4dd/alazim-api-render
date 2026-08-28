@@ -1,6 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Cart;
@@ -11,6 +12,7 @@ namespace MeatDelivery.Api.Controllers
     [ApiController]
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/cart")]
+    [Authorize]
     public class CartController : BaseApiController
     {
         private readonly ICartService _cartService;
@@ -20,9 +22,6 @@ namespace MeatDelivery.Api.Controllers
             _cartService = cartService;
         }
 
-        /// <summary>
-        /// Dedicated API to Add a Product (with selected Customization Options & Special Instructions) to Customer's Cart.
-        /// </summary>
         [HttpPost("items/add")]
         public async Task<IActionResult> AddToCart(
             [FromBody] AddCartItemDto request,
@@ -34,9 +33,6 @@ namespace MeatDelivery.Api.Controllers
             return Ok(response);
         }
 
-        /// <summary>
-        /// Dedicated API to Update Quantity of an Item in Customer's Cart.
-        /// </summary>
         [HttpPost("items/update-quantity")]
         public async Task<IActionResult> UpdateQuantity(
             [FromBody] UpdateCartItemQuantityDto request,
@@ -44,6 +40,28 @@ namespace MeatDelivery.Api.Controllers
         {
             var customerUserId = HttpContext.GetUserId();
             var response = await _cartService.UpdateQuantityAsync(customerUserId, request, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpPost("items/update-customization")]
+        public async Task<IActionResult> UpdateCustomization(
+            [FromBody] UpdateCartItemCustomizationDto request,
+            CancellationToken cancellationToken)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _cartService.UpdateCustomizationAsync(customerUserId, request, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpPost("items/remove")]
+        public async Task<IActionResult> RemoveCartItem(
+            [FromBody] RemoveCartItemDto request,
+            CancellationToken cancellationToken)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _cartService.RemoveCartItemAsync(customerUserId, request, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

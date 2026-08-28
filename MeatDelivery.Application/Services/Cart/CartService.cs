@@ -13,15 +13,21 @@ namespace MeatDelivery.Application.Services.Cart
         private readonly ICartRepository _cartRepository;
         private readonly IValidator<AddCartItemDto> _addCartItemValidator;
         private readonly IValidator<UpdateCartItemQuantityDto> _updateQuantityValidator;
+        private readonly IValidator<UpdateCartItemCustomizationDto> _updateCustomizationValidator;
+        private readonly IValidator<RemoveCartItemDto> _removeCartItemValidator;
 
         public CartService(
             ICartRepository cartRepository,
             IValidator<AddCartItemDto> addCartItemValidator,
-            IValidator<UpdateCartItemQuantityDto> updateQuantityValidator)
+            IValidator<UpdateCartItemQuantityDto> updateQuantityValidator,
+            IValidator<UpdateCartItemCustomizationDto> updateCustomizationValidator,
+            IValidator<RemoveCartItemDto> removeCartItemValidator)
         {
             _cartRepository = cartRepository;
             _addCartItemValidator = addCartItemValidator;
             _updateQuantityValidator = updateQuantityValidator;
+            _updateCustomizationValidator = updateCustomizationValidator;
+            _removeCartItemValidator = removeCartItemValidator;
         }
 
         public async Task<ApiResponse<string>> AddToCartAsync(long customerUserId, AddCartItemDto dto, CancellationToken cancellationToken = default)
@@ -49,6 +55,32 @@ namespace MeatDelivery.Application.Services.Cart
             await _cartRepository.UpdateCartItemQuantityAsync(customerUserId, dto);
             var message = dto.Quantity <= 0 ? "Cart item removed successfully." : "Cart item quantity updated successfully.";
             return ApiResponse<string>.SuccessResponse(message, message);
+        }
+
+        public async Task<ApiResponse<string>> UpdateCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto, CancellationToken cancellationToken = default)
+        {
+            var validationResult = await _updateCustomizationValidator.ValidateAsync(dto, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<string>.FailureResponse("Validation failed.", errors);
+            }
+
+            await _cartRepository.UpdateCartItemCustomizationAsync(customerUserId, dto);
+            return ApiResponse<string>.SuccessResponse("Item customization updated successfully.", "Item customization updated successfully.");
+        }
+
+        public async Task<ApiResponse<string>> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto, CancellationToken cancellationToken = default)
+        {
+            var validationResult = await _removeCartItemValidator.ValidateAsync(dto, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<string>.FailureResponse("Validation failed.", errors);
+            }
+
+            await _cartRepository.RemoveCartItemAsync(customerUserId, dto);
+            return ApiResponse<string>.SuccessResponse("Item removed from cart successfully.", "Item removed from cart successfully.");
         }
     }
 }

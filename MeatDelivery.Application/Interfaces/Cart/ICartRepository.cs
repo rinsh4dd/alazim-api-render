@@ -7,5 +7,7 @@ namespace MeatDelivery.Application.Interfaces.Cart
     {
         Task<bool> AddToCartAsync(long customerUserId, AddCartItemDto dto);
         Task<bool> UpdateCartItemQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto);
+        Task<bool> UpdateCartItemCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto);
+        Task<bool> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto);
     }
 }
