@@ -169,6 +169,10 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Customization.ITemplateGroupMappingRepository, MeatDelivery.Infrastructure.Repositories.Customization.TemplateGroupMappingRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Customization.ITemplateGroupMappingService, MeatDelivery.Infrastructure.Services.Customization.TemplateGroupMappingService>();
 
+            // Cart Services & Repositories
+            services.AddScoped<MeatDelivery.Application.Interfaces.Cart.ICartRepository, MeatDelivery.Infrastructure.Repositories.Cart.CartRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Cart.ICartService, MeatDelivery.Application.Services.Cart.CartService>();
+
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();
 

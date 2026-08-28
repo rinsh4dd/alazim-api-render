@@ -1,0 +1,30 @@
+-- TABLE: dbo.CARTS
+-- Description: Stores customer active, converted, or abandoned cart master records.
+
+IF NOT EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CARTS' AND schema_id = SCHEMA_ID('dbo'))
+BEGIN
+    CREATE TABLE dbo.CARTS
+    (
+        CART_ID          BIGINT IDENTITY(1,1) NOT NULL,
+        DOCTYPE          VARCHAR(20)          NOT NULL,
+        DOC_NO           VARCHAR(50)          NOT NULL,
+        CUSTOMER_USER_ID BIGINT               NOT NULL,
+        CART_STATUS      VARCHAR(20)          NOT NULL CONSTRAINT DF_CARTS_STATUS DEFAULT ('ACTIVE'),
+        COUPON_ID        BIGINT               NULL,
+        CREATED_AT       DATETIME2            NOT NULL CONSTRAINT DF_CARTS_CREATED DEFAULT (SYSUTCDATETIME()),
+        UPDATED_AT       DATETIME2            NULL,
+
+        CONSTRAINT PK_CARTS PRIMARY KEY CLUSTERED (CART_ID),
+        CONSTRAINT UQ_CARTS_DOC_NO UNIQUE NONCLUSTERED (DOC_NO),
+        CONSTRAINT FK_CARTS_CUSTOMER FOREIGN KEY (CUSTOMER_USER_ID) REFERENCES dbo.CUSTOMER_USERS (USER_ID)
+    );
+
+    -- Filtered Unique Index: One ACTIVE cart per customer
+    CREATE UNIQUE NONCLUSTERED INDEX UX_CARTS_ACTIVE_CUSTOMER
+        ON dbo.CARTS (CUSTOMER_USER_ID)
+        WHERE CART_STATUS = 'ACTIVE';
+
+    CREATE NONCLUSTERED INDEX IX_CARTS_STATUS
+        ON dbo.CARTS (CART_STATUS);
+END;
+GO
