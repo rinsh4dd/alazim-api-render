@@ -32,7 +32,7 @@ BEGIN
         INNER JOIN dbo.CARTS c ON ci.CART_ID = c.CART_ID
         WHERE ci.CART_ITEM_ID = @CART_ITEM_ID
           AND c.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
-          AND c.IS_ACTIVE = 1;
+          AND c.CART_STATUS = 'ACTIVE';
 
         IF @CART_ID IS NULL
         BEGIN
@@ -47,19 +47,9 @@ BEGIN
         DELETE FROM dbo.CART_ITEMS
         WHERE CART_ITEM_ID = @CART_ITEM_ID;
 
-        -- 4. Recalculate Cart Totals
-        DECLARE @NEW_SUBTOTAL DECIMAL(18, 2);
-
-        SELECT @NEW_SUBTOTAL = ISNULL(SUM(TOTAL_PRICE), 0.00)
-        FROM dbo.CART_ITEMS
-        WHERE CART_ID = @CART_ID;
-
+        -- 4. Update Cart timestamp
         UPDATE dbo.CARTS
-        SET 
-            SUBTOTAL_AMOUNT = @NEW_SUBTOTAL,
-            NET_AMOUNT = @NEW_SUBTOTAL - DISCOUNT_AMOUNT,
-            TOTAL_ITEMS = (SELECT ISNULL(SUM(QUANTITY), 0) FROM dbo.CART_ITEMS WHERE CART_ID = @CART_ID),
-            UPDATED_AT = GETUTCDATE()
+        SET UPDATED_AT = SYSUTCDATETIME()
         WHERE CART_ID = @CART_ID;
 
         COMMIT TRANSACTION;
