@@ -37,7 +37,7 @@ namespace MeatDelivery.Api.Controllers
         /// <summary>
         /// Dedicated API to Update Quantity of an Item in Customer's Cart.
         /// </summary>
-        [HttpPut("items/update-quantity")]
+        [HttpPost("items/update-quantity")]
         public async Task<IActionResult> UpdateQuantity(
             [FromBody] UpdateCartItemQuantityDto request,
             CancellationToken cancellationToken)
