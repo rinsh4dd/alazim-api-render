@@ -29,7 +29,21 @@ namespace MeatDelivery.Api.Controllers
             CancellationToken cancellationToken)
         {
             var customerUserId = HttpContext.GetUserId();
-            var response = await _cartService.AddToCartAsync(customerUserId, request);
+            var response = await _cartService.AddToCartAsync(customerUserId, request, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        /// <summary>
+        /// Dedicated API to Update Quantity of an Item in Customer's Cart.
+        /// </summary>
+        [HttpPut("items/update-quantity")]
+        public async Task<IActionResult> UpdateQuantity(
+            [FromBody] UpdateCartItemQuantityDto request,
+            CancellationToken cancellationToken)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _cartService.UpdateQuantityAsync(customerUserId, request, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

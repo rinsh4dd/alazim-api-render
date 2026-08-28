@@ -47,5 +47,23 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
 
             return true;
         }
+
+        public async Task<bool> UpdateCartItemQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("CUSTOMER_USER_ID", customerUserId);
+            parameters.Add("CART_ITEM_ID", dto.CartItemId);
+            parameters.Add("QUANTITY", dto.Quantity);
+
+            await connection.ExecuteAsync(
+                "dbo.PR_UPDATE_CART_ITEM_QUANTITY",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return true;
+        }
     }
 }
