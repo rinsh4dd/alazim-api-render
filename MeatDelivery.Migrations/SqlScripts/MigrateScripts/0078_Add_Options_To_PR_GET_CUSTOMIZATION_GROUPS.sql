@@ -1,5 +1,5 @@
--- Migration: 0066_Create_PR_GET_CUSTOMIZATION_GROUPS.sql
--- Description: Creates stored procedure dbo.PR_GET_CUSTOMIZATION_GROUPS for listing, searching (@SEARCH), pagination, and single lookup of Customization Groups.
+-- Migration: 0078_Add_Options_To_PR_GET_CUSTOMIZATION_GROUPS.sql
+-- Description: Updates dbo.PR_GET_CUSTOMIZATION_GROUPS to return a 3rd result set containing customization options when @CUSTOMIZATION_GROUP_ID is provided.
 
 CREATE OR ALTER PROCEDURE dbo.PR_GET_CUSTOMIZATION_GROUPS
 (

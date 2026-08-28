@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace MeatDelivery.Application.DTOs.Customization
 {
@@ -12,5 +13,7 @@ namespace MeatDelivery.Application.DTOs.Customization
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        public List<CustomizationOptionDto> Options { get; set; } = new();
     }
 }

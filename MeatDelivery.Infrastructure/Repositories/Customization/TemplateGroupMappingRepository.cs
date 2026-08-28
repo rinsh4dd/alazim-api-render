@@ -43,9 +43,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customization
                 new
                 {
                     MODE = dto.Mode.ToString(),
-                    TEMPLATE_GROUP_MAPPING_ID = dto.TemplateGroupMappingId,
                     CUSTOMIZATION_TEMPLATE_ID = dto.CustomizationTemplateId,
-                    CUSTOMIZATION_GROUP_ID = dto.CustomizationGroupId,
                     GROUP_IDS = table.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_GROUP_IDS"),
                     IS_ACTIVE = dto.IsActive
                 },

@@ -54,5 +54,27 @@ BEGIN
     ORDER BY cg.CUSTOMIZATION_GROUP_ID DESC
     OFFSET (@PAGE_NUMBER - 1) * @PAGE_SIZE ROWS
     FETCH NEXT @PAGE_SIZE ROWS ONLY;
+
+    -- Result Set 3: Customization Options (only when @CUSTOMIZATION_GROUP_ID IS NOT NULL)
+    IF @CUSTOMIZATION_GROUP_ID IS NOT NULL
+    BEGIN
+        SELECT 
+            co.CUSTOMIZATION_OPTION_ID   AS CustomizationOptionId,
+            co.CUSTOMIZATION_GROUP_ID    AS CustomizationGroupId,
+            cg.GROUP_NAME_EN             AS GroupNameEn,
+            cg.GROUP_NAME_AR             AS GroupNameAr,
+            co.OPTION_CODE               AS OptionCode,
+            co.OPTION_NAME_EN            AS OptionNameEn,
+            co.OPTION_NAME_AR            AS OptionNameAr,
+            co.ADDITIONAL_PRICE          AS AdditionalPrice,
+            co.IS_ACTIVE                 AS IsActive,
+            co.CREATED_AT                AS CreatedAt,
+            co.UPDATED_AT                AS UpdatedAt
+        FROM dbo.CUSTOMIZATION_OPTIONS co
+        JOIN dbo.CUSTOMIZATION_GROUPS cg ON co.CUSTOMIZATION_GROUP_ID = cg.CUSTOMIZATION_GROUP_ID
+        WHERE co.CUSTOMIZATION_GROUP_ID = @CUSTOMIZATION_GROUP_ID
+          AND (@IS_ACTIVE IS NULL OR co.IS_ACTIVE = @IS_ACTIVE)
+        ORDER BY co.CUSTOMIZATION_OPTION_ID ASC;
+    END
 END;
 GO

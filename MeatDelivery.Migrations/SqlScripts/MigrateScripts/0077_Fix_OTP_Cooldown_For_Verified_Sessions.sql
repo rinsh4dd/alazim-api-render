@@ -1,5 +1,11 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_AUTH_CREATE_OTP_VERIFICATION
+-- Migration: 0077_Fix_OTP_Cooldown_For_Verified_Sessions.sql
+-- Description:
+-- Resets the 60-second OTP cooldown and rate limit window when the user's
+-- previous OTP verification status is 'VERIFIED'. This ensures that after a
+-- successful login and subsequent logout, the user can request a fresh OTP
+-- immediately without being blocked by the 60-second cooldown from their
+-- prior session.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_AUTH_CREATE_OTP_VERIFICATION

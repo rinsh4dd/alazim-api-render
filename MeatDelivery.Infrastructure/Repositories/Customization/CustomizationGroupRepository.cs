@@ -62,6 +62,12 @@ namespace MeatDelivery.Infrastructure.Repositories.Customization
             int totalRecords = await multi.ReadSingleAsync<int>();
             var items = (await multi.ReadAsync<CustomizationGroupDto>()).ToList();
 
+            if (query.CustomizationGroupId.HasValue && items.Count > 0 && !multi.IsConsumed)
+            {
+                var options = (await multi.ReadAsync<CustomizationOptionDto>()).ToList();
+                items[0].Options = options;
+            }
+
             return (items, totalRecords);
         }
     }
