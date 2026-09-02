@@ -108,5 +108,21 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
 
             return true;
         }
+
+        public async Task<bool> ClearCartAsync(long customerUserId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("CUSTOMER_USER_ID", customerUserId);
+
+            await connection.ExecuteAsync(
+                "dbo.PR_CLEAR_CUSTOMER_CART",
+                parameters,
+                commandType: CommandType.StoredProcedure
+            );
+
+            return true;
+        }
     }
 }

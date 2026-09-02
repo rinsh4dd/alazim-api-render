@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using MeatDelivery.Api.Controllers.Base;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.Interfaces.Cart;
@@ -62,6 +63,15 @@ namespace MeatDelivery.Api.Controllers
         {
             var customerUserId = HttpContext.GetUserId();
             var response = await _cartService.RemoveCartItemAsync(customerUserId, request, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpPost("clear")]
+        public async Task<IActionResult> ClearCart(CancellationToken cancellationToken)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _cartService.ClearCartAsync(customerUserId, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

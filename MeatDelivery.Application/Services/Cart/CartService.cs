@@ -82,5 +82,16 @@ namespace MeatDelivery.Application.Services.Cart
             await _cartRepository.RemoveCartItemAsync(customerUserId, dto);
             return ApiResponse<string>.SuccessResponse("Item removed from cart successfully.", "Item removed from cart successfully.");
         }
+
+        public async Task<ApiResponse<string>> ClearCartAsync(long customerUserId, CancellationToken cancellationToken = default)
+        {
+            if (customerUserId <= 0)
+            {
+                return ApiResponse<string>.FailureResponse("Valid CustomerUserId is required.");
+            }
+
+            await _cartRepository.ClearCartAsync(customerUserId);
+            return ApiResponse<string>.SuccessResponse("Cart cleared successfully.", "Cart cleared successfully.");
+        }
     }
 }

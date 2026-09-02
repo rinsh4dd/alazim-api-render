@@ -11,5 +11,6 @@ namespace MeatDelivery.Application.Interfaces.Cart
         Task<ApiResponse<string>> UpdateQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto, CancellationToken cancellationToken = default);
         Task<ApiResponse<string>> UpdateCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto, CancellationToken cancellationToken = default);
         Task<ApiResponse<string>> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto, CancellationToken cancellationToken = default);
+        Task<ApiResponse<string>> ClearCartAsync(long customerUserId, CancellationToken cancellationToken = default);
     }
 }
