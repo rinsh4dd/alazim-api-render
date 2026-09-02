@@ -6,6 +6,7 @@ namespace MeatDelivery.Application.DTOs.Cart
     {
         public long ProductId { get; set; }
         public int Quantity { get; set; } = 1;
+        public decimal? CustomWeight { get; set; }
         public string? SpecialInstructions { get; set; }
         public List<long> CustomizationOptionIds { get; set; } = new List<long>();
     }

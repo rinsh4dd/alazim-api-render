@@ -1,8 +1,16 @@
--- =============================================================================
--- STORED PROCEDURE: dbo.PR_ADD_TO_CART
--- Description: Adds a product (with selected cut customization options, custom weight, and special instructions) to customer's active cart.
--- =============================================================================
+-- Migration Script: 0092_Add_Custom_Weight_Column_To_Cart_Items.sql
+-- Description: Add CUSTOM_WEIGHT column to dbo.CART_ITEMS and update stored procedure dbo.PR_ADD_TO_CART.
 
+-- 1. Add CUSTOM_WEIGHT column to dbo.CART_ITEMS
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.CART_ITEMS') AND name = 'CUSTOM_WEIGHT')
+BEGIN
+    ALTER TABLE dbo.CART_ITEMS
+    ADD CUSTOM_WEIGHT DECIMAL(18,3) NULL;
+END;
+GO
+
+-- 2. Update stored procedure dbo.PR_ADD_TO_CART to handle @CUSTOM_WEIGHT
+EXEC('
 CREATE OR ALTER PROCEDURE dbo.PR_ADD_TO_CART
 (
     @CUSTOMER_USER_ID BIGINT,
@@ -19,25 +27,25 @@ BEGIN
 
     IF @CUSTOMER_USER_ID IS NULL OR @CUSTOMER_USER_ID <= 0
     BEGIN
-        RAISERROR('Valid CustomerUserId is required.', 16, 1);
+        RAISERROR(''Valid CustomerUserId is required.'', 16, 1);
         RETURN;
     END;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMER_USERS WHERE USER_ID = @CUSTOMER_USER_ID)
     BEGIN
-        RAISERROR('Customer user not found.', 16, 1);
+        RAISERROR(''Customer user not found.'', 16, 1);
         RETURN;
     END;
 
     IF @PRODUCT_ID IS NULL OR @PRODUCT_ID <= 0
     BEGIN
-        RAISERROR('Valid ProductId is required.', 16, 1);
+        RAISERROR(''Valid ProductId is required.'', 16, 1);
         RETURN;
     END;
 
     IF NOT EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE PRODUCT_ID = @PRODUCT_ID AND IS_DELETED = 0)
     BEGIN
-        RAISERROR('Product not found or deleted.', 16, 1);
+        RAISERROR(''Product not found or deleted.'', 16, 1);
         RETURN;
     END;
 
@@ -54,36 +62,36 @@ BEGIN
             @OPTION_STRING VARCHAR(80) = NULL,
             @EXISTING_CART_ITEM_ID BIGINT = NULL;
 
-        -- 1. Get or Create ACTIVE Cart for Customer
+        -- Get or Create ACTIVE Cart for Customer
         SELECT @CART_ID = CART_ID, @CART_DOC_NO = DOC_NO
         FROM dbo.CARTS
-        WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND CART_STATUS = 'ACTIVE';
+        WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND CART_STATUS = ''ACTIVE'';
 
         IF @CART_ID IS NULL
         BEGIN
             EXEC dbo.PR_GET_NEXT_DOC_NO
-                @DOCTYPE = 'CRT1',
+                @DOCTYPE = ''CRT1'',
                 @DOC_NO = @CART_DOC_NO OUTPUT;
 
             INSERT INTO dbo.CARTS (DOCTYPE, DOC_NO, CUSTOMER_USER_ID, CART_STATUS, CREATED_AT)
-            VALUES ('CRT1', @CART_DOC_NO, @CUSTOMER_USER_ID, 'ACTIVE', SYSUTCDATETIME());
+            VALUES (''CRT1'', @CART_DOC_NO, @CUSTOMER_USER_ID, ''ACTIVE'', SYSUTCDATETIME());
 
             SET @CART_ID = SCOPE_IDENTITY();
         END;
 
-        -- 2. Build Option String from selected option IDs
-        SELECT @OPTION_STRING = STRING_AGG(CAST(OPTION_ID AS VARCHAR(20)), '_') WITHIN GROUP (ORDER BY OPTION_ID)
+        -- Build Option String from selected option IDs
+        SELECT @OPTION_STRING = STRING_AGG(CAST(OPTION_ID AS VARCHAR(20)), ''_'') WITHIN GROUP (ORDER BY OPTION_ID)
         FROM (SELECT DISTINCT OPTION_ID FROM @OPTION_IDS) AS T;
 
-        -- 3. Construct unique ITEM_SIGNATURE (PRODUCT_ID | WEIGHT | OPTIONS)
+        -- Construct unique ITEM_SIGNATURE (PRODUCT_ID | WEIGHT | OPTIONS)
         SET @ITEM_SIGNATURE = CAST(@PRODUCT_ID AS VARCHAR(20)) 
-            + '|W:' + ISNULL(CAST(@CUSTOM_WEIGHT AS VARCHAR(20)), 'DEF') 
-            + '|' + ISNULL(@OPTION_STRING, 'NONE');
+            + ''|W:'' + ISNULL(CAST(@CUSTOM_WEIGHT AS VARCHAR(20)), ''DEF'') 
+            + ''|'' + ISNULL(@OPTION_STRING, ''NONE'');
 
-        -- 4. Check if exact item signature exists in active cart
+        -- Check if exact item signature exists in active cart
         SELECT @EXISTING_CART_ITEM_ID = CART_ITEM_ID
         FROM dbo.CART_ITEMS
-        WHERE CART_ID = @CART_ID AND ITEM_SIGNATURE = @ITEM_SIGNATURE AND ITEM_STATUS = 'ACTIVE';
+        WHERE CART_ID = @CART_ID AND ITEM_SIGNATURE = @ITEM_SIGNATURE AND ITEM_STATUS = ''ACTIVE'';
 
         IF @EXISTING_CART_ITEM_ID IS NOT NULL
         BEGIN
@@ -96,7 +104,7 @@ BEGIN
         ELSE
         BEGIN
             INSERT INTO dbo.CART_ITEMS (CART_ID, DOC_NO, PRODUCT_ID, QUANTITY, CUSTOM_WEIGHT, SPECIAL_INSTRUCTIONS, ITEM_STATUS, ITEM_SIGNATURE, CREATED_AT)
-            VALUES (@CART_ID, @CART_DOC_NO, @PRODUCT_ID, @QUANTITY, @CUSTOM_WEIGHT, @SPECIAL_INSTRUCTIONS, 'ACTIVE', @ITEM_SIGNATURE, SYSUTCDATETIME());
+            VALUES (@CART_ID, @CART_DOC_NO, @PRODUCT_ID, @QUANTITY, @CUSTOM_WEIGHT, @SPECIAL_INSTRUCTIONS, ''ACTIVE'', @ITEM_SIGNATURE, SYSUTCDATETIME());
 
             SET @EXISTING_CART_ITEM_ID = SCOPE_IDENTITY();
 
@@ -120,5 +128,5 @@ BEGIN
         RAISERROR(@ERRMSG, 16, 1);
         RETURN;
     END CATCH;
-END;
+END;');
 GO
