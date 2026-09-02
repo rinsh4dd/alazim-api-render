@@ -38,6 +38,8 @@ BEGIN
         g.GROUP_NAME_EN AS GroupNameEn,
         g.GROUP_NAME_AR AS GroupNameAr,
         g.IS_ADDITIONAL_PRICE_AVAILABLE AS IsAdditionalPriceAvailable,
+        g.PRICING_TYPE AS PricingType,
+        g.PRICING_VALUE AS PricingValue,
         g.IS_ACTIVE AS IsActive
     FROM dbo.CUSTOMIZATION_GROUPS g
     INNER JOIN dbo.TEMPLATE_GROUP_MAPPING m ON m.CUSTOMIZATION_GROUP_ID = g.CUSTOMIZATION_GROUP_ID

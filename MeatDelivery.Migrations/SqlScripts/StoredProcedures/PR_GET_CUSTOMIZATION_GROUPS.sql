@@ -41,6 +41,8 @@ BEGIN
         cg.GROUP_NAME_EN                   AS GroupNameEn,
         cg.GROUP_NAME_AR                   AS GroupNameAr,
         cg.IS_ADDITIONAL_PRICE_AVAILABLE   AS IsAdditionalPriceAvailable,
+        cg.PRICING_TYPE                    AS PricingType,
+        cg.PRICING_VALUE                   AS PricingValue,
         cg.IS_ACTIVE                       AS IsActive,
         cg.CREATED_AT                      AS CreatedAt,
         cg.UPDATED_AT                      AS UpdatedAt
