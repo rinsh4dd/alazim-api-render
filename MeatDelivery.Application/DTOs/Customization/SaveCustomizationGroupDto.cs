@@ -12,6 +12,7 @@ namespace MeatDelivery.Application.DTOs.Customization
         public bool IsAdditionalPriceAvailable { get; set; } = false;
         public string? PricingType { get; set; } // ADDITIONAL_PRICE, MULTIPLIER, FIXED_PRICE, PERCENTAGE
         public decimal? PricingValue { get; set; }
+        public bool IsCustomDataAllowed { get; set; } = false;
         public bool IsActive { get; set; } = true;
     }
 }

@@ -13,6 +13,7 @@ CREATE OR ALTER PROCEDURE dbo.PR_SAVE_CUSTOMIZATION_GROUP
     @IS_ADDITIONAL_PRICE_AVAILABLE   BIT           = 0,
     @PRICING_TYPE                    VARCHAR(20)   = 'ADDITIONAL_PRICE',
     @PRICING_VALUE                   DECIMAL(18,2) = 0.00,
+    @IS_CUSTOM_DATA_ALLOWED          BIT           = 0,
     @IS_ACTIVE                       BIT           = 1
 )
 AS
@@ -63,6 +64,7 @@ BEGIN
             IS_ADDITIONAL_PRICE_AVAILABLE,
             PRICING_TYPE,
             PRICING_VALUE,
+            IS_CUSTOM_DATA_ALLOWED,
             IS_ACTIVE,
             CREATED_AT,
             UPDATED_AT
@@ -75,6 +77,7 @@ BEGIN
             ISNULL(@IS_ADDITIONAL_PRICE_AVAILABLE, 0),
             @PRICING_TYPE,
             ISNULL(@PRICING_VALUE, 0.00),
+            ISNULL(@IS_CUSTOM_DATA_ALLOWED, 0),
             ISNULL(@IS_ACTIVE, 1),
             SYSUTCDATETIME(),
             NULL
@@ -91,6 +94,7 @@ BEGIN
             cg.IS_ADDITIONAL_PRICE_AVAILABLE   AS IsAdditionalPriceAvailable,
             cg.PRICING_TYPE                    AS PricingType,
             cg.PRICING_VALUE                   AS PricingValue,
+            cg.IS_CUSTOM_DATA_ALLOWED          AS IsCustomDataAllowed,
             cg.IS_ACTIVE                       AS IsActive,
             cg.CREATED_AT                      AS CreatedAt,
             cg.UPDATED_AT                      AS UpdatedAt
@@ -150,6 +154,7 @@ BEGIN
             IS_ADDITIONAL_PRICE_AVAILABLE = ISNULL(@IS_ADDITIONAL_PRICE_AVAILABLE, IS_ADDITIONAL_PRICE_AVAILABLE),
             PRICING_TYPE                  = ISNULL(@PRICING_TYPE, PRICING_TYPE),
             PRICING_VALUE                 = ISNULL(@PRICING_VALUE, PRICING_VALUE),
+            IS_CUSTOM_DATA_ALLOWED        = ISNULL(@IS_CUSTOM_DATA_ALLOWED, IS_CUSTOM_DATA_ALLOWED),
             IS_ACTIVE                     = ISNULL(@IS_ACTIVE, IS_ACTIVE),
             UPDATED_AT                    = SYSUTCDATETIME()
         WHERE CUSTOMIZATION_GROUP_ID = @CUSTOMIZATION_GROUP_ID;
@@ -163,6 +168,7 @@ BEGIN
             cg.IS_ADDITIONAL_PRICE_AVAILABLE   AS IsAdditionalPriceAvailable,
             cg.PRICING_TYPE                    AS PricingType,
             cg.PRICING_VALUE                   AS PricingValue,
+            cg.IS_CUSTOM_DATA_ALLOWED          AS IsCustomDataAllowed,
             cg.IS_ACTIVE                       AS IsActive,
             cg.CREATED_AT                      AS CreatedAt,
             cg.UPDATED_AT                      AS UpdatedAt

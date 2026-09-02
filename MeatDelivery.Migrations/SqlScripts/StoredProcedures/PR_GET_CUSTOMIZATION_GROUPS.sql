@@ -43,6 +43,7 @@ BEGIN
         cg.IS_ADDITIONAL_PRICE_AVAILABLE   AS IsAdditionalPriceAvailable,
         cg.PRICING_TYPE                    AS PricingType,
         cg.PRICING_VALUE                   AS PricingValue,
+        cg.IS_CUSTOM_DATA_ALLOWED          AS IsCustomDataAllowed,
         cg.IS_ACTIVE                       AS IsActive,
         cg.CREATED_AT                      AS CreatedAt,
         cg.UPDATED_AT                      AS UpdatedAt

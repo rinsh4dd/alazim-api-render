@@ -42,6 +42,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             parameters.Add("CUSTOMER_USER_ID", customerUserId);
             parameters.Add("PRODUCT_ID", dto.ProductId);
             parameters.Add("QUANTITY", dto.Quantity);
+            parameters.Add("CUSTOM_DATA", dto.CustomData);
             parameters.Add("SPECIAL_INSTRUCTIONS", dto.SpecialInstructions);
             parameters.Add("OPTION_IDS", optionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_OPTION_IDS"));
 
