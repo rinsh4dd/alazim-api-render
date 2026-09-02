@@ -3,7 +3,6 @@ using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using MeatDelivery.Api.Controllers.Base;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.Interfaces.Cart;
