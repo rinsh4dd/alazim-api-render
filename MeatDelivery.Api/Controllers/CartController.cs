@@ -22,6 +22,15 @@ namespace MeatDelivery.Api.Controllers
             _cartService = cartService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetActiveCart(CancellationToken cancellationToken)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _cartService.GetActiveCartAsync(customerUserId, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
         [HttpPost("items/add")]
         public async Task<IActionResult> AddToCart(
             [FromBody] AddCartItemDto request,

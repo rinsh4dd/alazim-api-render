@@ -11,6 +11,7 @@ namespace MeatDelivery.Application.Services.Cart
     public class CartService : ICartService
     {
         private readonly ICartRepository _cartRepository;
+        private readonly ICartCalculationService _cartCalculationService;
         private readonly IValidator<AddCartItemDto> _addCartItemValidator;
         private readonly IValidator<UpdateCartItemQuantityDto> _updateQuantityValidator;
         private readonly IValidator<UpdateCartItemCustomizationDto> _updateCustomizationValidator;
@@ -18,16 +19,29 @@ namespace MeatDelivery.Application.Services.Cart
 
         public CartService(
             ICartRepository cartRepository,
+            ICartCalculationService cartCalculationService,
             IValidator<AddCartItemDto> addCartItemValidator,
             IValidator<UpdateCartItemQuantityDto> updateQuantityValidator,
             IValidator<UpdateCartItemCustomizationDto> updateCustomizationValidator,
             IValidator<RemoveCartItemDto> removeCartItemValidator)
         {
             _cartRepository = cartRepository;
+            _cartCalculationService = cartCalculationService;
             _addCartItemValidator = addCartItemValidator;
             _updateQuantityValidator = updateQuantityValidator;
             _updateCustomizationValidator = updateCustomizationValidator;
             _removeCartItemValidator = removeCartItemValidator;
+        }
+
+        public async Task<ApiResponse<CustomerCartSummaryDto>> GetActiveCartAsync(long customerUserId, CancellationToken cancellationToken = default)
+        {
+            if (customerUserId <= 0)
+            {
+                return ApiResponse<CustomerCartSummaryDto>.FailureResponse("Valid CustomerUserId is required.");
+            }
+
+            var summary = await _cartCalculationService.CalculateActiveCartAsync(customerUserId, cancellationToken);
+            return ApiResponse<CustomerCartSummaryDto>.SuccessResponse(summary, "Customer active cart retrieved successfully.");
         }
 
         public async Task<ApiResponse<string>> AddToCartAsync(long customerUserId, AddCartItemDto dto, CancellationToken cancellationToken = default)

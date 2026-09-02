@@ -171,6 +171,7 @@ namespace MeatDelivery.Infrastructure
 
             // Cart Services & Repositories
             services.AddScoped<MeatDelivery.Application.Interfaces.Cart.ICartRepository, MeatDelivery.Infrastructure.Repositories.Cart.CartRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Cart.ICartCalculationService, MeatDelivery.Infrastructure.Services.Cart.CartCalculationService>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Cart.ICartService, MeatDelivery.Application.Services.Cart.CartService>();
 
             // Logging

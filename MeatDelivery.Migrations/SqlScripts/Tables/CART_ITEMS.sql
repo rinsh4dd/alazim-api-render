@@ -10,6 +10,7 @@ BEGIN
         DOC_NO               VARCHAR(50)          NOT NULL,
         PRODUCT_ID           BIGINT               NOT NULL,
         QUANTITY             INT                  NOT NULL CONSTRAINT DF_CART_ITEMS_QTY DEFAULT (1),
+        CUSTOM_DATA          NVARCHAR(500)        NULL,
         SPECIAL_INSTRUCTIONS NVARCHAR(1000)       NULL,
         ITEM_STATUS          VARCHAR(20)          NOT NULL CONSTRAINT DF_CART_ITEMS_STATUS DEFAULT ('ACTIVE'),
         ITEM_SIGNATURE       VARCHAR(100)         NOT NULL,

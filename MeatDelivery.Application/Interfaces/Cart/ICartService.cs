@@ -7,6 +7,7 @@ namespace MeatDelivery.Application.Interfaces.Cart
 {
     public interface ICartService
     {
+        Task<ApiResponse<CustomerCartSummaryDto>> GetActiveCartAsync(long customerUserId, CancellationToken cancellationToken = default);
         Task<ApiResponse<string>> AddToCartAsync(long customerUserId, AddCartItemDto dto, CancellationToken cancellationToken = default);
         Task<ApiResponse<string>> UpdateQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto, CancellationToken cancellationToken = default);
         Task<ApiResponse<string>> UpdateCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto, CancellationToken cancellationToken = default);
