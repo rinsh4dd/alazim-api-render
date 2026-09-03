@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Application.DTOs.Cart
 {
@@ -20,7 +21,6 @@ namespace MeatDelivery.Application.DTOs.Cart
         public string? ProductImage { get; set; }
         public string? UnitDescription { get; set; }
         public int Quantity { get; set; }
-        public string? CustomData { get; set; }
         public string? SpecialInstructions { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalCustomizationExtraPrice { get; set; }
@@ -37,7 +37,10 @@ namespace MeatDelivery.Application.DTOs.Cart
         public string OptionCode { get; set; } = string.Empty;
         public string OptionNameEn { get; set; } = string.Empty;
         public string OptionNameAr { get; set; } = string.Empty;
-        public string PricingType { get; set; } = "ADDITIONAL_PRICE";
+        public PricingType PricingType { get; set; } = PricingType.ADDITIONAL_PRICE;
+        public decimal PricingValue { get; set; }
+        public decimal? SelectedValue { get; set; }
+        public bool IsCustomDataAllowed { get; set; }
         public decimal OptionPrice { get; set; }
     }
 }

@@ -11,7 +11,7 @@ namespace MeatDelivery.Application.DTOs.Customization
         public string OptionCode { get; set; } = string.Empty;
         public string OptionNameEn { get; set; } = string.Empty;
         public string OptionNameAr { get; set; } = string.Empty;
-        public decimal AdditionalPrice { get; set; }
+        public decimal PricingValue { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }

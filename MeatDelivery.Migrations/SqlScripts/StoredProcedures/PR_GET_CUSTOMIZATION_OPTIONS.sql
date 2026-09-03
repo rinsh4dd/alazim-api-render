@@ -48,7 +48,7 @@ BEGIN
         co.OPTION_CODE               AS OptionCode,
         co.OPTION_NAME_EN            AS OptionNameEn,
         co.OPTION_NAME_AR            AS OptionNameAr,
-        co.ADDITIONAL_PRICE          AS AdditionalPrice,
+        co.PRICING_VALUE             AS PricingValue,
         co.IS_ACTIVE                 AS IsActive,
         co.CREATED_AT                AS CreatedAt,
         co.UPDATED_AT                AS UpdatedAt

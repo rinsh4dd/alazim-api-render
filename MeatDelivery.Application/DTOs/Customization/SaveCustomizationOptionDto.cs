@@ -10,7 +10,7 @@ namespace MeatDelivery.Application.DTOs.Customization
         public string OptionCode { get; set; } = string.Empty;
         public string OptionNameEn { get; set; } = string.Empty;
         public string OptionNameAr { get; set; } = string.Empty;
-        public decimal AdditionalPrice { get; set; } = 0.00m;
+        public decimal PricingValue { get; set; } = 0.00m;
         public bool IsActive { get; set; } = true;
     }
 }

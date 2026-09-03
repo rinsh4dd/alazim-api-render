@@ -37,7 +37,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customization
                     OPTION_CODE = dto.OptionCode,
                     OPTION_NAME_EN = dto.OptionNameEn,
                     OPTION_NAME_AR = dto.OptionNameAr,
-                    ADDITIONAL_PRICE = dto.AdditionalPrice,
+                    PRICING_VALUE = dto.PricingValue,
                     IS_ACTIVE = dto.IsActive
                 }
             );

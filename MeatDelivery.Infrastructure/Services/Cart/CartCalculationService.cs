@@ -3,43 +3,32 @@ using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Cart;
+using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Infrastructure.Services.Cart
 {
     public class CartCalculationService : ICartCalculationService
     {
-        private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ICartRepository _cartRepository;
 
-        public CartCalculationService(IDbConnectionFactory connectionFactory)
+        public CartCalculationService(ICartRepository cartRepository)
         {
-            _connectionFactory = connectionFactory;
+            _cartRepository = cartRepository;
         }
 
         public async Task<CustomerCartSummaryDto> CalculateActiveCartAsync(long customerUserId, CancellationToken cancellationToken = default)
         {
-            using var connection = _connectionFactory.CreateConnection();
-
-            using var gridReader = await connection.QueryMultipleAsync(
-                "dbo.PR_GET_CUSTOMER_ACTIVE_CART",
-                new { CUSTOMER_USER_ID = customerUserId },
-                commandType: CommandType.StoredProcedure
-            );
-
-            var cartHeader = (await gridReader.ReadAsync<dynamic>()).FirstOrDefault();
+            var (cartHeader, cartItemRows, optionRows) = await _cartRepository.GetActiveCartRawDataAsync(customerUserId);
             if (cartHeader == null)
             {
                 return CreateEmptyCartSummary();
             }
-
-            var cartItemRows = (await gridReader.ReadAsync<dynamic>()).ToList();
-            var optionRows = (await gridReader.ReadAsync<dynamic>()).ToList();
 
             var optionsByCartItem = optionRows
                 .GroupBy(o => (long)o.CART_ITEM_ID)
@@ -56,19 +45,36 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                 int quantity = (int)itemRow.QUANTITY;
                 string? customData = (string?)itemRow.CUSTOM_DATA;
 
-                // 1. Process Customization Options & Extra Prices
+                // 1. Initial price starts at product base catalog price
+                decimal currentPrice = basePrice;
+
                 var itemOptionDtos = new List<CartItemOptionDetailDto>();
-                decimal itemExtraPrice = 0.00m;
+                decimal totalOptionExtraPrice = 0.00m;
 
                 if (optionsByCartItem.TryGetValue(cartItemId, out var itemOptions))
                 {
-                    foreach (var opt in itemOptions)
-                    {
-                        string pricingType = (string)(opt.PRICING_TYPE ?? "ADDITIONAL_PRICE").ToString().ToUpperInvariant();
-                        decimal val = Convert.ToDecimal(opt.ADDITIONAL_PRICE ?? 0);
-                        decimal optionPrice = CalculateOptionPrice(pricingType, val, basePrice);
+                    // Sequential Order Pipeline: FIXED_PRICE -> MULTIPLIER -> PERCENTAGE -> ADDITIONAL_PRICE
+                    var sortedOptions = itemOptions
+                        .OrderBy(o => GetPricingPrecedence(ParsePricingType((string?)o.PRICING_TYPE)))
+                        .ToList();
 
-                        itemExtraPrice += optionPrice;
+                    foreach (var opt in sortedOptions)
+                    {
+                        PricingType pricingType = ParsePricingType((string?)opt.PRICING_TYPE);
+                        
+                        // Typed SelectedValue (e.g. 1.350 KG) takes precedence over Option PricingValue (e.g. 1.000 KG)
+                        decimal val = opt.SELECTED_VALUE != null 
+                            ? Convert.ToDecimal(opt.SELECTED_VALUE) 
+                            : Convert.ToDecimal(opt.PRICING_VALUE ?? opt.ADDITIONAL_PRICE ?? 0);
+
+                        decimal previousPrice = currentPrice;
+                        currentPrice = ApplyPricing(currentPrice, pricingType, val);
+                        decimal optionDelta = currentPrice - previousPrice;
+
+                        totalOptionExtraPrice += optionDelta;
+
+                        decimal? selectedVal = opt.SELECTED_VALUE != null ? Convert.ToDecimal(opt.SELECTED_VALUE) : null;
+                        decimal pricingVal = Convert.ToDecimal(opt.PRICING_VALUE ?? opt.ADDITIONAL_PRICE ?? 0);
 
                         itemOptionDtos.Add(new CartItemOptionDetailDto
                         {
@@ -80,16 +86,17 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                             OptionNameEn = (string)(opt.OPTION_NAME_EN ?? string.Empty),
                             OptionNameAr = (string)(opt.OPTION_NAME_AR ?? string.Empty),
                             PricingType = pricingType,
-                            OptionPrice = optionPrice
+                            PricingValue = pricingVal,
+                            SelectedValue = selectedVal,
+                            IsCustomDataAllowed = Convert.ToBoolean(opt.IS_CUSTOM_DATA_ALLOWED ?? false),
+                            OptionPrice = optionDelta
                         });
                     }
                 }
 
-                // 2. Parse Custom Weight & Calculate Line Total
-                decimal weightMultiplier = ParseWeightMultiplier(customData);
                 decimal unitPrice = basePrice;
-                decimal itemBaseTotal = basePrice * weightMultiplier;
-                decimal lineTotalPrice = (itemBaseTotal + itemExtraPrice) * quantity;
+                decimal configuredUnitPrice = currentPrice;
+                decimal lineTotalPrice = configuredUnitPrice * quantity;
 
                 cartSubtotal += lineTotalPrice;
                 totalItemCount += quantity;
@@ -103,10 +110,9 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                     ProductImage = (string?)itemRow.PRODUCT_IMAGE,
                     UnitDescription = (string?)itemRow.UNIT_DESCRIPTION,
                     Quantity = quantity,
-                    CustomData = customData,
                     SpecialInstructions = (string?)itemRow.SPECIAL_INSTRUCTIONS,
                     UnitPrice = unitPrice,
-                    TotalCustomizationExtraPrice = itemExtraPrice,
+                    TotalCustomizationExtraPrice = totalOptionExtraPrice,
                     LineTotalPrice = lineTotalPrice,
                     CustomizationOptions = itemOptionDtos
                 });
@@ -134,30 +140,42 @@ namespace MeatDelivery.Infrastructure.Services.Cart
             };
         }
 
-        private static decimal CalculateOptionPrice(string pricingType, decimal val, decimal basePrice)
+        // --- SEQUENTIAL PRICING PIPELINE TRANSFORMER ---
+        private static decimal ApplyPricing(decimal currentPrice, PricingType pricingType, decimal val)
         {
             return pricingType switch
             {
-                "MULTIPLIER" => val > 0 ? basePrice * (val - 1.00m) : 0.00m,
-                "PERCENTAGE" => basePrice * (val / 100.00m),
-                "FIXED_PRICE" => val,
-                _ => val // ADDITIONAL_PRICE
+                PricingType.FIXED_PRICE => val > 0 ? val : currentPrice,
+                PricingType.MULTIPLIER => val > 0 ? currentPrice * val : currentPrice,
+                PricingType.PERCENTAGE => currentPrice + (currentPrice * (val / 100.00m)),
+                PricingType.ADDITIONAL_PRICE => currentPrice + val,
+                _ => currentPrice + val
             };
         }
 
-        private static decimal ParseWeightMultiplier(string? customData)
+        // --- PRICING PRECEDENCE ORDER ---
+        private static int GetPricingPrecedence(PricingType pricingType)
         {
-            if (string.IsNullOrWhiteSpace(customData)) return 1.00m;
-
-            var match = Regex.Match(customData, @"\d+(\.\d+)?");
-            if (match.Success && decimal.TryParse(match.Value, NumberStyles.Any, CultureInfo.InvariantCulture, out decimal weight) && weight > 0)
+            return pricingType switch
             {
-                return weight;
-            }
-
-            return 1.00m;
+                PricingType.FIXED_PRICE => 1,
+                PricingType.MULTIPLIER => 2,
+                PricingType.PERCENTAGE => 3,
+                PricingType.ADDITIONAL_PRICE => 4,
+                _ => 5
+            };
         }
 
+        private static PricingType ParsePricingType(string? pricingTypeStr)
+        {
+            if (Enum.TryParse<PricingType>(pricingTypeStr, true, out var result))
+            {
+                return result;
+            }
+            return PricingType.ADDITIONAL_PRICE;
+        }
+
+        // --- EMPTY CART SUMMARY BUILDER ---
         private static CustomerCartSummaryDto CreateEmptyCartSummary()
         {
             return new CustomerCartSummaryDto

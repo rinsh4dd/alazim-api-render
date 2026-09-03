@@ -45,7 +45,7 @@ namespace MeatDelivery.UnitTests.Services
                 OptionCode = "CURRY_CUT",
                 OptionNameEn = "Curry Cut",
                 OptionNameAr = "تقطيع كاري",
-                AdditionalPrice = 0.50m
+                PricingValue = 0.50m
             };
 
             var returnedDto = new CustomizationOptionDto
@@ -55,7 +55,7 @@ namespace MeatDelivery.UnitTests.Services
                 OptionCode = "CURRY_CUT",
                 OptionNameEn = "Curry Cut",
                 OptionNameAr = "تقطيع كاري",
-                AdditionalPrice = 0.50m,
+                PricingValue = 0.50m,
                 IsActive = true
             };
 
@@ -115,7 +115,7 @@ namespace MeatDelivery.UnitTests.Services
                     CustomizationGroupId = 1,
                     OptionCode = "CURRY_CUT",
                     OptionNameEn = "Curry Cut",
-                    AdditionalPrice = 0.50m
+                    PricingValue = 0.50m
                 }
             };
 

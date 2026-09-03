@@ -37,8 +37,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Customization
                     GROUP_NAME_EN = request.GroupNameEn,
                     GROUP_NAME_AR = request.GroupNameAr,
                     IS_ADDITIONAL_PRICE_AVAILABLE = request.IsAdditionalPriceAvailable,
-                    PRICING_TYPE = request.PricingType,
-                    PRICING_VALUE = request.PricingValue,
+                    PRICING_TYPE = request.PricingType.ToString(),
                     IS_CUSTOM_DATA_ALLOWED = request.IsCustomDataAllowed,
                     IS_ACTIVE = request.IsActive
                 }

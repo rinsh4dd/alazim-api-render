@@ -1,8 +1,7 @@
--- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_PRODUCT
--- Description: Handles ADD, EDIT, and DELETE operations for Products (dbo.PRODUCTS).
--- =============================================================================
+-- Migration Script: 0104_Update_PR_SAVE_PRODUCT_Partial_Edit.sql
+-- Description: Update PR_SAVE_PRODUCT to preserve existing values when nulls are passed in EDIT mode.
 
+EXEC('
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_PRODUCT
 (
     @MODE                       VARCHAR(10),
@@ -33,56 +32,53 @@ BEGIN
 
     SET @MODE = UPPER(LTRIM(RTRIM(@MODE)));
 
-    ----------------------------------------------------------------------------
-    -- 1. ADD MODE
-    ----------------------------------------------------------------------------
-    IF @MODE = 'ADD'
+    IF @MODE = ''ADD''
     BEGIN
         IF @CATEGORY_ID IS NULL OR @CATEGORY_ID <= 0
         BEGIN
-            THROW 50001, 'Valid CategoryId is required.', 1;
+            THROW 50001, ''Valid CategoryId is required.'', 1;
         END
 
         IF NOT EXISTS (SELECT 1 FROM dbo.CATEGORIES WHERE CATEGORY_ID = @CATEGORY_ID)
         BEGIN
-            THROW 50002, 'Category not found.', 1;
+            THROW 50002, ''Category not found.'', 1;
         END
 
-        IF @PRODUCT_NAME_EN IS NULL OR LTRIM(RTRIM(@PRODUCT_NAME_EN)) = ''
+        IF @PRODUCT_NAME_EN IS NULL OR LTRIM(RTRIM(@PRODUCT_NAME_EN)) = ''''
         BEGIN
-            THROW 50003, 'English Product Name is required.', 1;
+            THROW 50003, ''English Product Name is required.'', 1;
         END
 
-        IF @PRODUCT_NAME_AR IS NULL OR LTRIM(RTRIM(@PRODUCT_NAME_AR)) = ''
+        IF @PRODUCT_NAME_AR IS NULL OR LTRIM(RTRIM(@PRODUCT_NAME_AR)) = ''''
         BEGIN
-            THROW 50004, 'Arabic Product Name is required.', 1;
+            THROW 50004, ''Arabic Product Name is required.'', 1;
         END
 
         IF @UNIT_ID IS NULL OR @UNIT_ID <= 0
         BEGIN
-            THROW 50005, 'Valid UnitId is required.', 1;
+            THROW 50005, ''Valid UnitId is required.'', 1;
         END
 
         IF NOT EXISTS (SELECT 1 FROM dbo.MEASUREMENT_UNITS WHERE UNIT_ID = @UNIT_ID AND IS_ACTIVE = 1)
         BEGIN
-            THROW 50006, 'Measurement unit not found or inactive.', 1;
+            THROW 50006, ''Measurement unit not found or inactive.'', 1;
         END
 
         IF @PRICE IS NULL OR @PRICE <= 0
         BEGIN
-            THROW 50007, 'Price must be greater than 0.', 1;
+            THROW 50007, ''Price must be greater than 0.'', 1;
         END
 
-        IF @PRIMARY_URL IS NULL OR LTRIM(RTRIM(@PRIMARY_URL)) = ''
+        IF @PRIMARY_URL IS NULL OR LTRIM(RTRIM(@PRIMARY_URL)) = ''''
         BEGIN
-            THROW 50008, 'Primary image URL is required.', 1;
+            THROW 50008, ''Primary image URL is required.'', 1;
         END
 
         IF @CUSTOMIZATION_TEMPLATE_ID IS NOT NULL AND @CUSTOMIZATION_TEMPLATE_ID > 0
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM dbo.CUSTOMIZATION_TEMPLATES WHERE CUSTOMIZATION_TEMPLATE_ID = @CUSTOMIZATION_TEMPLATE_ID AND IS_ACTIVE = 1)
             BEGIN
-                THROW 50009, 'Customization Template not found or inactive.', 1;
+                THROW 50009, ''Customization Template not found or inactive.'', 1;
             END
         END
 
@@ -90,7 +86,7 @@ BEGIN
 
         BEGIN TRY
             DECLARE @DOC_NO VARCHAR(50);
-            EXEC dbo.PR_GET_NEXT_DOC_NO @DOCTYPE = 'PROD', @DOC_NO = @DOC_NO OUTPUT;
+            EXEC dbo.PR_GET_NEXT_DOC_NO @DOCTYPE = ''PROD'', @DOC_NO = @DOC_NO OUTPUT;
 
             INSERT INTO dbo.PRODUCTS
             (
@@ -101,7 +97,7 @@ BEGIN
             )
             VALUES
             (
-                @CATEGORY_ID, @DOC_NO, 'PROD', LTRIM(RTRIM(@PRODUCT_NAME_EN)), LTRIM(RTRIM(@PRODUCT_NAME_AR)),
+                @CATEGORY_ID, @DOC_NO, ''PROD'', LTRIM(RTRIM(@PRODUCT_NAME_EN)), LTRIM(RTRIM(@PRODUCT_NAME_AR)),
                 @DESCRIPTION_EN, @DESCRIPTION_AR, ISNULL(@IS_CUSTOMIZABLE, 0), @CUSTOMIZATION_TEMPLATE_ID,
                 @UNIT_ID, ISNULL(@DISCOUNT_PERCENTAGE, 0.00), ISNULL(@STOCK_COUNT, 0), ISNULL(@IS_FEATURED, 0), ISNULL(@IS_PREORDERABLE, 0),
                 ISNULL(@IS_ACTIVE, 1), 0, NULL, ISNULL(@IS_NEW_ARRIVAL, 0), SYSUTCDATETIME(), NULL
@@ -163,19 +159,16 @@ BEGIN
         END CATCH;
     END;
 
-    ----------------------------------------------------------------------------
-    -- 2. EDIT MODE
-    ----------------------------------------------------------------------------
-    IF @MODE = 'EDIT'
+    IF @MODE = ''EDIT''
     BEGIN
         IF @PRODUCT_ID IS NULL OR @PRODUCT_ID <= 0
         BEGIN
-            THROW 50020, 'Valid ProductId is required for EDIT mode.', 1;
+            THROW 50020, ''Valid ProductId is required for EDIT mode.'', 1;
         END
 
         IF NOT EXISTS (SELECT 1 FROM dbo.PRODUCTS WHERE PRODUCT_ID = @PRODUCT_ID AND (IS_DELETED = 0 OR IS_DELETED IS NULL))
         BEGIN
-            THROW 50021, 'Product not found.', 1;
+            THROW 50021, ''Product not found.'', 1;
         END
 
         BEGIN TRANSACTION;
@@ -280,10 +273,7 @@ BEGIN
         END CATCH;
     END;
 
-    ----------------------------------------------------------------------------
-    -- 3. DELETE MODE
-    ----------------------------------------------------------------------------
-    IF @MODE = 'DELETE'
+    IF @MODE = ''DELETE''
     BEGIN
         UPDATE dbo.PRODUCTS
         SET IS_ACTIVE = 0, IS_DELETED = 1, DELETED_AT = SYSUTCDATETIME(), UPDATED_AT = SYSUTCDATETIME()
@@ -293,6 +283,6 @@ BEGIN
         RETURN;
     END;
 
-    THROW 50030, 'Invalid Mode specified. Use ADD, EDIT, or DELETE.', 1;
-END;
+    THROW 50030, ''Invalid Mode specified. Use ADD, EDIT, or DELETE.'', 1;
+END;');
 GO

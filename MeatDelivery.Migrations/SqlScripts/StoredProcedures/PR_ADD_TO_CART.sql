@@ -1,6 +1,6 @@
 -- =============================================================================
 -- STORED PROCEDURE: dbo.PR_ADD_TO_CART
--- Description: Adds a product (with selected cut customization options, custom data, and special instructions) to customer's active cart.
+-- Description: Adds a product (with selected cut customization options, custom numeric values, and special instructions) to customer's active cart.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_ADD_TO_CART
@@ -8,9 +8,8 @@ CREATE OR ALTER PROCEDURE dbo.PR_ADD_TO_CART
     @CUSTOMER_USER_ID BIGINT,
     @PRODUCT_ID BIGINT,
     @QUANTITY INT = 1,
-    @CUSTOM_DATA NVARCHAR(500) = NULL,
     @SPECIAL_INSTRUCTIONS NVARCHAR(1000) = NULL,
-    @OPTION_IDS dbo.TT_CUSTOMIZATION_OPTION_IDS READONLY
+    @OPTION_SELECTIONS dbo.TT_CUSTOMIZATION_SELECTIONS READONLY
 )
 AS
 BEGIN
@@ -54,7 +53,7 @@ BEGIN
             @OPTION_STRING VARCHAR(80) = NULL,
             @EXISTING_CART_ITEM_ID BIGINT = NULL;
 
-        -- 1. Get or Create ACTIVE Cart for Customer
+        -- Get or Create ACTIVE Cart for Customer
         SELECT @CART_ID = CART_ID, @CART_DOC_NO = DOC_NO
         FROM dbo.CARTS
         WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND CART_STATUS = 'ACTIVE';
@@ -71,16 +70,18 @@ BEGIN
             SET @CART_ID = SCOPE_IDENTITY();
         END;
 
-        -- 2. Build Option String from selected option IDs
-        SELECT @OPTION_STRING = STRING_AGG(CAST(OPTION_ID AS VARCHAR(20)), '_') WITHIN GROUP (ORDER BY OPTION_ID)
-        FROM (SELECT DISTINCT OPTION_ID FROM @OPTION_IDS) AS T;
+        -- Build Option String from selected option IDs + SELECTED_VALUE (e.g. 1011_1099:1.350)
+        SELECT @OPTION_STRING = STRING_AGG(
+            CAST(OPTION_ID AS VARCHAR(20)) + CASE WHEN SELECTED_VALUE IS NOT NULL THEN ':' + CAST(SELECTED_VALUE AS VARCHAR(30)) ELSE '' END,
+            '_'
+        ) WITHIN GROUP (ORDER BY OPTION_ID)
+        FROM (SELECT DISTINCT OPTION_ID, SELECTED_VALUE FROM @OPTION_SELECTIONS) AS T;
 
-        -- 3. Construct unique ITEM_SIGNATURE (PRODUCT_ID | CUSTOM_DATA | OPTIONS)
+        -- Construct unique ITEM_SIGNATURE (PRODUCT_ID | OPTIONS:SELECTED_VALUES)
         SET @ITEM_SIGNATURE = CAST(@PRODUCT_ID AS VARCHAR(20)) 
-            + '|CD:' + ISNULL(NULLIF(LTRIM(RTRIM(@CUSTOM_DATA)), ''), 'DEF') 
             + '|' + ISNULL(@OPTION_STRING, 'NONE');
 
-        -- 4. Check if exact item signature exists in active cart
+        -- Check if exact item signature exists in active cart
         SELECT @EXISTING_CART_ITEM_ID = CART_ITEM_ID
         FROM dbo.CART_ITEMS
         WHERE CART_ID = @CART_ID AND ITEM_SIGNATURE = @ITEM_SIGNATURE AND ITEM_STATUS = 'ACTIVE';
@@ -89,21 +90,20 @@ BEGIN
         BEGIN
             UPDATE dbo.CART_ITEMS
             SET QUANTITY = QUANTITY + @QUANTITY,
-                CUSTOM_DATA = ISNULL(@CUSTOM_DATA, CUSTOM_DATA),
                 SPECIAL_INSTRUCTIONS = ISNULL(@SPECIAL_INSTRUCTIONS, SPECIAL_INSTRUCTIONS),
                 UPDATED_AT = SYSUTCDATETIME()
             WHERE CART_ITEM_ID = @EXISTING_CART_ITEM_ID;
         END
         ELSE
         BEGIN
-            INSERT INTO dbo.CART_ITEMS (CART_ID, DOC_NO, PRODUCT_ID, QUANTITY, CUSTOM_DATA, SPECIAL_INSTRUCTIONS, ITEM_STATUS, ITEM_SIGNATURE, CREATED_AT)
-            VALUES (@CART_ID, @CART_DOC_NO, @PRODUCT_ID, @QUANTITY, @CUSTOM_DATA, @SPECIAL_INSTRUCTIONS, 'ACTIVE', @ITEM_SIGNATURE, SYSUTCDATETIME());
+            INSERT INTO dbo.CART_ITEMS (CART_ID, DOC_NO, PRODUCT_ID, QUANTITY, SPECIAL_INSTRUCTIONS, ITEM_STATUS, ITEM_SIGNATURE, CREATED_AT)
+            VALUES (@CART_ID, @CART_DOC_NO, @PRODUCT_ID, @QUANTITY, @SPECIAL_INSTRUCTIONS, 'ACTIVE', @ITEM_SIGNATURE, SYSUTCDATETIME());
 
             SET @EXISTING_CART_ITEM_ID = SCOPE_IDENTITY();
 
-            INSERT INTO dbo.CART_ITEM_CUSTOMIZATIONS (CART_ITEM_ID, DOC_NO, CUSTOMIZATION_OPTION_ID, CREATED_AT)
-            SELECT DISTINCT @EXISTING_CART_ITEM_ID, @CART_DOC_NO, OPTION_ID, SYSUTCDATETIME()
-            FROM @OPTION_IDS;
+            INSERT INTO dbo.CART_ITEM_CUSTOMIZATIONS (CART_ITEM_ID, DOC_NO, CUSTOMIZATION_OPTION_ID, SELECTED_VALUE, CREATED_AT)
+            SELECT DISTINCT @EXISTING_CART_ITEM_ID, @CART_DOC_NO, OPTION_ID, SELECTED_VALUE, SYSUTCDATETIME()
+            FROM @OPTION_SELECTIONS;
         END;
 
         -- Update Cart timestamp

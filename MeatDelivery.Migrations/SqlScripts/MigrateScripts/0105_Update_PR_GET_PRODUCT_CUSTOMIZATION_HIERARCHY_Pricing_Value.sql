@@ -1,8 +1,7 @@
--- =============================================================================
--- STORED PROCEDURE: dbo.PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY
--- Description: Retrieves product info, customization template, groups, and options hierarchy.
--- =============================================================================
+-- Migration Script: 0105_Update_PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY_Pricing_Value.sql
+-- Description: Update PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY to select PRICING_VALUE on options instead of ADDITIONAL_PRICE.
 
+EXEC('
 CREATE OR ALTER PROCEDURE dbo.PR_GET_PRODUCT_CUSTOMIZATION_HIERARCHY
     @PRODUCT_ID BIGINT
 AS
@@ -32,7 +31,7 @@ BEGIN
     INNER JOIN dbo.PRODUCTS p ON p.CUSTOMIZATION_TEMPLATE_ID = t.CUSTOMIZATION_TEMPLATE_ID
     WHERE p.PRODUCT_ID = @PRODUCT_ID AND t.IS_ACTIVE = 1;
 
-    -- 3. Groups (Only mapped groups for this product's template)
+    -- 3. Groups (Only mapped groups for this product''s template)
     SELECT DISTINCT
         g.CUSTOMIZATION_GROUP_ID AS CustomizationGroupId,
         g.GROUP_CODE AS GroupCode,
@@ -60,5 +59,5 @@ BEGIN
     INNER JOIN dbo.TEMPLATE_GROUP_MAPPING m ON m.CUSTOMIZATION_GROUP_ID = o.CUSTOMIZATION_GROUP_ID
     INNER JOIN dbo.PRODUCTS p ON p.CUSTOMIZATION_TEMPLATE_ID = m.CUSTOMIZATION_TEMPLATE_ID
     WHERE p.PRODUCT_ID = @PRODUCT_ID AND o.IS_ACTIVE = 1 AND m.IS_ACTIVE = 1;
-END;
+END;');
 GO

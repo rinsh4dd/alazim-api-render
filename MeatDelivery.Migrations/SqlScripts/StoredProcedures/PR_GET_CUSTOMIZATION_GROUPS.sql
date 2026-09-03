@@ -42,7 +42,6 @@ BEGIN
         cg.GROUP_NAME_AR                   AS GroupNameAr,
         cg.IS_ADDITIONAL_PRICE_AVAILABLE   AS IsAdditionalPriceAvailable,
         cg.PRICING_TYPE                    AS PricingType,
-        cg.PRICING_VALUE                   AS PricingValue,
         cg.IS_CUSTOM_DATA_ALLOWED          AS IsCustomDataAllowed,
         cg.IS_ACTIVE                       AS IsActive,
         cg.CREATED_AT                      AS CreatedAt,
@@ -69,7 +68,7 @@ BEGIN
             co.OPTION_CODE               AS OptionCode,
             co.OPTION_NAME_EN            AS OptionNameEn,
             co.OPTION_NAME_AR            AS OptionNameAr,
-            co.ADDITIONAL_PRICE          AS AdditionalPrice,
+            co.PRICING_VALUE             AS PricingValue,
             co.IS_ACTIVE                 AS IsActive,
             co.CREATED_AT                AS CreatedAt,
             co.UPDATED_AT                AS UpdatedAt

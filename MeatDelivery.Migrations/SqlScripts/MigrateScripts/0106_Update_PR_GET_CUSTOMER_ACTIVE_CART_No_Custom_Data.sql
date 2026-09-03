@@ -1,8 +1,7 @@
--- =============================================================================
--- STORED PROCEDURE: dbo.PR_GET_CUSTOMER_ACTIVE_CART
--- Description: Retrieves active cart header, item list, and item customization options for dynamic cart calculations.
--- =============================================================================
+-- Migration Script: 0106_Update_PR_GET_CUSTOMER_ACTIVE_CART_No_Custom_Data.sql
+-- Description: Update PR_GET_CUSTOMER_ACTIVE_CART to remove ci.CUSTOM_DATA reference.
 
+EXEC('
 CREATE OR ALTER PROCEDURE dbo.PR_GET_CUSTOMER_ACTIVE_CART
 (
     @CUSTOMER_USER_ID BIGINT
@@ -20,7 +19,7 @@ BEGIN
         c.CREATED_AT
     FROM dbo.CARTS c
     WHERE c.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
-      AND c.CART_STATUS = 'ACTIVE';
+      AND c.CART_STATUS = ''ACTIVE'';
 
     -- 2. Cart Items
     SELECT 
@@ -42,8 +41,8 @@ BEGIN
     LEFT JOIN dbo.PRODUCT_PRICES pr ON pr.PRODUCT_ID = p.PRODUCT_ID AND pr.IS_ACTIVE = 1
     LEFT JOIN dbo.PRODUCT_IMAGES img ON img.PRODUCT_ID = p.PRODUCT_ID
     WHERE c.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
-      AND c.CART_STATUS = 'ACTIVE'
-      AND ci.ITEM_STATUS = 'ACTIVE';
+      AND c.CART_STATUS = ''ACTIVE''
+      AND ci.ITEM_STATUS = ''ACTIVE'';
 
     -- 3. Cart Item Customizations
     SELECT 
@@ -65,7 +64,7 @@ BEGIN
     INNER JOIN dbo.CUSTOMIZATION_OPTIONS co ON co.CUSTOMIZATION_OPTION_ID = cic.CUSTOMIZATION_OPTION_ID
     INNER JOIN dbo.CUSTOMIZATION_GROUPS cg ON cg.CUSTOMIZATION_GROUP_ID = co.CUSTOMIZATION_GROUP_ID
     WHERE c.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
-      AND c.CART_STATUS = 'ACTIVE'
-      AND ci.ITEM_STATUS = 'ACTIVE';
-END;
+      AND c.CART_STATUS = ''ACTIVE''
+      AND ci.ITEM_STATUS = ''ACTIVE'';
+END;');
 GO

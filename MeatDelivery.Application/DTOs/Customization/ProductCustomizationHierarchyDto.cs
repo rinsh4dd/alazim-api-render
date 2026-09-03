@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Application.DTOs.Customization
 {
@@ -34,6 +35,8 @@ namespace MeatDelivery.Application.DTOs.Customization
         public string GroupNameEn { get; set; } = string.Empty;
         public string GroupNameAr { get; set; } = string.Empty;
         public bool IsAdditionalPriceAvailable { get; set; }
+        public PricingType PricingType { get; set; } = PricingType.ADDITIONAL_PRICE;
+        public bool IsCustomDataAllowed { get; set; }
         public bool IsActive { get; set; }
 
         public List<CustomizationOptionHierarchyDto> Options { get; set; } = new();
@@ -46,7 +49,7 @@ namespace MeatDelivery.Application.DTOs.Customization
         public string OptionCode { get; set; } = string.Empty;
         public string OptionNameEn { get; set; } = string.Empty;
         public string OptionNameAr { get; set; } = string.Empty;
-        public decimal AdditionalPrice { get; set; }
+        public decimal PricingValue { get; set; }
         public bool IsActive { get; set; }
     }
 }

@@ -38,7 +38,7 @@ BEGIN
         cg.GROUP_CODE                   AS GroupCode,
         cg.GROUP_NAME_EN                AS GroupNameEn,
         cg.GROUP_NAME_AR                AS GroupNameAr,
-        cg.IS_ADDITIONAL_PRICE_AVAILABLEAS IsAdditionalPriceAvailable,
+        cg.IS_ADDITIONAL_PRICE_AVAILABLE AS IsAdditionalPriceAvailable,
         tgm.IS_ACTIVE                   AS IsActive,
         tgm.CREATED_AT                  AS CreatedAt,
         tgm.UPDATED_AT                  AS UpdatedAt

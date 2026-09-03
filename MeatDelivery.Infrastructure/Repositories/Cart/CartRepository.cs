@@ -17,16 +17,39 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             _connectionFactory = connectionFactory;
         }
 
-        private static DataTable CreateOptionTable(IEnumerable<long>? optionIds)
+        public async Task<(dynamic? Header, List<dynamic> Items, List<dynamic> Options)> GetActiveCartRawDataAsync(long customerUserId)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            using var gridReader = await connection.QueryMultipleAsync(
+                "dbo.PR_GET_CUSTOMER_ACTIVE_CART",
+                new { CUSTOMER_USER_ID = customerUserId },
+                commandType: CommandType.StoredProcedure
+            );
+
+            var header = (await gridReader.ReadAsync<dynamic>()).FirstOrDefault();
+            var items = (await gridReader.ReadAsync<dynamic>()).ToList();
+            var options = (await gridReader.ReadAsync<dynamic>()).ToList();
+
+            return (header, items, options);
+        }
+
+        private static DataTable CreateSelectionTable(List<CustomizationSelectionDto>? selections)
         {
             var dt = new DataTable();
             dt.Columns.Add("OPTION_ID", typeof(long));
+            dt.Columns.Add("SELECTED_VALUE", typeof(decimal));
 
-            if (optionIds != null)
+            var addedOptionIds = new HashSet<long>();
+
+            if (selections != null && selections.Count > 0)
             {
-                foreach (var id in optionIds)
+                foreach (var sel in selections)
                 {
-                    dt.Rows.Add(id);
+                    if (sel.OptionId > 0 && !addedOptionIds.Contains(sel.OptionId))
+                    {
+                        dt.Rows.Add(sel.OptionId, sel.CustomValue.HasValue ? (object)sel.CustomValue.Value : DBNull.Value);
+                        addedOptionIds.Add(sel.OptionId);
+                    }
                 }
             }
 
@@ -36,15 +59,14 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
         public async Task<bool> AddToCartAsync(long customerUserId, AddCartItemDto dto)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var optionTable = CreateOptionTable(dto.CustomizationOptionIds);
+            var selectionTable = CreateSelectionTable(dto.Customizations);
 
             var parameters = new DynamicParameters();
             parameters.Add("CUSTOMER_USER_ID", customerUserId);
             parameters.Add("PRODUCT_ID", dto.ProductId);
             parameters.Add("QUANTITY", dto.Quantity);
-            parameters.Add("CUSTOM_DATA", dto.CustomData);
             parameters.Add("SPECIAL_INSTRUCTIONS", dto.SpecialInstructions);
-            parameters.Add("OPTION_IDS", optionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_OPTION_IDS"));
+            parameters.Add("OPTION_SELECTIONS", selectionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_SELECTIONS"));
 
             await connection.ExecuteAsync(
                 "dbo.PR_ADD_TO_CART",
@@ -76,13 +98,13 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
         public async Task<bool> UpdateCartItemCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var optionTable = CreateOptionTable(dto.CustomizationOptionIds);
+            var selectionTable = CreateSelectionTable(dto.Customizations);
 
             var parameters = new DynamicParameters();
             parameters.Add("CUSTOMER_USER_ID", customerUserId);
             parameters.Add("CART_ITEM_ID", dto.CartItemId);
             parameters.Add("SPECIAL_INSTRUCTIONS", dto.SpecialInstructions);
-            parameters.Add("CUSTOMIZATION_OPTION_IDS", optionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_OPTION_IDS"));
+            parameters.Add("OPTION_SELECTIONS", selectionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_SELECTIONS"));
 
             await connection.ExecuteAsync(
                 "dbo.PR_UPDATE_CART_ITEM_CUSTOMIZATION",

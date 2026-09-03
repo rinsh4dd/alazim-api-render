@@ -28,8 +28,8 @@ namespace MeatDelivery.Application.Validators.Customization
                     .NotEmpty().WithMessage("Arabic option name is required.")
                     .MaximumLength(150).WithMessage("Arabic option name cannot exceed 150 characters.");
 
-                RuleFor(x => x.AdditionalPrice)
-                    .GreaterThanOrEqualTo(0).WithMessage("Additional price must be greater than or equal to 0.");
+                RuleFor(x => x.PricingValue)
+                    .GreaterThanOrEqualTo(0).WithMessage("Pricing value must be greater than or equal to 0.");
             });
 
             When(x => x.Mode == Mode.EDIT, () =>
@@ -50,8 +50,8 @@ namespace MeatDelivery.Application.Validators.Customization
                     .NotEmpty().WithMessage("Arabic option name is required.")
                     .MaximumLength(150).WithMessage("Arabic option name cannot exceed 150 characters.");
 
-                RuleFor(x => x.AdditionalPrice)
-                    .GreaterThanOrEqualTo(0).WithMessage("Additional price must be greater than or equal to 0.");
+                RuleFor(x => x.PricingValue)
+                    .GreaterThanOrEqualTo(0).WithMessage("Pricing value must be greater than or equal to 0.");
             });
 
             When(x => x.Mode == Mode.DELETE, () =>
