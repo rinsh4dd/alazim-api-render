@@ -25,7 +25,7 @@ namespace MeatDelivery.Infrastructure.Services.Cart
 
         public async Task<CustomerCartSummaryDto> CalculateActiveCartAsync(long customerUserId, CancellationToken cancellationToken = default)
         {
-            var (cartHeader, cartItemRows, optionRows) = await _cartRepository.GetActiveCartRawDataAsync(customerUserId, cancellationToken);
+            var (cartHeader, cartItemRows, optionRows) = await _cartRepository.GetCartRawDataAsync(customerUserId, cancellationToken);
             if (cartHeader == null)
             {
                 return CartSummaryHelper.CreateEmptyCartSummary();

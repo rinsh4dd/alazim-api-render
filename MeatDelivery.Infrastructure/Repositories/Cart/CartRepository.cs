@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
+using MeatDelivery.Application.Common.Helpers;
 using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Cart;
@@ -20,11 +21,11 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<(dynamic? Header, List<dynamic> Items, List<dynamic> Options)> GetActiveCartRawDataAsync(long customerUserId, CancellationToken cancellationToken = default)
+        public async Task<(dynamic? Header, List<dynamic> Items, List<dynamic> Options)> GetCartRawDataAsync(long customerUserId, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
             var commandDef = new CommandDefinition(
-                "dbo.PR_GET_CUSTOMER_ACTIVE_CART",
+                "dbo.PR_GET_CUSTOMER_CART",
                 new { CUSTOMER_USER_ID = customerUserId },
                 commandType: CommandType.StoredProcedure,
                 cancellationToken: cancellationToken
@@ -39,33 +40,10 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             return (header, items, options);
         }
 
-        private static DataTable CreateSelectionTable(List<CustomizationSelectionDto>? selections)
-        {
-            var dt = new DataTable();
-            dt.Columns.Add("OPTION_ID", typeof(long));
-            dt.Columns.Add("SELECTED_VALUE", typeof(decimal));
-
-            var addedOptionIds = new HashSet<long>();
-
-            if (selections != null && selections.Count > 0)
-            {
-                foreach (var sel in selections)
-                {
-                    if (sel.OptionId > 0 && !addedOptionIds.Contains(sel.OptionId))
-                    {
-                        dt.Rows.Add(sel.OptionId, sel.CustomValue.HasValue ? (object)sel.CustomValue.Value : DBNull.Value);
-                        addedOptionIds.Add(sel.OptionId);
-                    }
-                }
-            }
-
-            return dt;
-        }
-
         public async Task<CartItemActionResultDto?> AddToCartAsync(long customerUserId, AddCartItemDto dto, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var selectionTable = CreateSelectionTable(dto.Customizations);
+            var selectionTable = CartSelectionTableHelper.CreateSelectionTable(dto.Customizations);
 
             var parameters = new DynamicParameters();
             parameters.Add("CUSTOMER_USER_ID", customerUserId);
@@ -74,12 +52,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             parameters.Add("SPECIAL_INSTRUCTIONS", dto.SpecialInstructions);
             parameters.Add("OPTION_SELECTIONS", selectionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_SELECTIONS"));
 
-            var commandDef = new CommandDefinition(
-                "dbo.PR_ADD_TO_CART",
-                parameters,
-                commandType: CommandType.StoredProcedure,
-                cancellationToken: cancellationToken
-            );
+            var commandDef = new CommandDefinition("dbo.PR_ADD_TO_CART", parameters, commandType: CommandType.StoredProcedure, cancellationToken: cancellationToken);
 
             return await connection.QuerySingleOrDefaultAsync<CartItemActionResultDto>(commandDef);
         }
@@ -106,7 +79,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
         public async Task<CartItemActionResultDto?> UpdateCartItemCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
-            var selectionTable = CreateSelectionTable(dto.Customizations);
+            var selectionTable = CartSelectionTableHelper.CreateSelectionTable(dto.Customizations);
 
             var parameters = new DynamicParameters();
             parameters.Add("CUSTOMER_USER_ID", customerUserId);

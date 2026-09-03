@@ -1,6 +1,6 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_GET_CUSTOMER_CART
--- Description: Retrieves active cart header, item list, and item customization options for dynamic cart calculations.
+-- MIGRATION: 0108_Rename_PR_GET_CUSTOMER_ACTIVE_CART_To_PR_GET_CUSTOMER_CART.sql
+-- Description: Creates or alters procedure dbo.PR_GET_CUSTOMER_CART for clean naming convention.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_GET_CUSTOMER_CART
