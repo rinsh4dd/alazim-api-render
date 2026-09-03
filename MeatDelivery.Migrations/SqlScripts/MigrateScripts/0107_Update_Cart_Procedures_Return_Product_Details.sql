@@ -1,6 +1,6 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_ADD_TO_CART
--- Description: Adds a product (with selected cut customization options, custom numeric values, and special instructions) to customer's active cart.
+-- MIGRATION: 0107_Update_Cart_Procedures_Return_Product_Details.sql
+-- Description: Updates PR_ADD_TO_CART and PR_REMOVE_CART_ITEM to return CartItemId, ProductId, ProductNameEn, and ProductNameAr.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_ADD_TO_CART
@@ -53,7 +53,6 @@ BEGIN
             @OPTION_STRING VARCHAR(80) = NULL,
             @EXISTING_CART_ITEM_ID BIGINT = NULL;
 
-        -- Get or Create ACTIVE Cart for Customer
         SELECT @CART_ID = CART_ID, @CART_DOC_NO = DOC_NO
         FROM dbo.CARTS
         WHERE CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND CART_STATUS = 'ACTIVE';
@@ -70,18 +69,15 @@ BEGIN
             SET @CART_ID = SCOPE_IDENTITY();
         END;
 
-        -- Build Option String from selected option IDs + SELECTED_VALUE (e.g. 1011_1099:1.350)
         SELECT @OPTION_STRING = STRING_AGG(
             CAST(OPTION_ID AS VARCHAR(20)) + CASE WHEN SELECTED_VALUE IS NOT NULL THEN ':' + CAST(SELECTED_VALUE AS VARCHAR(30)) ELSE '' END,
             '_'
         ) WITHIN GROUP (ORDER BY OPTION_ID)
         FROM (SELECT DISTINCT OPTION_ID, SELECTED_VALUE FROM @OPTION_SELECTIONS) AS T;
 
-        -- Construct unique ITEM_SIGNATURE (PRODUCT_ID | OPTIONS:SELECTED_VALUES)
         SET @ITEM_SIGNATURE = CAST(@PRODUCT_ID AS VARCHAR(20)) 
             + '|' + ISNULL(@OPTION_STRING, 'NONE');
 
-        -- Check if exact item signature exists in active cart
         SELECT @EXISTING_CART_ITEM_ID = CART_ITEM_ID
         FROM dbo.CART_ITEMS
         WHERE CART_ID = @CART_ID AND ITEM_SIGNATURE = @ITEM_SIGNATURE AND ITEM_STATUS = 'ACTIVE';
@@ -106,7 +102,6 @@ BEGIN
             FROM @OPTION_SELECTIONS;
         END;
 
-        -- Update Cart timestamp
         UPDATE dbo.CARTS
         SET UPDATED_AT = SYSUTCDATETIME()
         WHERE CART_ID = @CART_ID;
@@ -128,6 +123,70 @@ BEGIN
         DECLARE @ERRMSG NVARCHAR(4000) = ERROR_MESSAGE();
         RAISERROR(@ERRMSG, 16, 1);
         RETURN;
+    END CATCH;
+END;
+GO
+
+CREATE OR ALTER PROCEDURE dbo.PR_REMOVE_CART_ITEM
+    @CUSTOMER_USER_ID BIGINT,
+    @CART_ITEM_ID BIGINT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SET XACT_ABORT ON;
+
+    BEGIN TRANSACTION;
+
+    BEGIN TRY
+        IF @CUSTOMER_USER_ID IS NULL OR @CUSTOMER_USER_ID <= 0
+        BEGIN
+            RAISERROR('Valid CustomerUserId is required.', 16, 1);
+            RETURN;
+        END;
+
+        DECLARE @CART_ID BIGINT, @PRODUCT_ID BIGINT, @PRODUCT_NAME_EN NVARCHAR(255), @PRODUCT_NAME_AR NVARCHAR(255);
+
+        SELECT 
+            @CART_ID = ci.CART_ID,
+            @PRODUCT_ID = p.PRODUCT_ID,
+            @PRODUCT_NAME_EN = p.PRODUCT_NAME_EN,
+            @PRODUCT_NAME_AR = p.PRODUCT_NAME_AR
+        FROM dbo.CART_ITEMS ci
+        INNER JOIN dbo.CARTS c ON ci.CART_ID = c.CART_ID
+        INNER JOIN dbo.PRODUCTS p ON ci.PRODUCT_ID = p.PRODUCT_ID
+        WHERE ci.CART_ITEM_ID = @CART_ITEM_ID
+          AND c.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
+          AND c.CART_STATUS = 'ACTIVE';
+
+        IF @CART_ID IS NULL
+        BEGIN
+            RAISERROR('Cart item not found or does not belong to active customer cart.', 16, 1);
+            RETURN;
+        END;
+
+        DELETE FROM dbo.CART_ITEM_CUSTOMIZATIONS
+        WHERE CART_ITEM_ID = @CART_ITEM_ID;
+
+        DELETE FROM dbo.CART_ITEMS
+        WHERE CART_ITEM_ID = @CART_ITEM_ID;
+
+        UPDATE dbo.CARTS
+        SET UPDATED_AT = SYSUTCDATETIME()
+        WHERE CART_ID = @CART_ID;
+
+        COMMIT TRANSACTION;
+
+        SELECT 
+            @CART_ITEM_ID AS CartItemId,
+            @PRODUCT_ID AS ProductId,
+            @PRODUCT_NAME_EN AS ProductNameEn,
+            @PRODUCT_NAME_AR AS ProductNameAr;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+
+        THROW;
     END CATCH;
 END;
 GO

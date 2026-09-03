@@ -44,57 +44,61 @@ namespace MeatDelivery.Application.Services.Cart
             return ApiResponse<CustomerCartSummaryDto>.SuccessResponse(summary, "Customer active cart retrieved successfully.");
         }
 
-        public async Task<ApiResponse<string>> AddToCartAsync(long customerUserId, AddCartItemDto dto, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<CartItemActionResultDto>> AddToCartAsync(long customerUserId, AddCartItemDto dto, CancellationToken cancellationToken = default)
         {
             var validationResult = await _addCartItemValidator.ValidateAsync(dto, cancellationToken);
             if (!validationResult.IsValid)
             {
                 var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
-                return ApiResponse<string>.FailureResponse("Validation failed.", errors);
+                return ApiResponse<CartItemActionResultDto>.FailureResponse("Validation failed.", errors);
             }
 
-            await _cartRepository.AddToCartAsync(customerUserId, dto);
-            return ApiResponse<string>.SuccessResponse("Item added to cart successfully.", "Item added to cart successfully.");
+            var result = await _cartRepository.AddToCartAsync(customerUserId, dto, cancellationToken);
+            var res = result ?? new CartItemActionResultDto { ProductId = dto.ProductId };
+            return ApiResponse<CartItemActionResultDto>.SuccessResponse(res, "Item added to cart successfully.");
         }
 
-        public async Task<ApiResponse<string>> UpdateQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<CartItemActionResultDto>> UpdateQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto, CancellationToken cancellationToken = default)
         {
             var validationResult = await _updateQuantityValidator.ValidateAsync(dto, cancellationToken);
             if (!validationResult.IsValid)
             {
                 var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
-                return ApiResponse<string>.FailureResponse("Validation failed.", errors);
+                return ApiResponse<CartItemActionResultDto>.FailureResponse("Validation failed.", errors);
             }
 
-            await _cartRepository.UpdateCartItemQuantityAsync(customerUserId, dto);
+            var result = await _cartRepository.UpdateCartItemQuantityAsync(customerUserId, dto, cancellationToken);
             var message = dto.Quantity <= 0 ? "Cart item removed successfully." : "Cart item quantity updated successfully.";
-            return ApiResponse<string>.SuccessResponse(message, message);
+            var res = result ?? new CartItemActionResultDto { CartItemId = dto.CartItemId };
+            return ApiResponse<CartItemActionResultDto>.SuccessResponse(res, message);
         }
 
-        public async Task<ApiResponse<string>> UpdateCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<CartItemActionResultDto>> UpdateCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto, CancellationToken cancellationToken = default)
         {
             var validationResult = await _updateCustomizationValidator.ValidateAsync(dto, cancellationToken);
             if (!validationResult.IsValid)
             {
                 var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
-                return ApiResponse<string>.FailureResponse("Validation failed.", errors);
+                return ApiResponse<CartItemActionResultDto>.FailureResponse("Validation failed.", errors);
             }
 
-            await _cartRepository.UpdateCartItemCustomizationAsync(customerUserId, dto);
-            return ApiResponse<string>.SuccessResponse("Item customization updated successfully.", "Item customization updated successfully.");
+            var result = await _cartRepository.UpdateCartItemCustomizationAsync(customerUserId, dto, cancellationToken);
+            var res = result ?? new CartItemActionResultDto { CartItemId = dto.CartItemId };
+            return ApiResponse<CartItemActionResultDto>.SuccessResponse(res, "Item customization updated successfully.");
         }
 
-        public async Task<ApiResponse<string>> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<CartItemActionResultDto>> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto, CancellationToken cancellationToken = default)
         {
             var validationResult = await _removeCartItemValidator.ValidateAsync(dto, cancellationToken);
             if (!validationResult.IsValid)
             {
                 var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
-                return ApiResponse<string>.FailureResponse("Validation failed.", errors);
+                return ApiResponse<CartItemActionResultDto>.FailureResponse("Validation failed.", errors);
             }
 
-            await _cartRepository.RemoveCartItemAsync(customerUserId, dto);
-            return ApiResponse<string>.SuccessResponse("Item removed from cart successfully.", "Item removed from cart successfully.");
+            var result = await _cartRepository.RemoveCartItemAsync(customerUserId, dto, cancellationToken);
+            var res = result ?? new CartItemActionResultDto { CartItemId = dto.CartItemId };
+            return ApiResponse<CartItemActionResultDto>.SuccessResponse(res, "Item removed from cart successfully.");
         }
 
         public async Task<ApiResponse<string>> ClearCartAsync(long customerUserId, CancellationToken cancellationToken = default)
@@ -104,7 +108,7 @@ namespace MeatDelivery.Application.Services.Cart
                 return ApiResponse<string>.FailureResponse("Valid CustomerUserId is required.");
             }
 
-            await _cartRepository.ClearCartAsync(customerUserId);
+            await _cartRepository.ClearCartAsync(customerUserId, cancellationToken);
             return ApiResponse<string>.SuccessResponse("Cart cleared successfully.", "Cart cleared successfully.");
         }
     }

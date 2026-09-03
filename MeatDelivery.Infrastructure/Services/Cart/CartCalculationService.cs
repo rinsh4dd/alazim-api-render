@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
+using MeatDelivery.Application.Common.Helpers;
 using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.Interfaces;
 using MeatDelivery.Application.Interfaces.Cart;
@@ -24,10 +25,10 @@ namespace MeatDelivery.Infrastructure.Services.Cart
 
         public async Task<CustomerCartSummaryDto> CalculateActiveCartAsync(long customerUserId, CancellationToken cancellationToken = default)
         {
-            var (cartHeader, cartItemRows, optionRows) = await _cartRepository.GetActiveCartRawDataAsync(customerUserId);
+            var (cartHeader, cartItemRows, optionRows) = await _cartRepository.GetActiveCartRawDataAsync(customerUserId, cancellationToken);
             if (cartHeader == null)
             {
-                return CreateEmptyCartSummary();
+                return CartSummaryHelper.CreateEmptyCartSummary();
             }
 
             var optionsByCartItem = optionRows
@@ -43,7 +44,6 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                 long cartItemId = (long)itemRow.CART_ITEM_ID;
                 decimal basePrice = Convert.ToDecimal(itemRow.BASE_PRICE ?? 0);
                 int quantity = (int)itemRow.QUANTITY;
-                string? customData = (string?)itemRow.CUSTOM_DATA;
 
                 // 1. Initial price starts at product base catalog price
                 decimal currentPrice = basePrice;
@@ -61,11 +61,11 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                     foreach (var opt in sortedOptions)
                     {
                         PricingType pricingType = ParsePricingType((string?)opt.PRICING_TYPE);
-                        
+
                         // Typed SelectedValue (e.g. 1.350 KG) takes precedence over Option PricingValue (e.g. 1.000 KG)
-                        decimal val = opt.SELECTED_VALUE != null 
-                            ? Convert.ToDecimal(opt.SELECTED_VALUE) 
-                            : Convert.ToDecimal(opt.PRICING_VALUE ?? opt.ADDITIONAL_PRICE ?? 0);
+                        decimal val = opt.SELECTED_VALUE != null
+                            ? Convert.ToDecimal(opt.SELECTED_VALUE)
+                            : Convert.ToDecimal(opt.PRICING_VALUE);
 
                         decimal previousPrice = currentPrice;
                         currentPrice = ApplyPricing(currentPrice, pricingType, val);
@@ -74,7 +74,7 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                         totalOptionExtraPrice += optionDelta;
 
                         decimal? selectedVal = opt.SELECTED_VALUE != null ? Convert.ToDecimal(opt.SELECTED_VALUE) : null;
-                        decimal pricingVal = Convert.ToDecimal(opt.PRICING_VALUE ?? opt.ADDITIONAL_PRICE ?? 0);
+                        decimal pricingVal = Convert.ToDecimal(opt.PRICING_VALUE);
 
                         itemOptionDtos.Add(new CartItemOptionDetailDto
                         {
@@ -173,27 +173,6 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                 return result;
             }
             return PricingType.ADDITIONAL_PRICE;
-        }
-
-        // --- EMPTY CART SUMMARY BUILDER ---
-        private static CustomerCartSummaryDto CreateEmptyCartSummary()
-        {
-            return new CustomerCartSummaryDto
-            {
-                CartId = 0,
-                CartStatus = "ACTIVE",
-                TotalItemCount = 0,
-                Summary = new CartPricingSummaryDto
-                {
-                    Subtotal = 0.00m,
-                    DiscountAmount = 0.00m,
-                    DiscountedSubtotal = 0.00m,
-                    DeliveryCharge = 0.00m,
-                    GrandTotal = 0.00m,
-                    IsFreeDelivery = true
-                },
-                Items = new List<CartItemDetailDto>()
-            };
         }
     }
 }

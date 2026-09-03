@@ -17,12 +17,16 @@ BEGIN
         END;
 
         -- 2. Validate Cart Item exists and belongs to active cart of customer
-        DECLARE @CART_ID BIGINT;
+        DECLARE @CART_ID BIGINT, @PRODUCT_ID BIGINT, @PRODUCT_NAME_EN NVARCHAR(255), @PRODUCT_NAME_AR NVARCHAR(255);
 
         SELECT 
-            @CART_ID = ci.CART_ID
+            @CART_ID = ci.CART_ID,
+            @PRODUCT_ID = p.PRODUCT_ID,
+            @PRODUCT_NAME_EN = p.PRODUCT_NAME_EN,
+            @PRODUCT_NAME_AR = p.PRODUCT_NAME_AR
         FROM dbo.CART_ITEMS ci
         INNER JOIN dbo.CARTS c ON ci.CART_ID = c.CART_ID
+        INNER JOIN dbo.PRODUCTS p ON ci.PRODUCT_ID = p.PRODUCT_ID
         WHERE ci.CART_ITEM_ID = @CART_ITEM_ID
           AND c.CUSTOMER_USER_ID = @CUSTOMER_USER_ID
           AND c.CART_STATUS = 'ACTIVE';
@@ -46,6 +50,12 @@ BEGIN
         WHERE CART_ID = @CART_ID;
 
         COMMIT TRANSACTION;
+
+        SELECT 
+            @CART_ITEM_ID AS CartItemId,
+            @PRODUCT_ID AS ProductId,
+            @PRODUCT_NAME_EN AS ProductNameEn,
+            @PRODUCT_NAME_AR AS ProductNameAr;
     END TRY
     BEGIN CATCH
         IF @@TRANCOUNT > 0

@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Dapper;
 using MeatDelivery.Application.DTOs.Cart;
@@ -17,14 +20,17 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             _connectionFactory = connectionFactory;
         }
 
-        public async Task<(dynamic? Header, List<dynamic> Items, List<dynamic> Options)> GetActiveCartRawDataAsync(long customerUserId)
+        public async Task<(dynamic? Header, List<dynamic> Items, List<dynamic> Options)> GetActiveCartRawDataAsync(long customerUserId, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
-            using var gridReader = await connection.QueryMultipleAsync(
+            var commandDef = new CommandDefinition(
                 "dbo.PR_GET_CUSTOMER_ACTIVE_CART",
                 new { CUSTOMER_USER_ID = customerUserId },
-                commandType: CommandType.StoredProcedure
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
             );
+
+            using var gridReader = await connection.QueryMultipleAsync(commandDef);
 
             var header = (await gridReader.ReadAsync<dynamic>()).FirstOrDefault();
             var items = (await gridReader.ReadAsync<dynamic>()).ToList();
@@ -56,7 +62,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             return dt;
         }
 
-        public async Task<bool> AddToCartAsync(long customerUserId, AddCartItemDto dto)
+        public async Task<CartItemActionResultDto?> AddToCartAsync(long customerUserId, AddCartItemDto dto, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
             var selectionTable = CreateSelectionTable(dto.Customizations);
@@ -68,16 +74,17 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             parameters.Add("SPECIAL_INSTRUCTIONS", dto.SpecialInstructions);
             parameters.Add("OPTION_SELECTIONS", selectionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_SELECTIONS"));
 
-            await connection.ExecuteAsync(
+            var commandDef = new CommandDefinition(
                 "dbo.PR_ADD_TO_CART",
                 parameters,
-                commandType: CommandType.StoredProcedure
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
             );
 
-            return true;
+            return await connection.QuerySingleOrDefaultAsync<CartItemActionResultDto>(commandDef);
         }
 
-        public async Task<bool> UpdateCartItemQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto)
+        public async Task<CartItemActionResultDto?> UpdateCartItemQuantityAsync(long customerUserId, UpdateCartItemQuantityDto dto, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
 
@@ -86,16 +93,17 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             parameters.Add("CART_ITEM_ID", dto.CartItemId);
             parameters.Add("QUANTITY", dto.Quantity);
 
-            await connection.ExecuteAsync(
+            var commandDef = new CommandDefinition(
                 "dbo.PR_UPDATE_CART_ITEM_QUANTITY",
                 parameters,
-                commandType: CommandType.StoredProcedure
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
             );
 
-            return true;
+            return await connection.QuerySingleOrDefaultAsync<CartItemActionResultDto>(commandDef);
         }
 
-        public async Task<bool> UpdateCartItemCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto)
+        public async Task<CartItemActionResultDto?> UpdateCartItemCustomizationAsync(long customerUserId, UpdateCartItemCustomizationDto dto, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
             var selectionTable = CreateSelectionTable(dto.Customizations);
@@ -106,16 +114,17 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             parameters.Add("SPECIAL_INSTRUCTIONS", dto.SpecialInstructions);
             parameters.Add("OPTION_SELECTIONS", selectionTable.AsTableValuedParameter("dbo.TT_CUSTOMIZATION_SELECTIONS"));
 
-            await connection.ExecuteAsync(
+            var commandDef = new CommandDefinition(
                 "dbo.PR_UPDATE_CART_ITEM_CUSTOMIZATION",
                 parameters,
-                commandType: CommandType.StoredProcedure
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
             );
 
-            return true;
+            return await connection.QuerySingleOrDefaultAsync<CartItemActionResultDto>(commandDef);
         }
 
-        public async Task<bool> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto)
+        public async Task<CartItemActionResultDto?> RemoveCartItemAsync(long customerUserId, RemoveCartItemDto dto, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
 
@@ -123,28 +132,31 @@ namespace MeatDelivery.Infrastructure.Repositories.Cart
             parameters.Add("CUSTOMER_USER_ID", customerUserId);
             parameters.Add("CART_ITEM_ID", dto.CartItemId);
 
-            await connection.ExecuteAsync(
+            var commandDef = new CommandDefinition(
                 "dbo.PR_REMOVE_CART_ITEM",
                 parameters,
-                commandType: CommandType.StoredProcedure
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
             );
 
-            return true;
+            return await connection.QuerySingleOrDefaultAsync<CartItemActionResultDto>(commandDef);
         }
 
-        public async Task<bool> ClearCartAsync(long customerUserId)
+        public async Task<bool> ClearCartAsync(long customerUserId, CancellationToken cancellationToken = default)
         {
             using var connection = _connectionFactory.CreateConnection();
 
             var parameters = new DynamicParameters();
             parameters.Add("CUSTOMER_USER_ID", customerUserId);
 
-            await connection.ExecuteAsync(
+            var commandDef = new CommandDefinition(
                 "dbo.PR_CLEAR_CUSTOMER_CART",
                 parameters,
-                commandType: CommandType.StoredProcedure
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
             );
 
+            await connection.ExecuteAsync(commandDef);
             return true;
         }
     }
