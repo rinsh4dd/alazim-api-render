@@ -6,7 +6,7 @@ using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.Interfaces.Cart;
 using MeatDelivery.Shared.Responses;
 
-namespace MeatDelivery.Application.Services.Cart
+namespace MeatDelivery.Infrastructure.Services.Cart
 {
     public class CartService : ICartService
     {
@@ -33,7 +33,7 @@ namespace MeatDelivery.Application.Services.Cart
             _removeCartItemValidator = removeCartItemValidator;
         }
 
-        public async Task<ApiResponse<CustomerCartSummaryDto>> GetActiveCartAsync(long customerUserId, CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<CustomerCartSummaryDto>> GetCartAsync(long customerUserId, CancellationToken cancellationToken = default)
         {
             if (customerUserId <= 0)
             {

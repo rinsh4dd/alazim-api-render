@@ -23,10 +23,10 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetActiveCart(CancellationToken cancellationToken)
+        public async Task<IActionResult> GetCart(CancellationToken cancellationToken)
         {
             var customerUserId = HttpContext.GetUserId();
-            var response = await _cartService.GetActiveCartAsync(customerUserId, cancellationToken);
+            var response = await _cartService.GetCartAsync(customerUserId, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }
