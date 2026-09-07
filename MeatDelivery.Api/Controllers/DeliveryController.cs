@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Asp.Versioning;
@@ -18,11 +19,13 @@ namespace MeatDelivery.Api.Controllers
             _deliveryService = deliveryService;
         }
 
-        [HttpGet("available-dates")]
-        [HttpGet]
-        public async Task<IActionResult> GetAvailableDeliveryDates(CancellationToken cancellationToken = default)
+    
+        [HttpGet("available-slots")]
+        public async Task<IActionResult> GetAvailableSlots(
+            [FromQuery] DateTime? targetDate = null,
+            CancellationToken cancellationToken = default)
         {
-            var response = await _deliveryService.GetAvailableDeliveryDatesAsync(cancellationToken);
+            var response = await _deliveryService.GetAvailableSlotsAsync(targetDate, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

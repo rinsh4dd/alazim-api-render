@@ -1,0 +1,1 @@
+-- Unused. Delivery start & end times are stored in dbo.COMPANY_CONFIG.

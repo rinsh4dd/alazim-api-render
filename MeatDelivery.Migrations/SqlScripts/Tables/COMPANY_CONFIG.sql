@@ -1,6 +1,6 @@
 -- =============================================================================
 -- TABLE: dbo.COMPANY_CONFIG
--- Description: Company configuration master table containing contact, location, and system administrative details.
+-- Description: Company configuration master table containing contact, location, delivery timing, and system administrative details.
 -- =============================================================================
 
 CREATE TABLE dbo.COMPANY_CONFIG
@@ -31,6 +31,8 @@ CREATE TABLE dbo.COMPANY_CONFIG
     LOGO_URL                    VARCHAR(500)         NULL,
 
     ADVANCE_DELIVERY_DAYS       INT                  NOT NULL DEFAULT 30,
+    DELIVERY_START_TIME         TIME                 NOT NULL DEFAULT '08:00:00',
+    DELIVERY_END_TIME           TIME                 NOT NULL DEFAULT '22:00:00',
 
     IS_ACTIVE                   BIT                  NOT NULL DEFAULT 1,
     CREATED_BY_ADMIN_USER_ID    BIGINT               NULL CONSTRAINT FK_COMPANY_CONFIG_CREATED_BY REFERENCES dbo.ADMIN_USERS(ADMIN_USER_ID),

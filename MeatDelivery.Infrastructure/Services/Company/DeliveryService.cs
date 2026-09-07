@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,10 +18,18 @@ namespace MeatDelivery.Infrastructure.Services.Company
             _repository = repository;
         }
 
-        public async Task<ApiResponse<List<AvailableDeliveryDateDto>>> GetAvailableDeliveryDatesAsync(CancellationToken cancellationToken = default)
+        public async Task<ApiResponse<object>> GetAvailableSlotsAsync(DateTime? targetDate = null, CancellationToken cancellationToken = default)
         {
-            var dates = await _repository.GetAvailableDeliveryDatesAsync(cancellationToken);
-            return ApiResponse<List<AvailableDeliveryDateDto>>.SuccessResponse(dates, "Available delivery dates retrieved successfully.");
+            if (!targetDate.HasValue)
+            {
+                var dates = await _repository.GetAvailableDeliveryDatesAsync(cancellationToken);
+                return ApiResponse<object>.SuccessResponse(dates, "Available delivery dates retrieved successfully.");
+            }
+
+            var date = targetDate.Value.Date;
+            var slots = await _repository.GetAvailableSlotsAsync(date, cancellationToken);
+
+            return ApiResponse<object>.SuccessResponse(slots, "Available delivery slots retrieved successfully.");
         }
     }
 }

@@ -31,5 +31,23 @@ namespace MeatDelivery.Infrastructure.Repositories.Company
             var result = await connection.QueryAsync<AvailableDeliveryDateDto>(commandDef);
             return result.AsList();
         }
+
+        public async Task<List<DeliverySlotDto>> GetAvailableSlotsAsync(DateTime? targetDate = null, CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("TARGET_DATE", targetDate?.Date);
+
+            var commandDef = new CommandDefinition(
+                "dbo.PR_GET_AVAILABLE_DELIVERY_SLOTS",
+                parameters,
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
+            );
+
+            var result = await connection.QueryAsync<DeliverySlotDto>(commandDef);
+            return result.AsList();
+        }
     }
 }
