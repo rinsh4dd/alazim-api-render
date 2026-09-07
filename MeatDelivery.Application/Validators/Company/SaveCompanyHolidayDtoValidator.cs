@@ -11,9 +11,6 @@ namespace MeatDelivery.Application.Validators.Company
             RuleFor(x => x.Mode)
                 .IsInEnum().WithMessage("Invalid operation mode.");
 
-            RuleFor(x => x.CompanyConfigId)
-                .GreaterThan(0).WithMessage("Valid CompanyConfigId is required.");
-
             When(x => x.Mode == Mode.ADD, () =>
             {
                 RuleFor(x => x.HolidayDate)

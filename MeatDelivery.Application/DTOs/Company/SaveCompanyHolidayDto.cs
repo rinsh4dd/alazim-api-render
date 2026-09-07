@@ -7,7 +7,6 @@ namespace MeatDelivery.Application.DTOs.Company
     {
         public Mode Mode { get; set; }
         public long? CompanyHolidayId { get; set; }
-        public long CompanyConfigId { get; set; }
         public DateTime HolidayDate { get; set; }
         public string HolidayType { get; set; } = "HOLIDAY";
         public bool IsFullDay { get; set; } = true;

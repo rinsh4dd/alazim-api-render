@@ -1,6 +1,6 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_COMPANY_HOLIDAY
--- Description: Creates, updates, or deletes company holiday records, automatically assigning active COMPANY_CONFIG_ID.
+-- Migration: 0117_Update_PR_SAVE_COMPANY_HOLIDAY_Auto_CompanyConfigId.sql
+-- Description: Updates PR_SAVE_COMPANY_HOLIDAY to automatically select active COMPANY_CONFIG_ID without parameter.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_COMPANY_HOLIDAY

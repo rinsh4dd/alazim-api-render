@@ -1,6 +1,6 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_GET_COMPANY_HOLIDAYS
--- Description: Retrieves active company holidays without requiring complex filters.
+-- Migration: 0118_Simplify_PR_GET_COMPANY_HOLIDAYS.sql
+-- Description: Simplifies PR_GET_COMPANY_HOLIDAYS to fetch active company holidays automatically.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_GET_COMPANY_HOLIDAYS

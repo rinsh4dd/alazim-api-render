@@ -23,13 +23,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Company
             using var connection = _connectionFactory.CreateConnection();
 
             var parameters = new DynamicParameters();
-            parameters.Add("COMPANY_HOLIDAY_ID", query.CompanyHolidayId);
-            parameters.Add("COMPANY_CONFIG_ID", query.CompanyConfigId);
-            parameters.Add("HOLIDAY_DATE", query.HolidayDate);
-            parameters.Add("FROM_DATE", query.FromDate);
-            parameters.Add("TO_DATE", query.ToDate);
-            parameters.Add("HOLIDAY_TYPE", query.HolidayType);
-            parameters.Add("IS_ACTIVE", query.IsActive);
+            parameters.Add("COMPANY_HOLIDAY_ID", query?.CompanyHolidayId);
 
             var commandDef = new CommandDefinition(
                 "dbo.PR_GET_COMPANY_HOLIDAYS",
@@ -49,7 +43,6 @@ namespace MeatDelivery.Infrastructure.Repositories.Company
             var parameters = new DynamicParameters();
             parameters.Add("MODE", request.Mode.ToString());
             parameters.Add("COMPANY_HOLIDAY_ID", request.CompanyHolidayId);
-            parameters.Add("COMPANY_CONFIG_ID", request.CompanyConfigId);
             parameters.Add("HOLIDAY_DATE", request.HolidayDate);
             parameters.Add("HOLIDAY_TYPE", request.HolidayType);
             parameters.Add("IS_FULL_DAY", request.IsFullDay);

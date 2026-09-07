@@ -178,6 +178,10 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Company.ICompanyHolidayRepository, MeatDelivery.Infrastructure.Repositories.Company.CompanyHolidayRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Company.ICompanyHolidayService, MeatDelivery.Infrastructure.Services.Company.CompanyHolidayService>();
 
+            // Delivery Services & Repositories
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Company.IDeliveryRepository, MeatDelivery.Infrastructure.Repositories.Company.DeliveryRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Company.IDeliveryService, MeatDelivery.Infrastructure.Services.Company.DeliveryService>();
+
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();
 
