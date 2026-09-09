@@ -22,11 +22,6 @@ namespace MeatDelivery.Api.Controllers
             _orderService = orderService;
         }
 
-
-
-        /// <summary>
-        /// Places an order converting the active cart into a finalized order.
-        /// </summary>
         [HttpPost("place")]
         public async Task<IActionResult> PlaceOrder(
             [FromBody] PlaceOrderRequestDto request,
@@ -35,12 +30,28 @@ namespace MeatDelivery.Api.Controllers
             var customerUserId = HttpContext.GetUserId();
             var response = await _orderService.PlaceOrderAsync(customerUserId, request, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
 
-            if (!response.Success)
-            {
-                return BadRequest(response);
-            }
+        [HttpGet]
+        public async Task<IActionResult> GetOrders(
+            [FromQuery] GetCustomerOrdersQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _orderService.GetCustomerOrdersAsync(customerUserId, query, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
 
+        [HttpGet("track/{orderId}")]
+        public async Task<IActionResult> TrackOrder(
+            [FromRoute] long orderId,
+            CancellationToken cancellationToken = default)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _orderService.TrackOrderAsync(orderId, customerUserId, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }
     }

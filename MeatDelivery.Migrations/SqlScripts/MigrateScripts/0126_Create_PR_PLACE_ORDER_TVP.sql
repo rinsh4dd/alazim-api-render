@@ -1,6 +1,6 @@
 -- =============================================================================
--- MIGRATION SCRIPT: 0123_Create_PR_PLACE_ORDER.sql
--- Description: Creates PR_PLACE_ORDER Stored Procedure.
+-- MIGRATION SCRIPT: 0126_Create_PR_PLACE_ORDER_TVP.sql
+-- Description: Updates PR_PLACE_ORDER Stored Procedure with TVP support.
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_PLACE_ORDER
