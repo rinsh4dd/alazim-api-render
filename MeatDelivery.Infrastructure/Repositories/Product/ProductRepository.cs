@@ -76,14 +76,14 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             );
         }
 
-        public async Task<(List<ProductDto> Items, int TotalRecords)> GetCustomerProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
+        public async Task<(List<CustomerProductDto> Items, int TotalRecords)> GetCustomerProductsAsync(GetCustomerProductsQueryDto query, CancellationToken cancellationToken = default)
         {
             return await _dapperRepository.QueryMultipleAsync(
                 "dbo.PR_GET_CUSTOMER_PRODUCTS",
                 async grid =>
                 {
                     var totalRecords = (await grid.ReadAsync<int>()).FirstOrDefault();
-                    var items = (await grid.ReadAsync<ProductDto>()).ToList();
+                    var items = (await grid.ReadAsync<CustomerProductDto>()).ToList();
                     return (items, totalRecords);
                 },
                 new

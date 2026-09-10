@@ -40,8 +40,9 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpPost("/api/v{version:apiVersion}/customer/products/get")]
+        [HttpPost("/api/v{version:apiVersion}/products/get")]
         public async Task<IActionResult> GetCustomerProducts(
-            [FromBody] GetProductsQueryDto query,
+            [FromBody] GetCustomerProductsQueryDto query,
             CancellationToken cancellationToken = default)
         {
             var response = await _productService.GetCustomerProductsAsync(query, cancellationToken);

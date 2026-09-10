@@ -108,14 +108,14 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             }
         }
 
-        public async Task<PagedResponse<List<ProductDto>>> GetCustomerProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
+        public async Task<PagedResponse<List<CustomerProductDto>>> GetCustomerProductsAsync(GetCustomerProductsQueryDto query, CancellationToken cancellationToken = default)
         {
-            query ??= new GetProductsQueryDto();
+            query ??= new GetCustomerProductsQueryDto();
 
             try
             {
                 var (items, totalRecords) = await _productRepository.GetCustomerProductsAsync(query, cancellationToken);
-                return new PagedResponse<List<ProductDto>>
+                return new PagedResponse<List<CustomerProductDto>>
                 {
                     Success = true,
                     Message = "Customer products retrieved successfully.",
@@ -127,11 +127,11 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             }
             catch (Exception ex)
             {
-                return new PagedResponse<List<ProductDto>>
+                return new PagedResponse<List<CustomerProductDto>>
                 {
                     Success = false,
                     Message = ex.Message,
-                    Data = new List<ProductDto>()
+                    Data = new List<CustomerProductDto>()
                 };
             }
         }
