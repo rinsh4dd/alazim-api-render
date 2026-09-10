@@ -20,17 +20,20 @@ namespace MeatDelivery.Infrastructure.Services.Order
         private readonly ICustomerRepository _customerRepository;
         private readonly IOrderRepository _orderRepository;
         private readonly FluentValidation.IValidator<UpdateOrderStatusDto> _updateOrderStatusValidator;
+        private readonly FluentValidation.IValidator<CancelOrderDto> _cancelOrderValidator;
 
         public OrderService(
             ICartCalculationService cartCalculationService,
             ICustomerRepository customerRepository,
             IOrderRepository orderRepository,
-            FluentValidation.IValidator<UpdateOrderStatusDto> updateOrderStatusValidator)
+            FluentValidation.IValidator<UpdateOrderStatusDto> updateOrderStatusValidator,
+            FluentValidation.IValidator<CancelOrderDto> cancelOrderValidator)
         {
             _cartCalculationService = cartCalculationService;
             _customerRepository = customerRepository;
             _orderRepository = orderRepository;
             _updateOrderStatusValidator = updateOrderStatusValidator ?? throw new ArgumentNullException(nameof(updateOrderStatusValidator));
+            _cancelOrderValidator = cancelOrderValidator ?? throw new ArgumentNullException(nameof(cancelOrderValidator));
         }
 
         public async Task<ApiResponse<PlaceOrderResponseDto>> PlaceOrderAsync(
@@ -220,6 +223,39 @@ namespace MeatDelivery.Infrastructure.Services.Order
                 cancellationToken);
 
             return ApiResponse<UpdateOrderStatusResponseDto>.SuccessResponse(result, $"Order status updated successfully to {result.OrderStatus}.");
+        }
+
+        public async Task<ApiResponse<CancelOrderResponseDto>> CancelOrderAsync(
+            CancelOrderDto request,
+            long? customerUserId,
+            long? adminUserId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var validationResult = await _cancelOrderValidator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<CancelOrderResponseDto>.FailureResponse("Validation failed.", errors);
+            }
+
+            try
+            {
+                var result = await _orderRepository.CancelOrderAsync(
+                    request.OrderId,
+                    customerUserId,
+                    adminUserId,
+                    request.Reason.ToString(),
+                    request.Remarks,
+                    cancellationToken);
+
+                return ApiResponse<CancelOrderResponseDto>.SuccessResponse(result, $"Order #{result.DocNo} cancelled successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<CancelOrderResponseDto>.FailureResponse(ex.Message);
+            }
         }
 
         private static OrderDeliveryAddressPreviewDto MapToAddressPreviewDto(CustomerAddress addr)

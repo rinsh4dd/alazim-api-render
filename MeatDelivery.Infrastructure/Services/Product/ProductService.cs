@@ -108,6 +108,34 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             }
         }
 
+        public async Task<PagedResponse<List<ProductDto>>> GetCustomerProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
+        {
+            query ??= new GetProductsQueryDto();
+
+            try
+            {
+                var (items, totalRecords) = await _productRepository.GetCustomerProductsAsync(query, cancellationToken);
+                return new PagedResponse<List<ProductDto>>
+                {
+                    Success = true,
+                    Message = "Customer products retrieved successfully.",
+                    Data = items,
+                    PageNumber = query.PageNumber,
+                    PageSize = query.PageSize,
+                    TotalRecords = totalRecords
+                };
+            }
+            catch (Exception ex)
+            {
+                return new PagedResponse<List<ProductDto>>
+                {
+                    Success = false,
+                    Message = ex.Message,
+                    Data = new List<ProductDto>()
+                };
+            }
+        }
+
         public async Task<ApiResponse<List<ProductDto>>> GetFreshPicksAsync(CancellationToken cancellationToken = default)
         {
             try

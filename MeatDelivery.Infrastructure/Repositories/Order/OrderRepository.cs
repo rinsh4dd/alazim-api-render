@@ -459,5 +459,33 @@ namespace MeatDelivery.Infrastructure.Repositories.Order
             var result = await connection.QueryFirstOrDefaultAsync<UpdateOrderStatusResponseDto>(commandDef);
             return result ?? new UpdateOrderStatusResponseDto { OrderId = orderId, OrderStatus = orderStatus };
         }
+
+        public async Task<CancelOrderResponseDto> CancelOrderAsync(
+            long orderId,
+            long? customerUserId,
+            long? adminUserId,
+            string reason,
+            string? remarks,
+            CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("P_ORDER_ID", orderId);
+            parameters.Add("P_CUSTOMER_USER_ID", customerUserId);
+            parameters.Add("P_ADMIN_USER_ID", adminUserId);
+            parameters.Add("P_CANCEL_REASON", reason);
+            parameters.Add("P_REMARKS", remarks);
+
+            var commandDef = new CommandDefinition(
+                "dbo.PR_CANCEL_ORDER",
+                parameters,
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
+            );
+
+            var result = await connection.QueryFirstOrDefaultAsync<CancelOrderResponseDto>(commandDef);
+            return result ?? new CancelOrderResponseDto { OrderId = orderId, NewStatus = "CANCELLED" };
+        }
     }
 }

@@ -76,6 +76,30 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             );
         }
 
+        public async Task<(List<ProductDto> Items, int TotalRecords)> GetCustomerProductsAsync(GetProductsQueryDto query, CancellationToken cancellationToken = default)
+        {
+            return await _dapperRepository.QueryMultipleAsync(
+                "dbo.PR_GET_CUSTOMER_PRODUCTS",
+                async grid =>
+                {
+                    var totalRecords = (await grid.ReadAsync<int>()).FirstOrDefault();
+                    var items = (await grid.ReadAsync<ProductDto>()).ToList();
+                    return (items, totalRecords);
+                },
+                new
+                {
+                    PRODUCT_ID = query.ProductId,
+                    CATEGORY_ID = query.CategoryId,
+                    SEARCH_TERM = query.SearchTerm,
+                    IS_FEATURED = query.IsFeatured,
+                    IS_NEW_ARRIVAL = query.IsNewArrival,
+                    IS_PREORDERABLE = query.IsPreorderable,
+                    PAGE_NUMBER = query.PageNumber,
+                    PAGE_SIZE = query.PageSize
+                }
+            );
+        }
+
         public async Task<List<ProductDto>> GetFreshPicksProductsAsync(CancellationToken cancellationToken = default)
         {
             var items = await _dapperRepository.QueryAsync<ProductDto>(

@@ -31,5 +31,11 @@ namespace MeatDelivery.Application.Interfaces.Order
             UpdateOrderStatusDto request,
             long? adminUserId,
             CancellationToken cancellationToken = default);
+
+        Task<ApiResponse<CancelOrderResponseDto>> CancelOrderAsync(
+            CancelOrderDto request,
+            long? customerUserId,
+            long? adminUserId,
+            CancellationToken cancellationToken = default);
     }
 }

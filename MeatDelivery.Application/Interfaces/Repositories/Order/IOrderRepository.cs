@@ -95,5 +95,13 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Order
             string? remarks,
             long? adminUserId,
             CancellationToken cancellationToken = default);
+
+        Task<CancelOrderResponseDto> CancelOrderAsync(
+            long orderId,
+            long? customerUserId,
+            long? adminUserId,
+            string reason,
+            string? remarks,
+            CancellationToken cancellationToken = default);
     }
 }
