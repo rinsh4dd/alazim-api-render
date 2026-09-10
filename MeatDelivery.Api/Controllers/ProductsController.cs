@@ -40,7 +40,6 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpPost("/api/v{version:apiVersion}/customer/products/get")]
-        [HttpPost("/api/v{version:apiVersion}/products/get")]
         public async Task<IActionResult> GetCustomerProducts(
             [FromBody] GetCustomerProductsQueryDto query,
             CancellationToken cancellationToken = default)

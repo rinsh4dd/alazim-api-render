@@ -103,5 +103,14 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Order
             string reason,
             string? remarks,
             CancellationToken cancellationToken = default);
+
+        Task<RescheduleOrderResponseDto> RescheduleOrderAsync(
+            long orderId,
+            long customerUserId,
+            DateTime newDeliveryDate,
+            TimeSpan newStartTime,
+            TimeSpan newEndTime,
+            string? remarks,
+            CancellationToken cancellationToken = default);
     }
 }

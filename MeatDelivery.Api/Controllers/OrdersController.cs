@@ -65,5 +65,16 @@ namespace MeatDelivery.Api.Controllers
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }
+
+        [HttpPost("reschedule")]
+        public async Task<IActionResult> RescheduleOrder(
+            [FromBody] RescheduleOrderDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _orderService.RescheduleOrderAsync(request, customerUserId, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
     }
 }

@@ -487,5 +487,41 @@ namespace MeatDelivery.Infrastructure.Repositories.Order
             var result = await connection.QueryFirstOrDefaultAsync<CancelOrderResponseDto>(commandDef);
             return result ?? new CancelOrderResponseDto { OrderId = orderId, NewStatus = "CANCELLED" };
         }
+
+        public async Task<RescheduleOrderResponseDto> RescheduleOrderAsync(
+            long orderId,
+            long customerUserId,
+            DateTime newDeliveryDate,
+            TimeSpan newStartTime,
+            TimeSpan newEndTime,
+            string? remarks,
+            CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+
+            var parameters = new DynamicParameters();
+            parameters.Add("P_ORDER_ID", orderId);
+            parameters.Add("P_CUSTOMER_USER_ID", customerUserId);
+            parameters.Add("P_NEW_DELIVERY_DATE", newDeliveryDate.Date);
+            parameters.Add("P_NEW_START_TIME", newStartTime);
+            parameters.Add("P_NEW_END_TIME", newEndTime);
+            parameters.Add("P_REMARKS", remarks);
+
+            var commandDef = new CommandDefinition(
+                "dbo.PR_RESCHEDULE_ORDER",
+                parameters,
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken
+            );
+
+            var result = await connection.QueryFirstOrDefaultAsync<RescheduleOrderResponseDto>(commandDef);
+            return result ?? new RescheduleOrderResponseDto
+            {
+                OrderId = orderId,
+                NewDeliveryDate = newDeliveryDate,
+                NewSlotStartTime = newStartTime,
+                NewSlotEndTime = newEndTime
+            };
+        }
     }
 }

@@ -21,19 +21,22 @@ namespace MeatDelivery.Infrastructure.Services.Order
         private readonly IOrderRepository _orderRepository;
         private readonly FluentValidation.IValidator<UpdateOrderStatusDto> _updateOrderStatusValidator;
         private readonly FluentValidation.IValidator<CancelOrderDto> _cancelOrderValidator;
+        private readonly FluentValidation.IValidator<RescheduleOrderDto> _rescheduleOrderValidator;
 
         public OrderService(
             ICartCalculationService cartCalculationService,
             ICustomerRepository customerRepository,
             IOrderRepository orderRepository,
             FluentValidation.IValidator<UpdateOrderStatusDto> updateOrderStatusValidator,
-            FluentValidation.IValidator<CancelOrderDto> cancelOrderValidator)
+            FluentValidation.IValidator<CancelOrderDto> cancelOrderValidator,
+            FluentValidation.IValidator<RescheduleOrderDto> rescheduleOrderValidator)
         {
             _cartCalculationService = cartCalculationService;
             _customerRepository = customerRepository;
             _orderRepository = orderRepository;
             _updateOrderStatusValidator = updateOrderStatusValidator ?? throw new ArgumentNullException(nameof(updateOrderStatusValidator));
             _cancelOrderValidator = cancelOrderValidator ?? throw new ArgumentNullException(nameof(cancelOrderValidator));
+            _rescheduleOrderValidator = rescheduleOrderValidator ?? throw new ArgumentNullException(nameof(rescheduleOrderValidator));
         }
 
         public async Task<ApiResponse<PlaceOrderResponseDto>> PlaceOrderAsync(
@@ -255,6 +258,39 @@ namespace MeatDelivery.Infrastructure.Services.Order
             catch (Exception ex)
             {
                 return ApiResponse<CancelOrderResponseDto>.FailureResponse(ex.Message);
+            }
+        }
+
+        public async Task<ApiResponse<RescheduleOrderResponseDto>> RescheduleOrderAsync(
+            RescheduleOrderDto request,
+            long customerUserId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            var validationResult = await _rescheduleOrderValidator.ValidateAsync(request, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<RescheduleOrderResponseDto>.FailureResponse("Validation failed.", errors);
+            }
+
+            try
+            {
+                var result = await _orderRepository.RescheduleOrderAsync(
+                    request.OrderId,
+                    customerUserId,
+                    request.NewDeliveryDate,
+                    request.NewDeliverySlotStartTime,
+                    request.NewDeliverySlotEndTime,
+                    request.Remarks,
+                    cancellationToken);
+
+                return ApiResponse<RescheduleOrderResponseDto>.SuccessResponse(result, $"Order #{result.DocNo} delivery rescheduled successfully.");
+            }
+            catch (Exception ex)
+            {
+                return ApiResponse<RescheduleOrderResponseDto>.FailureResponse(ex.Message);
             }
         }
 

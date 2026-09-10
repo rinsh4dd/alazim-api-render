@@ -37,5 +37,10 @@ namespace MeatDelivery.Application.Interfaces.Order
             long? customerUserId,
             long? adminUserId,
             CancellationToken cancellationToken = default);
+
+        Task<ApiResponse<RescheduleOrderResponseDto>> RescheduleOrderAsync(
+            RescheduleOrderDto request,
+            long customerUserId,
+            CancellationToken cancellationToken = default);
     }
 }
