@@ -85,7 +85,7 @@ namespace MeatDelivery.UnitTests.Services
             Assert.Equal("admin@alazima.com", result.Email);
             Assert.Equal("mocked_jwt_access_token", result.AccessToken);
             Assert.Equal(86400, result.ExpiresIn); // 1440 * 60 = 86400s (1 day)
-            Assert.Contains("SUPER_ADMIN", result.Roles);
+            Assert.Equal("SUPER_ADMIN", result.Role);
             _adminUserRepoMock.Verify(r => r.RecordLoginSuccessAsync(1, null, It.IsAny<CancellationToken>()), Times.Once);
         }
 

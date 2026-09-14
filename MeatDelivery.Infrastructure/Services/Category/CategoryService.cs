@@ -5,11 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Primitives;
 using MeatDelivery.Application.DTOs.Category;
 using MeatDelivery.Application.Interfaces.Category;
 using MeatDelivery.Application.Interfaces.Repositories.Category;
 using MeatDelivery.Domain.Enums;
+using MeatDelivery.Infrastructure.Helpers;
 using MeatDelivery.Shared.Responses;
 
 namespace MeatDelivery.Infrastructure.Services.Catalog
@@ -56,7 +56,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                 }
 
                 // Invalidate cached categories on successful Add, Edit, or Delete
-                InvalidateCategoryCache();
+                CacheHelper.InvalidateToken(ref _categoryCacheTokenSource);
 
                 string message = request.Mode switch
                 {
@@ -112,10 +112,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     TotalRecords = totalRecords
                 };
 
-                var cacheOptions = new MemoryCacheEntryOptions()
-                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(30))
-                    .AddExpirationToken(new CancellationChangeToken(_categoryCacheTokenSource.Token));
-
+                var cacheOptions = CacheHelper.CreateOptions(_categoryCacheTokenSource, TimeSpan.FromMinutes(30));
                 _cache.Set(cacheKey, response, cacheOptions);
 
                 return response;
@@ -129,13 +126,6 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     Data = new List<CategoryDto>()
                 };
             }
-        }
-
-        private static void InvalidateCategoryCache()
-        {
-            var oldTokenSource = Interlocked.Exchange(ref _categoryCacheTokenSource, new CancellationTokenSource());
-            oldTokenSource.Cancel();
-            oldTokenSource.Dispose();
         }
     }
 }

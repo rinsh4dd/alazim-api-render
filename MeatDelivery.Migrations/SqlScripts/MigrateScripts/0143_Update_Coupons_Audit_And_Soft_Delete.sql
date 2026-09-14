@@ -1,9 +1,33 @@
 -- =============================================================================
--- STORED PROCEDURE: dbo.PR_SAVE_COUPON
--- Description: Unified CUD procedure for coupons (ADD, EDIT, DELETE modes)
---              supporting soft deletes and audit logs.
+-- MIGRATION SCRIPT: 0143_Update_Coupons_Audit_And_Soft_Delete.sql
+-- Description: Adds CREATED_BY, UPDATED_BY, IS_DELETED, DELETED_AT columns to COUPONS table.
+--              Updates PR_SAVE_COUPON to support Soft Delete, Audit Tracking, and Duplicate Check.
+--              Updates PR_GET_COUPONS to filter out soft-deleted records.
 -- =============================================================================
 
+-- 1. Add Audit and Soft Delete Columns if not exists
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.COUPONS') AND name = 'CREATED_BY')
+BEGIN
+    ALTER TABLE dbo.COUPONS ADD CREATED_BY BIGINT NULL;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.COUPONS') AND name = 'UPDATED_BY')
+BEGIN
+    ALTER TABLE dbo.COUPONS ADD UPDATED_BY BIGINT NULL;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.COUPONS') AND name = 'IS_DELETED')
+BEGIN
+    ALTER TABLE dbo.COUPONS ADD IS_DELETED BIT NOT NULL CONSTRAINT DF_COUPONS_IS_DELETED DEFAULT (0);
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.COUPONS') AND name = 'DELETED_AT')
+BEGIN
+    ALTER TABLE dbo.COUPONS ADD DELETED_AT DATETIME2 NULL;
+END;
+GO
+
+-- 2. Update dbo.PR_SAVE_COUPON Stored Procedure
 CREATE OR ALTER PROCEDURE dbo.PR_SAVE_COUPON
     @MODE                   VARCHAR(10),        -- 'ADD', 'EDIT', 'DELETE'
     @COUPON_ID              BIGINT = NULL,
@@ -108,5 +132,52 @@ BEGIN
         c.UPDATED_AT AS UpdatedAt
     FROM dbo.COUPONS c
     WHERE c.COUPON_ID = @COUPON_ID;
+END;
+GO
+
+-- 3. Update dbo.PR_GET_COUPONS Stored Procedure
+CREATE OR ALTER PROCEDURE dbo.PR_GET_COUPONS
+    @COUPON_ID              BIGINT = NULL,
+    @COUPON_CODE            VARCHAR(50) = NULL,
+    @COUPON_STATUS          VARCHAR(20) = NULL,
+    @SEARCH                 NVARCHAR(150) = NULL,
+    @PAGE_NUMBER            INT = 1,
+    @PAGE_SIZE              INT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT COUNT(1) AS TotalRecords  
+    FROM dbo.COUPONS c 
+    WHERE c.IS_DELETED = 0
+    AND (@COUPON_ID IS NULL OR c.COUPON_ID = @COUPON_ID)
+    AND (@COUPON_CODE IS NULL OR c.COUPON_CODE = @COUPON_CODE)
+    AND (@COUPON_STATUS IS NULL OR c.COUPON_STATUS = @COUPON_STATUS)
+    AND (@SEARCH IS NULL OR c.COUPON_CODE LIKE '%' + @SEARCH + '%' OR c.COUPON_DESC LIKE '%' + @SEARCH + '%');
+
+    SELECT  
+        c.COUPON_ID AS CouponId,
+        c.COUPON_CODE AS CouponCode,
+        c.DISCOUNT_TYPE AS DiscountType,
+        c.DISCOUNT_VALUE AS DiscountValue,
+        c.MAX_DISCOUNT_AMOUNT AS MaxDiscountAmount,
+        c.MINIMUM_ORDER_AMOUNT AS MinimumOrderAmount,
+        c.VALID_FROM AS ValidFrom,
+        c.VALID_TO AS ValidTo,
+        c.USAGE_LIMIT_TOTAL AS UsageLimitTotal,
+        c.USAGE_LIMIT_PER_USER AS UsageLimitPerUser,
+        c.COUPON_STATUS AS CouponStatus,
+        c.COUPON_DESC AS CouponDesc,
+        c.CREATED_AT AS CreatedAt,
+        c.UPDATED_AT AS UpdatedAt
+    FROM dbo.COUPONS c
+    WHERE c.IS_DELETED = 0
+    AND (@COUPON_ID IS NULL OR c.COUPON_ID = @COUPON_ID)
+    AND (@COUPON_CODE IS NULL OR c.COUPON_CODE = @COUPON_CODE)
+    AND (@COUPON_STATUS IS NULL OR c.COUPON_STATUS = @COUPON_STATUS)
+    AND (@SEARCH IS NULL OR c.COUPON_CODE LIKE '%' + @SEARCH + '%' OR c.COUPON_DESC LIKE '%' + @SEARCH + '%')
+    ORDER BY c.CREATED_AT DESC, c.COUPON_ID DESC
+    OFFSET (@PAGE_NUMBER - 1) * @PAGE_SIZE ROWS
+    FETCH NEXT @PAGE_SIZE ROWS ONLY;
 END;
 GO

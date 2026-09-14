@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
@@ -107,7 +108,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 FirstName = user.FirstName,
                 LastName = user.LastName ?? string.Empty,
                 FullName = user.FullName,
-                Roles = roles,
+                Role = roles.FirstOrDefault() ?? string.Empty,
                 AccessToken = accessToken,
                 ExpiresIn = expiryMinutes * 60
             };
@@ -137,7 +138,7 @@ namespace MeatDelivery.Infrastructure.Services.Authentication
                 MobileNumber = user.MobileNumber,
                 ProfileImageUrl = user.ProfileImageUrl,
                 AdminStatus = user.AdminStatus.ToString(),
-                Roles = roles,
+                Role = roles.FirstOrDefault() ?? string.Empty,
                 LastLoginAt = user.LastLoginAt,
                 CreatedAt = user.CreatedAt
             };

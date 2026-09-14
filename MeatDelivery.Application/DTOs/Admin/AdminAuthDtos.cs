@@ -18,7 +18,7 @@ namespace MeatDelivery.Application.DTOs.Admin
         public string FirstName { get; set; } = string.Empty;
         public string LastName { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
-        public List<string> Roles { get; set; } = new();
+        public string Role { get; set; } = string.Empty;
         public string AccessToken { get; set; } = string.Empty;
         public int ExpiresIn { get; set; }
     }
@@ -39,7 +39,7 @@ namespace MeatDelivery.Application.DTOs.Admin
         public DateTime? Dob { get; set; }
         public string? Address { get; set; }
         public string AdminStatus { get; set; } = string.Empty;
-        public List<string> Roles { get; set; } = new();
+        public string Role { get; set; } = string.Empty;
         public DateTime? LastLoginAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }

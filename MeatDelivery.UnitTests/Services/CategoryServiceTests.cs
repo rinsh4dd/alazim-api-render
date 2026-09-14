@@ -17,6 +17,7 @@ namespace MeatDelivery.UnitTests.Services
         private readonly Mock<ICategoryRepository> _categoryRepoMock = new();
         private readonly SaveCategoryDtoValidator _saveValidator = new();
         private readonly GetCategoriesQueryDtoValidator _getValidator = new();
+        private readonly IMemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
         private readonly CategoryService _service;
 
         public CategoryServiceTests()
@@ -24,7 +25,8 @@ namespace MeatDelivery.UnitTests.Services
             _service = new CategoryService(
                 _categoryRepoMock.Object,
                 _saveValidator,
-                _getValidator);
+                _getValidator,
+                _cache);
         }
 
         [Fact]

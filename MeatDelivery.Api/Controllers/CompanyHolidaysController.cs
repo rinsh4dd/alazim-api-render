@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MeatDelivery.Application.DTOs.Company;
 using MeatDelivery.Application.Interfaces.Company;
+using MeatDelivery.Shared.Constants;
 
 namespace MeatDelivery.Api.Controllers
 {
@@ -31,7 +32,7 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpPost("save")]
-        [Authorize(Roles = "SUPER_ADMIN,ADMIN")]
+        [Authorize(Roles = UserRoles.SuperAdminOrAdmin)]
         public async Task<IActionResult> SaveHoliday(
             [FromBody] SaveCompanyHolidayDto request,
             CancellationToken cancellationToken)

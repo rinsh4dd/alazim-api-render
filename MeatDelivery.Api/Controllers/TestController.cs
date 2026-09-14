@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MeatDelivery.Application.DTOs.Test;
 using MeatDelivery.Application.Interfaces.Repositories.Test;
+using MeatDelivery.Shared.Constants;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -40,7 +41,7 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpGet("admin-only")]
-        [Authorize(Roles = "SuperAdmin,Admin")]
+        [Authorize(Roles = UserRoles.SuperAdminOrAdmin)]
         public IActionResult GetAdminData()
         {
             var data = new { Secret = "Top Secret Admin Financials" };
@@ -70,7 +71,7 @@ namespace MeatDelivery.Api.Controllers
         }
 
         [HttpGet("db-select")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = UserRoles.Admin)]
         public async Task<IActionResult> GetItemsFromDatabase()
         {
             try 
