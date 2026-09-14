@@ -186,6 +186,10 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Order.IOrderRepository, MeatDelivery.Infrastructure.Repositories.Order.OrderRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Order.IOrderService, MeatDelivery.Infrastructure.Services.Order.OrderService>();
 
+            // Invoice Services & Repositories
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Invoice.IInvoiceRepository, MeatDelivery.Infrastructure.Repositories.Invoice.InvoiceRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Invoice.IInvoiceService, MeatDelivery.Infrastructure.Services.Invoice.InvoiceService>();
+
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();
 

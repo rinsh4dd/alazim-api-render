@@ -369,6 +369,7 @@ meat_delivery_mobile/
 .flutter-plugins
 .flutter-plugins-dependencies
 
-# Local Push Scripts
+# Local Push Scripts & Private Notes
 push-all.bat
 push-all.ps1
+GIT_COMMIT_CONVENTION.md
