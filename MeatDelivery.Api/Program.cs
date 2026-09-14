@@ -1,50 +1,31 @@
+using System.IO;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.OpenApi;
-using Serilog;
 using Scalar.AspNetCore;
+using Serilog;
 using MeatDelivery.Api.Extensions;
 using MeatDelivery.Api.Filters;
 using MeatDelivery.Application;
 using MeatDelivery.Infrastructure;
 using MeatDelivery.Infrastructure.Logging;
-using System.IO;
 
-// Prevent Linux inotify instance exhaustion in container environments (Render/Docker)
 Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
 Environment.SetEnvironmentVariable("DOTNET_hostBuilder__reloadConfigOnChange", "false");
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Serilog
 builder.Host.UseSerilog((context, services, configuration) =>
     configuration.ConfigureSerilog(context.Configuration));
 
-// -----------------------------------------------------------------------------
-// Service Registration
-// -----------------------------------------------------------------------------
-
-// Register Application layer services (Validators & Behaviors)
 builder.Services.AddApplication();
-
-// Register application infrastructure services
 builder.Services.AddInfrastructure(builder.Configuration);
-
-// Configure Background Job Infrastructure (BE-015)
 builder.Services.AddHangfireSupport(builder.Configuration);
-
-// Configure CORS Policy (BE-017)
 builder.Services.AddCorsPolicy(builder.Configuration);
-
-// Configure Rate Limiting Policy (BE-019)
 builder.Services.AddRateLimitPolicy(builder.Configuration);
-
-// Configure API Versioning (BE-008)
 builder.Services.AddApiVersioningSupport();
-
-// Configure Gzip Response Compression
 builder.Services.AddGzipCompressionSupport();
 
-// Add Application Health Checks
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? builder.Configuration.GetConnectionString("MasterDb")
     ?? throw new InvalidOperationException("DefaultConnection connection string missing.");
@@ -55,20 +36,16 @@ builder.Services.AddHealthChecks()
         name: "SQL Server (DefaultConnection)",
         tags: new[] { "db", "sql", "sqlserver" });
 
-// Register MVC controllers with automatic FluentValidation filter (BE-012)
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ValidationFilter>();
 })
 .AddJsonOptions(options =>
 {
-    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
 });
 
-// Register OpenAPI endpoint generation
 builder.Services.AddOpenApi();
-
-// Register Swagger/OpenAPI documentation generator
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
@@ -101,10 +78,6 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// -----------------------------------------------------------------------------
-// Middleware Pipeline Configuration
-// -----------------------------------------------------------------------------
-
 app.MapOpenApi();
 app.UseSwagger();
 app.UseSwaggerUI(options =>
@@ -117,9 +90,9 @@ app.UseSwaggerUI(options =>
 app.MapScalarApiReference(options =>
 {
     options.WithTitle("MeatDelivery Client API Reference")
-           .WithTheme(Scalar.AspNetCore.ScalarTheme.Purple)
+           .WithTheme(ScalarTheme.Purple)
            .WithOpenApiRoutePattern("/swagger/v1/swagger.json")
-           .WithDefaultHttpClient(Scalar.AspNetCore.ScalarTarget.Http, Scalar.AspNetCore.ScalarClient.Http11);
+           .WithDefaultHttpClient(ScalarTarget.Http, ScalarClient.Http11);
 });
 
 app.UseGzipCompressionSupport();
@@ -142,22 +115,14 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseRouting();
-
 app.UseCorsPolicy();
-
 app.UseAuthentication();
-
 app.UseRateLimitPolicy();
-
 app.UseCustomMiddleware();
-
 app.UseAuthorization();
-
-// Enable Hangfire Dashboard at /hangfire
 app.UseHangfireSupport();
 
 app.MapControllers();
-
 app.MapHealthChecks("/api/health");
 
 Log.Information("🚀 Al Azeem Meat Delivery API started successfully! Listening on configured ports. Swagger UI: /swagger");
