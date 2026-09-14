@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Primitives;
 using MeatDelivery.Application.DTOs.Product;
 using MeatDelivery.Application.Interfaces.Product;
 using MeatDelivery.Application.Interfaces.Repositories.Product;
@@ -21,6 +23,9 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
         private readonly IValidator<UpdateProductPriceDto> _updatePriceValidator;
         private readonly IValidator<GetPriceHistoryQueryDto> _getPriceHistoryValidator;
         private readonly IValidator<ManageAttributesDto> _manageAttributesValidator;
+        private readonly IMemoryCache _cache;
+
+        private static CancellationTokenSource _guestProductsCacheTokenSource = new();
 
         public ProductService(
             IProductRepository productRepository,
@@ -29,7 +34,8 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             IValidator<UpdateProductImageDto> updateImageValidator,
             IValidator<UpdateProductPriceDto> updatePriceValidator,
             IValidator<GetPriceHistoryQueryDto> getPriceHistoryValidator,
-            IValidator<ManageAttributesDto> manageAttributesValidator)
+            IValidator<ManageAttributesDto> manageAttributesValidator,
+            IMemoryCache cache)
         {
             _productRepository = productRepository;
             _saveProductValidator = saveProductValidator;
@@ -38,6 +44,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             _updatePriceValidator = updatePriceValidator;
             _getPriceHistoryValidator = getPriceHistoryValidator;
             _manageAttributesValidator = manageAttributesValidator;
+            _cache = cache;
         }
 
         public async Task<ApiResponse<ProductDto>> SaveProductAsync(SaveProductDto request, CancellationToken cancellationToken = default)
@@ -56,6 +63,7 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                 if (request.Mode == Mode.DELETE)
                 {
                     await _productRepository.SaveProductAsync(request, cancellationToken);
+                    InvalidateGuestProductsCache();
                     return ApiResponse<ProductDto>.SuccessResponse(null!, "Product deleted successfully.");
                 }
 
@@ -64,6 +72,8 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                 {
                     return ApiResponse<ProductDto>.FailureResponse("Failed to save product record.");
                 }
+
+                InvalidateGuestProductsCache();
 
                 string message = request.Mode switch
                 {
@@ -108,13 +118,44 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             }
         }
 
-        public async Task<PagedResponse<List<CustomerProductDto>>> GetCustomerProductsAsync(GetCustomerProductsQueryDto query, CancellationToken cancellationToken = default)
+        public async Task<PagedResponse<List<CustomerProductDto>>> GetCustomerProductsAsync(long? customerUserId, GetCustomerProductsQueryDto query, CancellationToken cancellationToken = default)
         {
             query ??= new GetCustomerProductsQueryDto();
 
             try
             {
-                var (items, totalRecords) = await _productRepository.GetCustomerProductsAsync(query, cancellationToken);
+                // Cache Guest Mode responses (when customerUserId is null or 0)
+                if (!customerUserId.HasValue || customerUserId.Value <= 0)
+                {
+                    string cacheKey = $"guest_products:prod_{query.ProductId}_cat_{query.CategoryId}_search_{query.SearchTerm}_p_{query.PageNumber}_s_{query.PageSize}";
+
+                    if (_cache.TryGetValue(cacheKey, out PagedResponse<List<CustomerProductDto>>? cachedResponse) && cachedResponse != null)
+                    {
+                        return cachedResponse;
+                    }
+
+                    var (guestItems, guestTotal) = await _productRepository.GetCustomerProductsAsync(null, query, cancellationToken);
+                    var guestResponse = new PagedResponse<List<CustomerProductDto>>
+                    {
+                        Success = true,
+                        Message = "Customer products retrieved successfully.",
+                        Data = guestItems,
+                        PageNumber = query.PageNumber,
+                        PageSize = query.PageSize,
+                        TotalRecords = guestTotal
+                    };
+
+                    var cacheOptions = new MemoryCacheEntryOptions()
+                        .SetAbsoluteExpiration(TimeSpan.FromMinutes(15))
+                        .AddExpirationToken(new CancellationChangeToken(_guestProductsCacheTokenSource.Token));
+
+                    _cache.Set(cacheKey, guestResponse, cacheOptions);
+
+                    return guestResponse;
+                }
+
+                // Logged-In Customer Mode -> Dynamic call for personalized Wishlist & Order ranking
+                var (items, totalRecords) = await _productRepository.GetCustomerProductsAsync(customerUserId, query, cancellationToken);
                 return new PagedResponse<List<CustomerProductDto>>
                 {
                     Success = true,
@@ -181,6 +222,8 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     return ApiResponse<ProductDto>.FailureResponse("Product not found or failed to update status.");
                 }
 
+                InvalidateGuestProductsCache();
+
                 string statusText = result.IsActive ? "activated" : "deactivated";
                 return ApiResponse<ProductDto>.SuccessResponse(result, $"Product {statusText} successfully.");
             }
@@ -209,6 +252,8 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                     return ApiResponse<ProductDto>.FailureResponse("Product not found or failed to update image.");
                 }
 
+                InvalidateGuestProductsCache();
+
                 return ApiResponse<ProductDto>.SuccessResponse(result, "Product images updated successfully.");
             }
             catch (Exception ex)
@@ -235,6 +280,8 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
                 {
                     return ApiResponse<ProductDto>.FailureResponse("Product not found or failed to update price.");
                 }
+
+                InvalidateGuestProductsCache();
 
                 return ApiResponse<ProductDto>.SuccessResponse(result, "Product price updated successfully.");
             }
@@ -299,12 +346,20 @@ namespace MeatDelivery.Infrastructure.Services.Catalog
             try
             {
                 var items = await _productRepository.ManageProductAttributesAsync(request, cancellationToken);
+                InvalidateGuestProductsCache();
                 return ApiResponse<List<ProductDto>>.SuccessResponse(items, $"Product attributes updated successfully for mode '{request.Mode}'.");
             }
             catch (Exception ex)
             {
                 return ApiResponse<List<ProductDto>>.FailureResponse(ex.Message);
             }
+        }
+
+        private static void InvalidateGuestProductsCache()
+        {
+            var oldTokenSource = Interlocked.Exchange(ref _guestProductsCacheTokenSource, new CancellationTokenSource());
+            oldTokenSource.Cancel();
+            oldTokenSource.Dispose();
         }
     }
 }

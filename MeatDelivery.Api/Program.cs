@@ -129,7 +129,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHttpsRedirection();
 }
 
-// Configure static file serving for uploaded product images & assets (BE-014)
 var uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "Uploads");
 if (!Directory.Exists(uploadsPath))
 {

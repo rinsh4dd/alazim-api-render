@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Mvc;
+using MeatDelivery.Api.Extensions;
 using MeatDelivery.Application.DTOs.Product;
 using MeatDelivery.Application.Interfaces.Product;
 
@@ -44,7 +45,10 @@ namespace MeatDelivery.Api.Controllers
             [FromBody] GetCustomerProductsQueryDto query,
             CancellationToken cancellationToken = default)
         {
-            var response = await _productService.GetCustomerProductsAsync(query, cancellationToken);
+            var customerUserId = HttpContext.GetUserId();
+            long? userIdParam = customerUserId > 0 ? customerUserId : null;
+
+            var response = await _productService.GetCustomerProductsAsync(userIdParam, query, cancellationToken);
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }

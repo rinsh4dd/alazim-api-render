@@ -76,7 +76,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
             );
         }
 
-        public async Task<(List<CustomerProductDto> Items, int TotalRecords)> GetCustomerProductsAsync(GetCustomerProductsQueryDto query, CancellationToken cancellationToken = default)
+        public async Task<(List<CustomerProductDto> Items, int TotalRecords)> GetCustomerProductsAsync(long? customerUserId, GetCustomerProductsQueryDto query, CancellationToken cancellationToken = default)
         {
             return await _dapperRepository.QueryMultipleAsync(
                 "dbo.PR_GET_CUSTOMER_PRODUCTS",
@@ -86,17 +86,7 @@ namespace MeatDelivery.Infrastructure.Repositories.Catalog
                     var items = (await grid.ReadAsync<CustomerProductDto>()).ToList();
                     return (items, totalRecords);
                 },
-                new
-                {
-                    PRODUCT_ID = query.ProductId,
-                    CATEGORY_ID = query.CategoryId,
-                    SEARCH_TERM = query.SearchTerm,
-                    IS_FEATURED = query.IsFeatured,
-                    IS_NEW_ARRIVAL = query.IsNewArrival,
-                    IS_PREORDERABLE = query.IsPreorderable,
-                    PAGE_NUMBER = query.PageNumber,
-                    PAGE_SIZE = query.PageSize
-                }
+                new { CUSTOMER_USER_ID = customerUserId, PRODUCT_ID = query.ProductId, CATEGORY_ID = query.CategoryId, SEARCH_TERM = query.SearchTerm, PAGE_NUMBER = query.PageNumber, PAGE_SIZE = query.PageSize }
             );
         }
 
