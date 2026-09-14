@@ -125,6 +125,6 @@ app.UseHangfireSupport();
 app.MapControllers();
 app.MapHealthChecks("/api/health");
 
-Log.Information("🚀 Al Azeem Meat Delivery API started successfully! Listening on configured ports. Swagger UI: /swagger");
+Log.Information("🚀 Al Azima Meat Delivery API started successfully! Listening on configured ports. Swagger UI: /swagger");
 
 app.Run();
