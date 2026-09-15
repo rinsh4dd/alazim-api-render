@@ -5,7 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentValidation;
 using Microsoft.Extensions.Caching.Memory;
+using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.DTOs.Coupon;
+using MeatDelivery.Application.Interfaces.Cart;
 using MeatDelivery.Application.Interfaces.Coupon;
 using MeatDelivery.Application.Interfaces.Repositories.Coupon;
 using MeatDelivery.Domain.Enums;
@@ -17,18 +19,24 @@ namespace MeatDelivery.Infrastructure.Services.Coupon
     public class CouponService : ICouponService
     {
         private readonly ICouponRepository _couponRepository;
+        private readonly ICartCalculationService _cartCalculationService;
         private readonly IValidator<SaveCouponDto> _saveCouponValidator;
+        private readonly IValidator<ApplyCouponDto> _applyCouponValidator;
         private readonly IMemoryCache _cache;
 
         private static CancellationTokenSource _couponCacheTokenSource = new();
 
         public CouponService(
             ICouponRepository couponRepository,
+            ICartCalculationService cartCalculationService,
             IValidator<SaveCouponDto> saveCouponValidator,
+            IValidator<ApplyCouponDto> applyCouponValidator,
             IMemoryCache cache)
         {
             _couponRepository = couponRepository;
+            _cartCalculationService = cartCalculationService;
             _saveCouponValidator = saveCouponValidator;
+            _applyCouponValidator = applyCouponValidator;
             _cache = cache;
         }
 
@@ -91,6 +99,39 @@ namespace MeatDelivery.Infrastructure.Services.Coupon
             _cache.Set(cacheKey, response, cacheOptions);
 
             return response;
+        }
+
+        public async Task<ApiResponse<CustomerCartSummaryDto>> ApplyCouponAsync(long customerUserId, ApplyCouponDto dto, CancellationToken cancellationToken = default)
+        {
+            if (customerUserId <= 0)
+            {
+                return ApiResponse<CustomerCartSummaryDto>.FailureResponse("Valid CustomerUserId is required.");
+            }
+
+            var validationResult = await _applyCouponValidator.ValidateAsync(dto, cancellationToken);
+            if (!validationResult.IsValid)
+            {
+                var errors = validationResult.Errors.Select(e => e.ErrorMessage).ToList();
+                return ApiResponse<CustomerCartSummaryDto>.FailureResponse("Validation failed.", errors);
+            }
+
+            await _couponRepository.ApplyCouponAsync(customerUserId, dto.CouponCode, cancellationToken);
+            var updatedCart = await _cartCalculationService.CalculateActiveCartAsync(customerUserId, cancellationToken);
+
+            return ApiResponse<CustomerCartSummaryDto>.SuccessResponse(updatedCart, "Coupon code applied successfully.");
+        }
+
+        public async Task<ApiResponse<CustomerCartSummaryDto>> RemoveCouponAsync(long customerUserId, CancellationToken cancellationToken = default)
+        {
+            if (customerUserId <= 0)
+            {
+                return ApiResponse<CustomerCartSummaryDto>.FailureResponse("Valid CustomerUserId is required.");
+            }
+
+            await _couponRepository.RemoveCouponAsync(customerUserId, cancellationToken);
+            var updatedCart = await _cartCalculationService.CalculateActiveCartAsync(customerUserId, cancellationToken);
+
+            return ApiResponse<CustomerCartSummaryDto>.SuccessResponse(updatedCart, "Coupon code removed successfully.");
         }
     }
 }

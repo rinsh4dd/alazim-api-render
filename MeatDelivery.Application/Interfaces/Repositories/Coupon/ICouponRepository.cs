@@ -9,5 +9,7 @@ namespace MeatDelivery.Application.Interfaces.Repositories.Coupon
     {
         Task<CouponDto?> SaveCouponAsync(SaveCouponDto request, CancellationToken cancellationToken = default);
         Task<(IEnumerable<CouponDto> Items, int TotalRecords)> GetCouponsAsync(GetCouponsQueryDto query, CancellationToken cancellationToken = default);
+        Task<AppliedCouponDto?> ApplyCouponAsync(long customerUserId, string couponCode, CancellationToken cancellationToken = default);
+        Task<bool> RemoveCouponAsync(long customerUserId, CancellationToken cancellationToken = default);
     }
 }

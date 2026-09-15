@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MeatDelivery.Application.Common.Helpers;
 using MeatDelivery.Application.DTOs.Cart;
+using MeatDelivery.Application.DTOs.Coupon;
 using MeatDelivery.Application.Interfaces.Cart;
 using MeatDelivery.Domain.Enums;
 
@@ -105,7 +106,45 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                 });
             }
 
-            return BuildCartSummaryResponse(cartHeader, totalItemCount, cartSubtotal, itemDetailList);
+            AppliedCouponDto? appliedCoupon = null;
+            decimal discountAmount = 0.00m;
+
+            if (cartHeader.COUPON_ID != null && !string.IsNullOrWhiteSpace((string?)cartHeader.COUPON_CODE))
+            {
+                var minOrder = cartHeader.MINIMUM_ORDER_AMOUNT != null ? Convert.ToDecimal(cartHeader.MINIMUM_ORDER_AMOUNT) : 0.00m;
+                if (cartSubtotal >= minOrder)
+                {
+                    appliedCoupon = new AppliedCouponDto
+                    {
+                        CouponId = (long)cartHeader.COUPON_ID,
+                        CouponCode = (string)cartHeader.COUPON_CODE,
+                        CouponName = (string)cartHeader.COUPON_NAME,
+                        DiscountType = (string)cartHeader.DISCOUNT_TYPE,
+                        DiscountValue = Convert.ToDecimal(cartHeader.DISCOUNT_VALUE),
+                        MaxDiscountAmount = cartHeader.MAX_DISCOUNT_AMOUNT != null ? Convert.ToDecimal(cartHeader.MAX_DISCOUNT_AMOUNT) : null,
+                        MinimumOrderAmount = minOrder
+                    };
+
+                    if (string.Equals(appliedCoupon.DiscountType, "PERCENTAGE", StringComparison.OrdinalIgnoreCase))
+                    {
+                        discountAmount = cartSubtotal * (appliedCoupon.DiscountValue / 100.00m);
+                        if (appliedCoupon.MaxDiscountAmount.HasValue && discountAmount > appliedCoupon.MaxDiscountAmount.Value)
+                        {
+                            discountAmount = appliedCoupon.MaxDiscountAmount.Value;
+                        }
+                    }
+                    else if (string.Equals(appliedCoupon.DiscountType, "FIXED_AMOUNT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        discountAmount = appliedCoupon.DiscountValue;
+                        if (discountAmount > cartSubtotal)
+                        {
+                            discountAmount = cartSubtotal;
+                        }
+                    }
+                }
+            }
+
+            return BuildCartSummaryResponse(cartHeader, totalItemCount, cartSubtotal, itemDetailList, appliedCoupon, discountAmount);
         }
 
         private static CustomerCartSummaryDto BuildCartSummaryResponse(
@@ -113,6 +152,7 @@ namespace MeatDelivery.Infrastructure.Services.Cart
             int totalItemCount,
             decimal cartSubtotal,
             List<CartItemDetailDto> itemDetailList,
+            AppliedCouponDto? appliedCoupon = null,
             decimal discountAmount = 0.00m,
             decimal deliveryFee = 0.00m)
         {
@@ -121,15 +161,16 @@ namespace MeatDelivery.Infrastructure.Services.Cart
             return new CustomerCartSummaryDto
             {
                 CartId = (long)cartHeader.CART_ID,
-                CartStatus = (string)(cartHeader.CART_STATUS ?? "ACTIVE"),
+                CartStatus = (string)cartHeader.CART_STATUS,
                 TotalItemCount = totalItemCount,
+                AppliedCoupon = appliedCoupon,
                 Summary = new CartPricingSummaryDto
                 {
                     Subtotal = cartSubtotal,
                     DiscountAmount = discountAmount,
                     DiscountedSubtotal = cartSubtotal - discountAmount,
                     DeliveryCharge = deliveryFee,
-                    GrandTotal = grandTotal,
+                    GrandTotal = grandTotal < 0 ? 0.00m : grandTotal,
                     IsFreeDelivery = deliveryFee == 0.00m
                 },
                 Items = itemDetailList

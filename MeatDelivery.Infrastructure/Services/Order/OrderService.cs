@@ -64,10 +64,10 @@ namespace MeatDelivery.Infrastructure.Services.Order
             }
 
             // 3. Build Persistence DTO with Exact Pre-Calculated Prices
-            decimal deliveryCharge = 0.00m;
             decimal subtotal = cartSummary.Summary.Subtotal;
-            decimal couponDiscount = 0.00m;
-            decimal totalAmount = subtotal - couponDiscount + deliveryCharge;
+            decimal couponDiscount = cartSummary.Summary.DiscountAmount;
+            decimal deliveryCharge = cartSummary.Summary.DeliveryCharge;
+            decimal totalAmount = cartSummary.Summary.GrandTotal;
 
             var persistenceDto = new OrderPlacementPersistenceDto
             {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using MeatDelivery.Application.DTOs.Coupon;
 using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Application.DTOs.Cart
@@ -8,6 +9,7 @@ namespace MeatDelivery.Application.DTOs.Cart
         public long CartId { get; set; }
         public string CartStatus { get; set; } = "ACTIVE";
         public int TotalItemCount { get; set; }
+        public AppliedCouponDto? AppliedCoupon { get; set; }
         public CartPricingSummaryDto Summary { get; set; } = new CartPricingSummaryDto();
         public List<CartItemDetailDto> Items { get; set; } = new List<CartItemDetailDto>();
     }

@@ -1,10 +1,3 @@
--- =============================================================================
--- MIGRATION SCRIPT: 0143_Update_Coupons_Audit_And_Soft_Delete.sql
--- Description: Adds CREATED_BY, UPDATED_BY, IS_DELETED, DELETED_AT columns to COUPONS table.
---              Updates PR_SAVE_COUPON to support Soft Delete, Audit Tracking, and Duplicate Check.
---              Updates PR_GET_COUPONS to filter out soft-deleted records.
--- =============================================================================
-
 -- 1. Add Audit and Soft Delete Columns if not exists
 IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.COUPONS') AND name = 'CREATED_BY')
 BEGIN

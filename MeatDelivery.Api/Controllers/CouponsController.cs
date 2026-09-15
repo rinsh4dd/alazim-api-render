@@ -41,5 +41,25 @@ namespace MeatDelivery.Api.Controllers
             response.TraceId = HttpContext.TraceIdentifier;
             return Ok(response);
         }
+
+        [HttpPost("apply")]
+        public async Task<IActionResult> ApplyCoupon(
+            [FromBody] ApplyCouponDto request,
+            CancellationToken cancellationToken = default)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _couponService.ApplyCouponAsync(customerUserId, request, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
+        [HttpPost("remove")]
+        public async Task<IActionResult> RemoveCoupon(CancellationToken cancellationToken = default)
+        {
+            var customerUserId = HttpContext.GetUserId();
+            var response = await _couponService.RemoveCouponAsync(customerUserId, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
     }
 }

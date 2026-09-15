@@ -1,6 +1,7 @@
 -- =============================================================================
 -- STORED PROCEDURE: dbo.PR_GET_CUSTOMER_CART
 -- Description: Retrieves active cart header (with applied coupon info), item list, and item customization options.
+-- Migration: 0146_Update_PR_GET_CUSTOMER_CART.sql
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_GET_CUSTOMER_CART

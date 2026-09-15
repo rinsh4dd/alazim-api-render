@@ -63,5 +63,26 @@ namespace MeatDelivery.Infrastructure.Repositories.Coupon
                 }
             );
         }
+
+        public async Task<AppliedCouponDto?> ApplyCouponAsync(long customerUserId, string couponCode, CancellationToken cancellationToken = default)
+        {
+            return await _dapperRepository.QueryFirstOrDefaultAsync<AppliedCouponDto>(
+                "dbo.PR_APPLY_COUPON",
+                new
+                {
+                    CUSTOMER_USER_ID = customerUserId,
+                    COUPON_CODE = couponCode
+                }
+            );
+        }
+
+        public async Task<bool> RemoveCouponAsync(long customerUserId, CancellationToken cancellationToken = default)
+        {
+            await _dapperRepository.ExecuteAsync(
+                "dbo.PR_REMOVE_COUPON",
+                new { CUSTOMER_USER_ID = customerUserId }
+            );
+            return true;
+        }
     }
 }

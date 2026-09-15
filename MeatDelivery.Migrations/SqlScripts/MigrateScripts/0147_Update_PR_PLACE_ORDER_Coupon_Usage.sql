@@ -1,8 +1,7 @@
 -- =============================================================================
 -- STORED PROCEDURE: dbo.PR_PLACE_ORDER
--- Description: Places a customer order set-based using TT_ORDER_ITEMS and
--- TT_ORDER_ITEM_CUSTOMIZATIONS TVPs pre-calculated by CartCalculationService,
--- records COUPON_ID on order header, inserts into COUPON_USAGES, and increments COUPONS.TIMES_USED.
+-- Description: Updates PR_PLACE_ORDER to record COUPON_ID on order header, insert into COUPON_USAGES, and increment COUPONS.TIMES_USED.
+-- Migration: 0147_Update_PR_PLACE_ORDER_Coupon_Usage.sql
 -- =============================================================================
 
 CREATE OR ALTER PROCEDURE dbo.PR_PLACE_ORDER
