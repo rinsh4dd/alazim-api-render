@@ -125,7 +125,9 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                         MinimumOrderAmount = minOrder
                     };
 
-                    if (string.Equals(appliedCoupon.DiscountType, "PERCENTAGE", StringComparison.OrdinalIgnoreCase))
+                    var parsedDiscountType = ParseDiscountType(appliedCoupon.DiscountType);
+
+                    if (parsedDiscountType == DiscountType.PERCENTAGE)
                     {
                         discountAmount = cartSubtotal * (appliedCoupon.DiscountValue / 100.00m);
                         if (appliedCoupon.MaxDiscountAmount.HasValue && discountAmount > appliedCoupon.MaxDiscountAmount.Value)
@@ -133,7 +135,7 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                             discountAmount = appliedCoupon.MaxDiscountAmount.Value;
                         }
                     }
-                    else if (string.Equals(appliedCoupon.DiscountType, "FIXED_AMOUNT", StringComparison.OrdinalIgnoreCase))
+                    else if (parsedDiscountType == DiscountType.FLAT)
                     {
                         discountAmount = appliedCoupon.DiscountValue;
                         if (discountAmount > cartSubtotal)
@@ -199,5 +201,8 @@ namespace MeatDelivery.Infrastructure.Services.Cart
 
         private static PricingType ParsePricingType(string? pricingTypeStr) =>
             Enum.TryParse<PricingType>(pricingTypeStr, true, out var result) ? result : PricingType.ADDITIONAL_PRICE;
+
+        private static DiscountType? ParseDiscountType(string? discountTypeStr) =>
+            Enum.TryParse<DiscountType>(discountTypeStr, true, out var result) ? result : null;
     }
 }
