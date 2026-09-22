@@ -1,0 +1,51 @@
+CREATE OR ALTER PROCEDURE dbo.PR_GET_BANNERS
+    @BANNER_ID   BIGINT = NULL,
+    @IS_ACTIVE   BIT = NULL,
+    @LINK_TYPE   VARCHAR(20) = NULL,
+    @SEARCH      NVARCHAR(150) = NULL,
+    @PAGE_NUMBER INT = 1,
+    @PAGE_SIZE   INT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT COUNT(1) AS TotalRecords  
+    FROM dbo.BANNERS b 
+    WHERE b.IS_DELETED = 0
+    AND (@BANNER_ID IS NULL OR b.BANNER_ID = @BANNER_ID)
+    AND (@IS_ACTIVE IS NULL OR b.IS_ACTIVE = @IS_ACTIVE)
+    AND (@LINK_TYPE IS NULL OR b.LINK_TYPE = @LINK_TYPE)
+    AND (@SEARCH IS NULL OR b.TITLE_EN LIKE '%' + @SEARCH + '%' OR b.TITLE_AR LIKE '%' + @SEARCH + '%');
+
+    SELECT  
+        b.BANNER_ID AS BannerId,
+        b.TITLE_EN AS TitleEn,
+        b.TITLE_AR AS TitleAr,
+        b.ALT_TEXT_EN AS AltTextEn,
+        b.ALT_TEXT_AR AS AltTextAr,
+        b.IMAGE_URL AS ImageUrl,
+        b.LINK_TYPE AS LinkType,
+        b.PRODUCT_ID AS ProductId,
+        p.PRODUCT_NAME_EN AS ProductNameEn,
+        b.CATEGORY_ID AS CategoryId,
+        c.CATEGORY_NAME_EN AS CategoryNameEn,
+        b.OFFER_ID AS OfferId,
+        b.EXTERNAL_URL AS ExternalUrl,
+        b.START_AT AS StartAt,
+        b.END_AT AS EndAt,
+        b.IS_ACTIVE AS IsActive,
+        b.CREATED_AT AS CreatedAt,
+        b.UPDATED_AT AS UpdatedAt
+    FROM dbo.BANNERS b
+    LEFT JOIN dbo.PRODUCTS p ON b.PRODUCT_ID = p.PRODUCT_ID
+    LEFT JOIN dbo.CATEGORIES c ON b.CATEGORY_ID = c.CATEGORY_ID
+    WHERE b.IS_DELETED = 0
+    AND (@BANNER_ID IS NULL OR b.BANNER_ID = @BANNER_ID)
+    AND (@IS_ACTIVE IS NULL OR b.IS_ACTIVE = @IS_ACTIVE)
+    AND (@LINK_TYPE IS NULL OR b.LINK_TYPE = @LINK_TYPE)
+    AND (@SEARCH IS NULL OR b.TITLE_EN LIKE '%' + @SEARCH + '%' OR b.TITLE_AR LIKE '%' + @SEARCH + '%')
+    ORDER BY b.CREATED_AT DESC, b.BANNER_ID DESC
+    OFFSET (@PAGE_NUMBER - 1) * @PAGE_SIZE ROWS
+    FETCH NEXT @PAGE_SIZE ROWS ONLY;
+END;
+GO

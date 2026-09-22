@@ -194,6 +194,10 @@ namespace MeatDelivery.Infrastructure
             services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Coupon.ICouponRepository, MeatDelivery.Infrastructure.Repositories.Coupon.CouponRepository>();
             services.AddScoped<MeatDelivery.Application.Interfaces.Coupon.ICouponService, MeatDelivery.Infrastructure.Services.Coupon.CouponService>();
 
+            // Banner Services & Repositories
+            services.AddScoped<MeatDelivery.Application.Interfaces.Repositories.Banner.IBannerRepository, MeatDelivery.Infrastructure.Repositories.Banner.BannerRepository>();
+            services.AddScoped<MeatDelivery.Application.Interfaces.Banner.IBannerService, MeatDelivery.Infrastructure.Services.Banner.BannerService>();
+
             // Logging
             services.AddScoped<IActivityLogService, ActivityLogService>();
 

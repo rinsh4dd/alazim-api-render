@@ -203,6 +203,7 @@ namespace MeatDelivery.Infrastructure.Services.Cart
             Enum.TryParse<PricingType>(pricingTypeStr, true, out var result) ? result : PricingType.ADDITIONAL_PRICE;
 
         private static DiscountType? ParseDiscountType(string? discountTypeStr) =>
+            string.Equals(discountTypeStr, "FIXED_AMOUNT", StringComparison.OrdinalIgnoreCase) ? DiscountType.FLAT :
             Enum.TryParse<DiscountType>(discountTypeStr, true, out var result) ? result : null;
     }
 }
