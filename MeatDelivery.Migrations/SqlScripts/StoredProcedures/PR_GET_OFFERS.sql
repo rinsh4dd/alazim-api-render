@@ -1,0 +1,72 @@
+CREATE OR ALTER PROCEDURE dbo.PR_GET_OFFERS
+    @OFFER_ID      BIGINT = NULL,
+    @DISCOUNT_TYPE NVARCHAR(50) = NULL,
+    @SEARCH        NVARCHAR(200) = NULL,
+    @IS_ACTIVE     BIT = NULL,
+    @PAGE_NUMBER   INT = 1,
+    @PAGE_SIZE     INT = 10
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SET @PAGE_NUMBER = ISNULL(@PAGE_NUMBER, 1);
+    IF @PAGE_NUMBER < 1 SET @PAGE_NUMBER = 1;
+
+    SET @PAGE_SIZE = ISNULL(@PAGE_SIZE, 10);
+    IF @PAGE_SIZE < 1 SET @PAGE_SIZE = 10;
+
+    SET @SEARCH = NULLIF(LTRIM(RTRIM(@SEARCH)), '');
+
+    -- Result Set 1: Total Records
+    SELECT COUNT(1) AS TotalRecords
+    FROM dbo.OFFERS o
+    WHERE o.IS_DELETED = 0
+      AND (@OFFER_ID IS NULL OR o.OFFER_ID = @OFFER_ID)
+      AND (@DISCOUNT_TYPE IS NULL OR o.DISCOUNT_TYPE = UPPER(@DISCOUNT_TYPE))
+      AND (@IS_ACTIVE IS NULL OR o.IS_ACTIVE = @IS_ACTIVE)
+      AND (@SEARCH IS NULL OR o.OFFER_TITLE_EN LIKE '%' + @SEARCH + '%' OR o.OFFER_TITLE_AR LIKE '%' + @SEARCH + '%');
+
+    -- Result Set 2: Paginated Offer Headers
+    SELECT 
+        o.OFFER_ID AS OfferId,
+        o.OFFER_TITLE_EN AS OfferTitleEn,
+        o.OFFER_TITLE_AR AS OfferTitleAr,
+        o.DISCOUNT_TYPE AS DiscountType,
+        o.DISCOUNT_VALUE AS DiscountValue,
+        o.MINIMUM_ORDER_AMOUNT AS MinimumOrderAmount,
+        o.MAX_DISCOUNT_AMOUNT AS MaxDiscountAmount,
+        o.START_AT AS StartAt,
+        o.END_AT AS EndAt,
+        o.IS_ACTIVE AS IsActive,
+        o.CREATED_AT AS CreatedAt,
+        o.UPDATED_AT AS UpdatedAt
+    FROM dbo.OFFERS o
+    WHERE o.IS_DELETED = 0
+      AND (@OFFER_ID IS NULL OR o.OFFER_ID = @OFFER_ID)
+      AND (@DISCOUNT_TYPE IS NULL OR o.DISCOUNT_TYPE = UPPER(@DISCOUNT_TYPE))
+      AND (@IS_ACTIVE IS NULL OR o.IS_ACTIVE = @IS_ACTIVE)
+      AND (@SEARCH IS NULL OR o.OFFER_TITLE_EN LIKE '%' + @SEARCH + '%' OR o.OFFER_TITLE_AR LIKE '%' + @SEARCH + '%')
+    ORDER BY o.CREATED_AT DESC, o.OFFER_ID DESC
+    OFFSET (@PAGE_NUMBER - 1) * @PAGE_SIZE ROWS
+    FETCH NEXT @PAGE_SIZE ROWS ONLY;
+
+    -- Result Set 3: Scopes for the returned page
+    SELECT 
+        s.SCOPE_ID AS ScopeId,
+        s.OFFER_ID AS OfferId,
+        s.SCOPE_TYPE AS ScopeType,
+        s.CATEGORY_ID AS CategoryId,
+        c.CATEGORY_NAME_EN AS CategoryNameEn,
+        s.PRODUCT_ID AS ProductId,
+        p.PRODUCT_NAME_EN AS ProductNameEn
+    FROM dbo.OFFER_SCOPES s
+    INNER JOIN dbo.OFFERS o ON s.OFFER_ID = o.OFFER_ID
+    LEFT JOIN dbo.CATEGORIES c ON s.CATEGORY_ID = c.CATEGORY_ID
+    LEFT JOIN dbo.PRODUCTS p ON s.PRODUCT_ID = p.PRODUCT_ID
+    WHERE o.IS_DELETED = 0
+      AND (@OFFER_ID IS NULL OR o.OFFER_ID = @OFFER_ID)
+      AND (@DISCOUNT_TYPE IS NULL OR o.DISCOUNT_TYPE = UPPER(@DISCOUNT_TYPE))
+      AND (@IS_ACTIVE IS NULL OR o.IS_ACTIVE = @IS_ACTIVE)
+      AND (@SEARCH IS NULL OR o.OFFER_TITLE_EN LIKE '%' + @SEARCH + '%' OR o.OFFER_TITLE_AR LIKE '%' + @SEARCH + '%');
+END;
+GO

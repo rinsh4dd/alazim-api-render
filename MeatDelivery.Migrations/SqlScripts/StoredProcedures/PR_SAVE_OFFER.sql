@@ -1,0 +1,84 @@
+CREATE OR ALTER PROCEDURE dbo.PR_SAVE_OFFER
+    @MODE                 NVARCHAR(10),
+    @OFFER_ID             BIGINT = NULL,
+    @OFFER_TITLE_EN       NVARCHAR(200) = NULL,
+    @OFFER_TITLE_AR       NVARCHAR(200) = NULL,
+    @DISCOUNT_TYPE        NVARCHAR(50) = NULL,
+    @DISCOUNT_VALUE       DECIMAL(18,2) = NULL,
+    @MINIMUM_ORDER_AMOUNT DECIMAL(18,2) = NULL,
+    @MAX_DISCOUNT_AMOUNT  DECIMAL(18,2) = NULL,
+    @START_AT             DATETIME2 = NULL,
+    @END_AT               DATETIME2 = NULL,
+    @IS_ACTIVE            BIT = 1,
+    @SCOPES_JSON          NVARCHAR(MAX) = NULL,
+    @ACTIONED_BY          BIGINT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF UPPER(@MODE) = 'ADD'
+    BEGIN
+        INSERT INTO dbo.OFFERS
+        (
+            OFFER_TITLE_EN, OFFER_TITLE_AR, DISCOUNT_TYPE, DISCOUNT_VALUE,
+            MINIMUM_ORDER_AMOUNT, MAX_DISCOUNT_AMOUNT, START_AT, END_AT,
+            IS_ACTIVE, CREATED_BY, CREATED_AT, IS_DELETED
+        )
+        VALUES
+        (
+            @OFFER_TITLE_EN, @OFFER_TITLE_AR, UPPER(@DISCOUNT_TYPE), @DISCOUNT_VALUE,
+            @MINIMUM_ORDER_AMOUNT, @MAX_DISCOUNT_AMOUNT, @START_AT, @END_AT,
+            ISNULL(@IS_ACTIVE, 1), @ACTIONED_BY, SYSUTCDATETIME(), 0
+        );
+
+        SET @OFFER_ID = SCOPE_IDENTITY();
+    END
+    ELSE IF UPPER(@MODE) = 'EDIT'
+    BEGIN
+        UPDATE dbo.OFFERS
+        SET OFFER_TITLE_EN       = ISNULL(@OFFER_TITLE_EN, OFFER_TITLE_EN),
+            OFFER_TITLE_AR       = ISNULL(@OFFER_TITLE_AR, OFFER_TITLE_AR),
+            DISCOUNT_TYPE        = ISNULL(UPPER(@DISCOUNT_TYPE), DISCOUNT_TYPE),
+            DISCOUNT_VALUE       = ISNULL(@DISCOUNT_VALUE, DISCOUNT_VALUE),
+            MINIMUM_ORDER_AMOUNT = @MINIMUM_ORDER_AMOUNT,
+            MAX_DISCOUNT_AMOUNT  = @MAX_DISCOUNT_AMOUNT,
+            START_AT             = ISNULL(@START_AT, START_AT),
+            END_AT               = ISNULL(@END_AT, END_AT),
+            IS_ACTIVE            = ISNULL(@IS_ACTIVE, IS_ACTIVE),
+            UPDATED_BY           = @ACTIONED_BY,
+            UPDATED_AT           = SYSUTCDATETIME()
+        WHERE OFFER_ID = @OFFER_ID AND IS_DELETED = 0;
+    END
+    ELSE IF UPPER(@MODE) = 'DELETE'
+    BEGIN
+        UPDATE dbo.OFFERS
+        SET IS_DELETED = 1,
+            DELETED_AT = SYSUTCDATETIME(),
+            UPDATED_BY = @ACTIONED_BY
+        WHERE OFFER_ID = @OFFER_ID AND IS_DELETED = 0;
+
+        SELECT @OFFER_ID AS OfferId;
+        RETURN;
+    END
+
+    -- Synchronize offer scopes if JSON payload provided
+    IF @SCOPES_JSON IS NOT NULL AND ISJSON(@SCOPES_JSON) = 1 AND @OFFER_ID IS NOT NULL
+    BEGIN
+        DELETE FROM dbo.OFFER_SCOPES WHERE OFFER_ID = @OFFER_ID;
+
+        INSERT INTO dbo.OFFER_SCOPES (OFFER_ID, SCOPE_TYPE, CATEGORY_ID, PRODUCT_ID)
+        SELECT 
+            @OFFER_ID,
+            UPPER(j.ScopeType),
+            j.CategoryId,
+            j.ProductId
+        FROM OPENJSON(@SCOPES_JSON) WITH (
+            ScopeType  NVARCHAR(50) '$.ScopeType',
+            CategoryId BIGINT       '$.CategoryId',
+            ProductId  BIGINT       '$.ProductId'
+        ) j;
+    END
+
+    SELECT @OFFER_ID AS OfferId;
+END;
+GO
