@@ -32,5 +32,18 @@ namespace MeatDelivery.Application.DTOs.Product
         public bool IsNewArrival { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        // ── Active Offer Mapping ───────────────────────────────────────────────
+        public long? OfferId { get; set; }
+        public string? OfferTitleEn { get; set; }
+        public string? OfferTitleAr { get; set; }
+        public string? OfferDiscountType { get; set; }
+        public decimal? OfferDiscountValue { get; set; }
+        public bool HasActiveOffer { get; set; }
+        /// <summary>
+        /// The lowest possible selling price after applying the best discount
+        /// (product-level discount% vs. campaign offer — whichever is greater saving).
+        /// </summary>
+        public decimal EffectiveSellingPrice { get; set; }
     }
 }

@@ -31,6 +31,16 @@ namespace MeatDelivery.Api.Controllers.Admin
             return Ok(response);
         }
 
+        [HttpGet("purchase-summary")]
+        public async Task<IActionResult> GetPurchaseSummary(
+            [FromQuery] GetPurchaseSummaryQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            var response = await _orderService.GetPurchaseSummaryAsync(query, cancellationToken);
+            response.TraceId = HttpContext.TraceIdentifier;
+            return Ok(response);
+        }
+
         [HttpGet("track/{orderId}")]
         public async Task<IActionResult> TrackAdminOrder(
             [FromRoute] long orderId,

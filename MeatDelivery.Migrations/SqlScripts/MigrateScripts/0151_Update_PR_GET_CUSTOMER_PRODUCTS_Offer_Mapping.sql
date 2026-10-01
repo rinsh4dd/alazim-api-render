@@ -1,8 +1,8 @@
-IF OBJECT_ID('dbo.PR_GET_CUSTOMER_PRODUCTS', 'P') IS NOT NULL
-    DROP PROCEDURE dbo.PR_GET_CUSTOMER_PRODUCTS;
-GO
+-- Migration: 0151_Update_PR_GET_CUSTOMER_PRODUCTS_Offer_Mapping.sql
+-- Adds active offer matching (ALL / CATEGORY / PRODUCT scope) to the customer product query.
+-- Best-Price Rule: if both a product discount% and an offer exist, the lower effective price wins.
 
-CREATE PROCEDURE dbo.PR_GET_CUSTOMER_PRODUCTS
+CREATE OR ALTER PROCEDURE dbo.PR_GET_CUSTOMER_PRODUCTS
     @CUSTOMER_USER_ID BIGINT = NULL,
     @PRODUCT_ID       BIGINT = NULL,
     @CATEGORY_ID      BIGINT = NULL,
@@ -62,7 +62,10 @@ BEGIN
         p.DISCOUNT_PERCENTAGE                                               AS DiscountPercentage,
         p.STOCK_COUNT                                                       AS StockCount,
         pr.PRICE                                                            AS Price,
+
+        -- Base selling price from product discount%
         CAST(pr.PRICE - (pr.PRICE * (p.DISCOUNT_PERCENTAGE / 100.0)) AS DECIMAL(18,2)) AS SellingPrice,
+
         img.PRIMARY_URL                                                     AS PrimaryUrl,
         img.SECONDARY_URL                                                   AS SecondaryUrl,
         img.TERTIARY_URL                                                    AS TertiaryUrl,
@@ -76,7 +79,12 @@ BEGIN
         p.CREATED_AT                                                        AS CreatedAt,
         p.UPDATED_AT                                                        AS UpdatedAt,
 
-        -- ── Offer Mapping (Best Active Offer per product) ──────────────────────
+        -- ── Offer Mapping ──────────────────────────────────────────────────────────
+        -- Resolve the BEST matching active offer using scope precedence:
+        --   PRODUCT scope > CATEGORY scope > ALL scope
+        -- Among multiple matching offers the one with the lowest computed effective
+        -- price is selected (best-price rule).
+
         best_offer.OFFER_ID                                                 AS OfferId,
         best_offer.OFFER_TITLE_EN                                           AS OfferTitleEn,
         best_offer.OFFER_TITLE_AR                                           AS OfferTitleAr,
@@ -84,7 +92,7 @@ BEGIN
         best_offer.DISCOUNT_VALUE                                           AS OfferDiscountValue,
         CAST(CASE WHEN best_offer.OFFER_ID IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS HasActiveOffer,
 
-        -- Best-Price Rule: whichever yields the lower selling price wins
+        -- EffectiveSellingPrice: min(product-discount price, offer price)
         CASE
             WHEN best_offer.OFFER_ID IS NOT NULL THEN
                 CASE
@@ -113,7 +121,7 @@ BEGIN
     LEFT  JOIN dbo.PRODUCT_PRICES pr   ON p.PRODUCT_ID = pr.PRODUCT_ID AND pr.IS_ACTIVE = 1
     LEFT  JOIN dbo.PRODUCT_IMAGES img  ON p.PRODUCT_ID = img.PRODUCT_ID
 
-    -- Resolve the single best active offer per product
+    -- Best active offer per product (OUTER APPLY = one row or NULL)
     OUTER APPLY
     (
         SELECT TOP 1
@@ -122,11 +130,13 @@ BEGIN
             o.OFFER_TITLE_AR,
             o.DISCOUNT_TYPE,
             o.DISCOUNT_VALUE,
+            -- Compute effective offer price for ranking
             CASE
                 WHEN UPPER(o.DISCOUNT_TYPE) = 'PERCENTAGE'
                      THEN pr.PRICE - (pr.PRICE * (o.DISCOUNT_VALUE / 100.0))
                 ELSE pr.PRICE - o.DISCOUNT_VALUE
             END AS EffectiveOfferPrice,
+            -- Scope precedence: PRODUCT=1 > CATEGORY=2 > ALL=3
             CASE UPPER(s.SCOPE_TYPE)
                 WHEN 'PRODUCT'  THEN 1
                 WHEN 'CATEGORY' THEN 2
@@ -138,14 +148,17 @@ BEGIN
           AND o.IS_ACTIVE  = 1
           AND @NOW BETWEEN o.START_AT AND o.END_AT
           AND (
+                -- ALL: applies to every product
                 UPPER(s.SCOPE_TYPE) = 'ALL'
+                -- CATEGORY: product must be in that category
                 OR (UPPER(s.SCOPE_TYPE) = 'CATEGORY' AND s.CATEGORY_ID = p.CATEGORY_ID)
+                -- PRODUCT: direct product match
                 OR (UPPER(s.SCOPE_TYPE) = 'PRODUCT'  AND s.PRODUCT_ID  = p.PRODUCT_ID)
               )
         ORDER BY
-            ScopePrecedence ASC,
-            EffectiveOfferPrice ASC,
-            o.OFFER_ID DESC
+            ScopePrecedence ASC,       -- prefer narrower scope first
+            EffectiveOfferPrice ASC,   -- then best (lowest) price
+            o.OFFER_ID DESC            -- tie-break: most recent offer
     ) AS best_offer
 
     WHERE p.IS_ACTIVE = 1
@@ -179,7 +192,7 @@ BEGIN
                 WHERE o.CUSTOMER_USER_ID = @CUSTOMER_USER_ID AND oi.PRODUCT_ID = p.PRODUCT_ID AND o.ORDER_STATUS != 'CANCELLED'
             ), 0)
         ELSE 0 END DESC,
-        HasActiveOffer DESC,
+        HasActiveOffer DESC,   -- offer products surface first
         p.CREATED_AT DESC
     OFFSET (@PAGE_NUMBER - 1) * @PAGE_SIZE ROWS
     FETCH NEXT @PAGE_SIZE ROWS ONLY;

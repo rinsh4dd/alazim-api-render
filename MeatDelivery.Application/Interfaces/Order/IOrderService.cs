@@ -22,6 +22,10 @@ namespace MeatDelivery.Application.Interfaces.Order
             GetAdminOrdersQueryDto query,
             CancellationToken cancellationToken = default);
 
+        Task<ApiResponse<List<PurchaseSummaryDto>>> GetPurchaseSummaryAsync(
+            GetPurchaseSummaryQueryDto query,
+            CancellationToken cancellationToken = default);
+
         Task<ApiResponse<OrderTrackingResponseDto>> TrackOrderAsync(
             long orderId,
             long? customerUserId,

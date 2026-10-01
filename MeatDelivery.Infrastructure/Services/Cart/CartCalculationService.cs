@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 using MeatDelivery.Application.Common.Helpers;
 using MeatDelivery.Application.DTOs.Cart;
 using MeatDelivery.Application.DTOs.Coupon;
+using MeatDelivery.Application.DTOs.Offer;
 using MeatDelivery.Application.Interfaces.Cart;
+using MeatDelivery.Application.Interfaces.Repositories.Offer;
 using MeatDelivery.Domain.Enums;
 
 namespace MeatDelivery.Infrastructure.Services.Cart
@@ -14,10 +16,12 @@ namespace MeatDelivery.Infrastructure.Services.Cart
     public class CartCalculationService : ICartCalculationService
     {
         private readonly ICartRepository _cartRepository;
+        private readonly IOfferRepository _offerRepository;
 
-        public CartCalculationService(ICartRepository cartRepository)
+        public CartCalculationService(ICartRepository cartRepository, IOfferRepository offerRepository)
         {
             _cartRepository = cartRepository;
+            _offerRepository = offerRepository;
         }
 
         public async Task<CustomerCartSummaryDto> CalculateActiveCartAsync(long customerUserId, CancellationToken cancellationToken = default)
@@ -27,6 +31,9 @@ namespace MeatDelivery.Infrastructure.Services.Cart
             {
                 return CartSummaryHelper.CreateEmptyCartSummary();
             }
+
+            // Fetch all currently active offers once — shared across all cart item resolution
+            var activeOffers = (await _offerRepository.GetActiveOffersAsync(cancellationToken)).ToList();
 
             var optionsByCartItem = optionRows
                 .GroupBy(o => (long)o.CART_ITEM_ID)
@@ -84,7 +91,18 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                 }
 
                 decimal configuredUnitPrice = currentPrice;
-                decimal lineTotalPrice = configuredUnitPrice * quantity;
+
+                // ── Offer Resolution per cart item ────────────────────────────
+                long productId  = (long)itemRow.PRODUCT_ID;
+                long categoryId = itemRow.CATEGORY_ID != null ? (long)itemRow.CATEGORY_ID : 0L;
+                var bestOffer   = ResolveBestOffer(activeOffers, productId, categoryId, configuredUnitPrice);
+
+                // Apply offer price only when it yields a lower unit price
+                decimal effectiveUnitPrice = bestOffer != null
+                    ? Math.Min(configuredUnitPrice, bestOffer.EffectiveUnitPrice)
+                    : configuredUnitPrice;
+
+                decimal lineTotalPrice = effectiveUnitPrice * quantity;
 
                 cartSubtotal += lineTotalPrice;
                 totalItemCount += quantity;
@@ -92,7 +110,7 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                 itemDetailList.Add(new CartItemDetailDto
                 {
                     CartItemId = cartItemId,
-                    ProductId = (long)itemRow.PRODUCT_ID,
+                    ProductId = productId,
                     ProductNameEn = (string)(itemRow.PRODUCT_NAME_EN ?? string.Empty),
                     ProductNameAr = (string)(itemRow.PRODUCT_NAME_AR ?? string.Empty),
                     ProductImage = (string?)itemRow.PRODUCT_IMAGE,
@@ -101,6 +119,9 @@ namespace MeatDelivery.Infrastructure.Services.Cart
                     SpecialInstructions = (string?)itemRow.SPECIAL_INSTRUCTIONS,
                     UnitPrice = basePrice,
                     TotalCustomizationExtraPrice = totalOptionExtraPrice,
+                    AppliedOfferId = bestOffer?.OfferId,
+                    AppliedOfferTitleEn = bestOffer?.OfferTitleEn,
+                    OfferUnitPrice = bestOffer != null ? effectiveUnitPrice : null,
                     LineTotalPrice = lineTotalPrice,
                     CustomizationOptions = itemOptionDtos
                 });
@@ -148,6 +169,75 @@ namespace MeatDelivery.Infrastructure.Services.Cart
 
             return BuildCartSummaryResponse(cartHeader, totalItemCount, cartSubtotal, itemDetailList, appliedCoupon, discountAmount);
         }
+
+        /// <summary>
+        /// Resolves the single best active offer for a product using scope precedence:
+        /// PRODUCT (1) > CATEGORY (2) > ALL (3). Tie-broken by lowest effective price.
+        /// </summary>
+        private static ResolvedOffer? ResolveBestOffer(
+            IEnumerable<ActiveOfferDto> activeOffers,
+            long productId,
+            long categoryId,
+            decimal baseUnitPrice)
+        {
+            ResolvedOffer? best = null;
+
+            foreach (var offer in activeOffers)
+            {
+                foreach (var scope in offer.Scopes)
+                {
+                    bool matches = scope.ScopeType?.ToUpperInvariant() switch
+                    {
+                        "ALL"      => true,
+                        "CATEGORY" => scope.CategoryId.HasValue && scope.CategoryId.Value == categoryId,
+                        "PRODUCT"  => scope.ProductId.HasValue  && scope.ProductId.Value  == productId,
+                        _          => false
+                    };
+
+                    if (!matches) continue;
+
+                    int scopePrecedence = scope.ScopeType?.ToUpperInvariant() switch
+                    {
+                        "PRODUCT"  => 1,
+                        "CATEGORY" => 2,
+                        _          => 3
+                    };
+
+                    decimal effectivePrice = offer.DiscountType?.ToUpperInvariant() == "PERCENTAGE"
+                        ? baseUnitPrice - (baseUnitPrice * (offer.DiscountValue / 100m))
+                        : baseUnitPrice - offer.DiscountValue;
+
+                    if (effectivePrice < 0m) effectivePrice = 0m;
+
+                    if (best == null
+                        || scopePrecedence < best.ScopePrecedence
+                        || (scopePrecedence == best.ScopePrecedence && effectivePrice < best.EffectiveUnitPrice))
+                    {
+                        best = new ResolvedOffer
+                        {
+                            OfferId          = offer.OfferId,
+                            OfferTitleEn     = offer.OfferTitleEn,
+                            ScopePrecedence  = scopePrecedence,
+                            EffectiveUnitPrice = effectivePrice
+                        };
+                    }
+
+                    break; // one matching scope per offer is enough
+                }
+            }
+
+            return best;
+        }
+
+        private sealed class ResolvedOffer
+        {
+            public long   OfferId           { get; init; }
+            public string OfferTitleEn      { get; init; } = string.Empty;
+            public int    ScopePrecedence   { get; init; }
+            public decimal EffectiveUnitPrice { get; init; }
+        }
+
+
 
         private static CustomerCartSummaryDto BuildCartSummaryResponse(
             dynamic cartHeader,

@@ -171,6 +171,35 @@ namespace MeatDelivery.Infrastructure.Services.Order
             };
         }
 
+        public async Task<ApiResponse<List<PurchaseSummaryDto>>> GetPurchaseSummaryAsync(
+            GetPurchaseSummaryQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new GetPurchaseSummaryQueryDto();
+
+            // An unfiltered report opens on today's figures. Other filters can
+            // search the full history unless an explicit date range is supplied.
+            if (!query.ProductId.HasValue &&
+                !query.CustomerUserId.HasValue &&
+                !query.FromDate.HasValue &&
+                !query.ToDate.HasValue)
+            {
+                var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                query.FromDate = today;
+                query.ToDate = today;
+            }
+
+            if (query.FromDate.HasValue && query.ToDate.HasValue && query.FromDate > query.ToDate)
+            {
+                return ApiResponse<List<PurchaseSummaryDto>>.FailureResponse(
+                    "FromDate cannot be later than ToDate.");
+            }
+
+            var rows = await _orderRepository.GetPurchaseSummaryAsync(query, cancellationToken);
+            return ApiResponse<List<PurchaseSummaryDto>>.SuccessResponse(
+                rows, "Purchase summary retrieved successfully.");
+        }
+
         public async Task<ApiResponse<OrderTrackingResponseDto>> TrackOrderAsync(
             long orderId,
             long? customerUserId,

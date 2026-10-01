@@ -26,6 +26,14 @@ namespace MeatDelivery.Application.DTOs.Cart
         public string? SpecialInstructions { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalCustomizationExtraPrice { get; set; }
+        // ── Offer fields (null when no offer applies to this item) ───────────
+        public long? AppliedOfferId { get; set; }
+        public string? AppliedOfferTitleEn { get; set; }
+        /// <summary>
+        /// The effective per-unit price after the offer discount.
+        /// Null when no offer is applied (UnitPrice is used instead).
+        /// </summary>
+        public decimal? OfferUnitPrice { get; set; }
         public decimal LineTotalPrice { get; set; }
         public List<CartItemOptionDetailDto> CustomizationOptions { get; set; } = new List<CartItemOptionDetailDto>();
     }

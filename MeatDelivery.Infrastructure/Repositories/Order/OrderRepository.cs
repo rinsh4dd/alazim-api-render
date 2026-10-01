@@ -123,6 +123,27 @@ namespace MeatDelivery.Infrastructure.Repositories.Order
             return (orderId, docNo);
         }
 
+        public async Task<List<PurchaseSummaryDto>> GetPurchaseSummaryAsync(
+            GetPurchaseSummaryQueryDto query,
+            CancellationToken cancellationToken = default)
+        {
+            using var connection = _connectionFactory.CreateConnection();
+            var parameters = new DynamicParameters();
+            parameters.Add("PRODUCT_ID", query.ProductId);
+            parameters.Add("CUSTOMER_USER_ID", query.CustomerUserId);
+            parameters.Add("FROM_DATE", query.FromDate?.ToDateTime(TimeOnly.MinValue));
+            parameters.Add("TO_DATE", query.ToDate?.AddDays(1).ToDateTime(TimeOnly.MinValue));
+
+            var command = new CommandDefinition(
+                "dbo.PR_GET_PURCHASE_SUMMARY",
+                parameters,
+                commandType: CommandType.StoredProcedure,
+                cancellationToken: cancellationToken);
+
+            var rows = await connection.QueryAsync<PurchaseSummaryDto>(command);
+            return rows.ToList();
+        }
+
         public async Task<List<CustomerOrderDetailDto>> GetCustomerOrdersAsync(
             long customerUserId,
             GetCustomerOrdersQueryDto query,
